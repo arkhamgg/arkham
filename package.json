@@ -11,5 +11,8 @@
   "devDependencies": {
     "sass": "^1.104.0",
     "vite": "^8.2.2"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.3.1"
   }
 }

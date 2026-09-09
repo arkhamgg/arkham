@@ -1,0 +1,36 @@
+// ========================================
+// NEXUS — Global Base
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+html {
+  background: $color-black;
+  color-scheme: dark;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+
+  background: $color-black;
+  color: $color-white;
+
+  font-family: $font-family-base;
+  font-size: $font-size-md;
+  line-height: 1.5;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  overflow-x: hidden;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+::selection {
+  background: $color-red;
+  color: $color-white;
+}
