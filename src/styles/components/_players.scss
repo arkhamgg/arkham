@@ -1,0 +1,932 @@
+// ========================================
+// NEXUS — Players
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+.players {
+  position: relative;
+
+  min-height: 100vh;
+  min-height: 100svh;
+
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      180deg,
+      $color-black 0%,
+      $color-950 100%
+    );
+
+  border-top:
+    1px solid
+    rgba($color-white, 0.06);
+
+
+  // ========================================
+  // Background Grid
+  // ========================================
+
+  &::before {
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+
+    background-image:
+      linear-gradient(
+        rgba($color-white, 0.018) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        90deg,
+        rgba($color-white, 0.018) 1px,
+        transparent 1px
+      );
+
+    background-size: 72px 72px;
+
+    mask-image:
+      linear-gradient(
+        to bottom,
+        black 0%,
+        rgba(0, 0, 0, 0.75) 55%,
+        transparent 100%
+      );
+  }
+
+
+  // ========================================
+  // Red Atmosphere
+  // ========================================
+
+  &::after {
+    content: "";
+
+    position: absolute;
+
+    width: 40vw;
+    height: 40vw;
+
+    left: -18%;
+    top: 35%;
+
+    border-radius: 50%;
+
+    background: $color-red;
+
+    filter: blur(180px);
+
+    opacity: 0.025;
+
+    pointer-events: none;
+  }
+
+
+  // ========================================
+  // Container
+  // ========================================
+
+  &__container {
+    position: relative;
+
+    z-index: $z-content;
+
+    width: min(
+      100% - ($container-padding * 2),
+      $container-max-width
+    );
+
+    margin: 0 auto;
+
+    padding-top: $space-32;
+    padding-bottom: $space-32;
+  }
+
+
+  // ========================================
+  // Header
+  // ========================================
+
+  &__header {
+    display: grid;
+
+    grid-template-columns:
+      minmax(160px, 0.35fr)
+      minmax(0, 1fr);
+
+    gap: $space-12;
+
+    margin-bottom: $space-16;
+  }
+
+
+  // ========================================
+  // Eyebrow
+  // ========================================
+
+  &__eyebrow {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: $space-4;
+
+    color: $color-500;
+
+    font-size: 0.65rem;
+    font-weight: 600;
+
+    letter-spacing: 0.16em;
+
+    text-transform: uppercase;
+
+    span:first-child {
+      color: $color-red;
+    }
+  }
+
+
+  // ========================================
+  // Heading
+  // ========================================
+
+  &__heading {
+    max-width: 900px;
+
+    h2 {
+      margin: 0;
+
+      font-size: clamp(
+        3rem,
+        6vw,
+        6.5rem
+      );
+
+      font-weight: 700;
+
+      line-height: 0.88;
+
+      letter-spacing: -0.06em;
+
+      text-transform: uppercase;
+
+      span {
+        display: block;
+
+        color: $color-red;
+      }
+    }
+
+    p {
+      max-width: 500px;
+
+      margin: $space-8 0 0;
+
+      color: $color-300;
+
+      font-size: $font-size-md;
+
+      line-height: 1.6;
+    }
+  }
+
+
+  // ========================================
+  // Players List
+  // ========================================
+
+  &__list {
+    border-top:
+      1px solid
+      rgba($color-white, 0.08);
+  }
+
+
+  // ========================================
+  // Player Row
+  // ========================================
+
+  .player-row {
+    position: relative;
+
+    min-height: 118px;
+
+    display: grid;
+
+    grid-template-columns:
+      70px
+      minmax(250px, 1.8fr)
+      minmax(160px, 1fr)
+      minmax(120px, 0.7fr)
+      minmax(160px, 0.8fr)
+      48px;
+
+    align-items: center;
+
+    gap: $space-6;
+
+    padding: $space-5 0;
+
+    border-bottom:
+      1px solid
+      rgba($color-white, 0.07);
+
+    transition:
+      background $transition-base $ease-standard,
+      border-color $transition-base $ease-standard,
+      padding $transition-base $ease-smooth;
+
+
+    // ======================================
+    // Hover Background
+    // ======================================
+
+    &::before {
+      content: "";
+
+      position: absolute;
+
+      inset: 0;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba($color-red, 0.055),
+          transparent 65%
+        );
+
+      opacity: 0;
+
+      pointer-events: none;
+
+      transition:
+        opacity $transition-base $ease-standard;
+    }
+
+
+    &:hover {
+      padding-left: $space-4;
+      padding-right: $space-4;
+
+      border-color:
+        rgba($color-red, 0.25);
+
+      &::before {
+        opacity: 1;
+      }
+
+      .player-row__avatar {
+        border-color:
+          rgba($color-red, 0.55);
+
+        background:
+          rgba($color-red, 0.08);
+
+        transform:
+          scale(1.05);
+      }
+
+      .player-row__name h3 {
+        color: $color-red;
+
+        transform:
+          translateX(4px);
+      }
+
+      .player-row__arrow {
+        background: $color-red;
+
+        color: $color-white;
+
+        transform:
+          translate(3px, -3px);
+      }
+    }
+
+
+    // ======================================
+    // Index
+    // ======================================
+
+    &__index {
+      position: relative;
+
+      z-index: 2;
+
+      color: $color-500;
+
+      font-size: 0.65rem;
+      font-weight: 600;
+
+      letter-spacing: 0.12em;
+    }
+
+
+    // ======================================
+    // Identity
+    // ======================================
+
+    &__identity {
+      position: relative;
+
+      z-index: 2;
+
+      display: flex;
+
+      align-items: center;
+
+      gap: $space-5;
+
+      min-width: 0;
+    }
+
+
+    // ======================================
+    // Avatar
+    // ======================================
+
+    &__avatar {
+      width: 68px;
+      height: 68px;
+
+      flex-shrink: 0;
+
+      display: grid;
+
+      place-items: center;
+
+      border:
+        1px solid
+        rgba($color-white, 0.1);
+
+      background:
+        rgba($color-white, 0.025);
+
+      color: $color-white;
+
+      font-size: $font-size-md;
+      font-weight: 700;
+
+      letter-spacing: -0.03em;
+
+      transition:
+        border-color $transition-base $ease-standard,
+        background $transition-base $ease-standard,
+        transform $transition-base $ease-smooth;
+    }
+
+
+    // ======================================
+    // Name
+    // ======================================
+
+    &__name {
+      min-width: 0;
+
+      > span {
+        display: block;
+
+        margin-bottom: $space-2;
+
+        color: $color-500;
+
+        font-size: 0.58rem;
+        font-weight: 600;
+
+        letter-spacing: 0.14em;
+      }
+
+      h3 {
+        margin: 0;
+
+        color: $color-white;
+
+        font-size: clamp(
+          1.5rem,
+          2.4vw,
+          2.4rem
+        );
+
+        font-weight: 700;
+
+        line-height: 0.95;
+
+        letter-spacing: -0.05em;
+
+        transition:
+          color $transition-base $ease-standard,
+          transform $transition-base $ease-smooth;
+      }
+    }
+
+
+    // ======================================
+    // Game
+    // ======================================
+
+    &__game,
+    &__role {
+      position: relative;
+
+      z-index: 2;
+
+      min-width: 0;
+
+      display: flex;
+
+      flex-direction: column;
+
+      gap: $space-2;
+
+      span {
+        color: $color-500;
+
+        font-size: 0.55rem;
+        font-weight: 600;
+
+        letter-spacing: 0.14em;
+      }
+
+      strong {
+        color: $color-300;
+
+        font-size: 0.65rem;
+        font-weight: 600;
+
+        letter-spacing: 0.08em;
+
+        white-space: nowrap;
+
+        overflow: hidden;
+
+        text-overflow: ellipsis;
+      }
+    }
+
+
+    // ======================================
+    // Status
+    // ======================================
+
+    &__status {
+      position: relative;
+
+      z-index: 2;
+
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: flex-start;
+
+      gap: $space-2;
+    }
+
+
+    &__country {
+      color: $color-300;
+
+      font-size: 0.62rem;
+      font-weight: 600;
+
+      letter-spacing: 0.08em;
+    }
+
+
+    &__verified {
+      display: inline-flex;
+
+      align-items: center;
+
+      gap: $space-2;
+
+      color: $color-red;
+
+      font-size: 0.52rem;
+      font-weight: 600;
+
+      letter-spacing: 0.12em;
+
+      span {
+        width: 5px;
+        height: 5px;
+
+        border-radius: 50%;
+
+        background: $color-red;
+
+        box-shadow:
+          0 0 8px
+          rgba($color-red, 0.75);
+      }
+    }
+
+
+    // ======================================
+    // Arrow
+    // ======================================
+
+    &__arrow {
+      position: relative;
+
+      z-index: 2;
+
+      width: 42px;
+      height: 42px;
+
+      display: grid;
+
+      place-items: center;
+
+      border:
+        1px solid
+        rgba($color-white, 0.1);
+
+      color: $color-300;
+
+      transition:
+        background $transition-base $ease-standard,
+        color $transition-base $ease-standard,
+        transform $transition-base $ease-smooth;
+    }
+  }
+
+
+  // ========================================
+  // Bottom Link
+  // ========================================
+
+  &__bottom {
+    margin-top: $space-10;
+
+    padding-top: $space-5;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: $space-4;
+
+    border-top:
+      1px solid
+      rgba($color-white, 0.06);
+
+    color: $color-500;
+
+    font-size: 0.62rem;
+    font-weight: 600;
+
+    letter-spacing: 0.14em;
+
+    cursor: pointer;
+
+    transition:
+      color $transition-base $ease-standard;
+
+    i {
+      color: $color-red;
+
+      transition:
+        transform $transition-base $ease-smooth;
+    }
+
+    &:hover {
+      color: $color-white;
+
+      i {
+        transform:
+          translateX(5px);
+      }
+    }
+  }
+}
+
+
+// ========================================
+// Tablet
+// ========================================
+
+@media (max-width: 1100px) {
+
+  .players {
+
+    .player-row {
+      grid-template-columns:
+        50px
+        minmax(220px, 1.6fr)
+        minmax(140px, 1fr)
+        minmax(100px, 0.7fr)
+        130px
+        42px;
+
+      gap: $space-4;
+    }
+  }
+}
+
+
+// ========================================
+// Tablet Portrait
+// ========================================
+
+@media (max-width: 820px) {
+
+  .players {
+
+    &__container {
+      padding-top: $space-24;
+      padding-bottom: $space-24;
+    }
+
+    &__header {
+      grid-template-columns: 1fr;
+
+      gap: $space-6;
+
+      margin-bottom: $space-12;
+    }
+
+    .player-row {
+      min-height: 110px;
+
+      grid-template-columns:
+        45px
+        minmax(200px, 1.5fr)
+        minmax(120px, 1fr)
+        42px;
+
+      gap: $space-4;
+
+      &__role,
+      &__status {
+        display: none;
+      }
+    }
+  }
+}
+
+
+// ========================================
+// Mobile
+// ========================================
+
+@media (max-width: 600px) {
+
+  .players {
+
+    min-height: auto;
+
+    &__container {
+      width: min(
+        100% - 2rem,
+        $container-max-width
+      );
+
+      padding-top: $space-20;
+      padding-bottom: $space-20;
+    }
+
+    &__header {
+      margin-bottom: $space-10;
+    }
+
+    &__eyebrow {
+      font-size: 0.58rem;
+    }
+
+    &__heading {
+
+      h2 {
+        font-size: clamp(
+          2.8rem,
+          14vw,
+          4.5rem
+        );
+
+        line-height: 0.9;
+      }
+
+      p {
+        margin-top: $space-6;
+
+        font-size: $font-size-sm;
+      }
+    }
+
+
+    .player-row {
+      min-height: 100px;
+
+      grid-template-columns:
+        28px
+        minmax(0, 1fr)
+        38px;
+
+      gap: $space-3;
+
+      padding: $space-4 0;
+
+
+      &:hover {
+        padding-left: $space-2;
+        padding-right: $space-2;
+      }
+
+
+      &__index {
+        font-size: 0.55rem;
+      }
+
+
+      &__identity {
+        gap: $space-3;
+      }
+
+
+      &__avatar {
+        width: 54px;
+        height: 54px;
+
+        font-size: $font-size-sm;
+      }
+
+
+      &__name {
+
+        > span {
+          margin-bottom: $space-1;
+
+          font-size: 0.5rem;
+        }
+
+        h3 {
+          font-size: clamp(
+            1.4rem,
+            7vw,
+            2rem
+          );
+        }
+      }
+
+
+      &__game {
+        display: none;
+      }
+
+
+      &__arrow {
+        width: 36px;
+        height: 36px;
+      }
+    }
+
+
+    &__bottom {
+      justify-content: space-between;
+
+      font-size: 0.55rem;
+    }
+  }
+}
+
+
+// ========================================
+// Small Mobile
+// ========================================
+
+@media (max-width: 420px) {
+
+  .players {
+
+    &__container {
+      width: min(
+        100% - 1.5rem,
+        $container-max-width
+      );
+    }
+
+    .player-row {
+
+      grid-template-columns:
+        24px
+        minmax(0, 1fr)
+        36px;
+
+      &__avatar {
+        width: 48px;
+        height: 48px;
+      }
+
+      &__name {
+
+        h3 {
+          font-size: 1.35rem;
+        }
+      }
+
+      &__verified {
+        font-size: 0.48rem;
+      }
+
+      &__arrow {
+        width: 34px;
+        height: 34px;
+      }
+    }
+  }
+}
+
+
+// ========================================
+// Scroll Reveal
+// ========================================
+
+.players {
+
+  &__header,
+  .player-row,
+  &__bottom {
+    opacity: 0;
+
+    transform:
+      translateY(35px);
+
+    transition:
+      opacity 900ms $ease-smooth,
+      transform 900ms $ease-smooth;
+  }
+
+
+  // ========================================
+  // Visible State
+  // ========================================
+
+  &--visible {
+
+    .players__header {
+      opacity: 1;
+
+      transform:
+        translateY(0);
+
+      transition-delay: 100ms;
+    }
+
+    .player-row {
+      opacity: 1;
+
+      transform:
+        translateY(0);
+
+      &:nth-child(1) {
+        transition-delay: 250ms;
+      }
+
+      &:nth-child(2) {
+        transition-delay: 350ms;
+      }
+
+      &:nth-child(3) {
+        transition-delay: 450ms;
+      }
+
+      &:nth-child(4) {
+        transition-delay: 550ms;
+      }
+    }
+
+    .players__bottom {
+      opacity: 1;
+
+      transform:
+        translateY(0);
+
+      transition-delay: 700ms;
+    }
+  }
+}
+
+
+// ========================================
+// Reduced Motion
+// ========================================
+
+@media (prefers-reduced-motion: reduce) {
+
+  .players,
+  .players *,
+  .players *::before,
+  .players *::after {
+
+    transition-duration: 0.01ms !important;
+
+    animation-duration: 0.01ms !important;
+
+    animation-iteration-count: 1 !important;
+  }
+}

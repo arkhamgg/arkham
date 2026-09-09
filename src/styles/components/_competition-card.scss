@@ -1,0 +1,481 @@
+// ========================================
+// NEXUS — Competition Card
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+
+// ========================================
+// CARD
+// ========================================
+
+.competition-card {
+
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  min-height: 520px;
+
+  padding: $space-6;
+
+  background: $color-900;
+
+  border: 1px solid $color-700;
+
+  overflow: hidden;
+
+  transition:
+    transform $transition-smooth $ease-smooth,
+    border-color $transition-base $ease-standard,
+    background $transition-base $ease-standard;
+
+
+  // ========================================
+  // TOP
+  // ========================================
+
+  &__top {
+
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: $space-4;
+
+  }
+
+
+  &__index {
+
+    font-size: $font-size-xs;
+    font-weight: 600;
+
+    color: $color-500;
+
+    letter-spacing: 0.12em;
+
+  }
+
+
+  // ========================================
+  // STATUS
+  // ========================================
+
+  &__status {
+
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+
+    font-size: $font-size-xs;
+    font-weight: 600;
+
+    letter-spacing: 0.08em;
+
+    color: $color-300;
+
+
+    span {
+
+      width: 6px;
+      height: 6px;
+
+      border-radius: $radius-full;
+
+      background: $color-500;
+
+    }
+
+
+    // ----------------------------------------
+    // ACTIVE
+    // ----------------------------------------
+
+    &--active {
+
+      color: $color-white;
+
+      span {
+
+        background: $color-red;
+
+        box-shadow: $glow-red-sm;
+
+      }
+
+    }
+
+
+    // ----------------------------------------
+    // UPCOMING
+    // ----------------------------------------
+
+    &--upcoming {
+
+      span {
+
+        background: $color-warning;
+
+      }
+
+    }
+
+
+    // ----------------------------------------
+    // FINISHED
+    // ----------------------------------------
+
+    &--finished {
+
+      color: $color-500;
+
+    }
+
+  }
+
+
+  // ========================================
+  // LOGO
+  // ========================================
+
+  &__logo {
+
+    position: relative;
+
+    z-index: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    height: 230px;
+
+    margin:
+      0
+      0
+      $space-6;
+
+    background: transparent;
+
+    transition:
+      transform $transition-smooth $ease-smooth,
+      opacity $transition-base $ease-standard;
+
+
+    span {
+
+      font-size: clamp(5rem, 10vw, 8rem);
+      font-weight: 700;
+
+      color: $color-white;
+
+      line-height: 1;
+
+      letter-spacing: -0.08em;
+
+    }
+
+
+    img {
+
+      display: block;
+
+      width: 75%;
+      height: 75%;
+
+      object-fit: contain;
+
+      padding: 0;
+
+    }
+
+  }
+
+
+  // ========================================
+  // IDENTITY
+  // ========================================
+
+  &__identity {
+
+    position: relative;
+    z-index: 2;
+
+    margin-bottom: $space-8;
+
+  }
+
+
+  &__game {
+
+    display: block;
+
+    margin-bottom: $space-2;
+
+    font-size: $font-size-xs;
+    font-weight: 600;
+
+    color: $color-red;
+
+    letter-spacing: 0.12em;
+
+  }
+
+
+  h3 {
+
+    margin: 0;
+
+    font-size: $font-size-2xl;
+    font-weight: 700;
+
+    line-height: 1;
+
+    color: $color-white;
+
+    letter-spacing: -0.04em;
+
+  }
+
+
+  // ========================================
+  // INFORMATION
+  // ========================================
+
+  &__information {
+
+    position: relative;
+    z-index: 2;
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(3, 1fr);
+
+    gap: $space-4;
+
+    margin-top: auto;
+
+    padding-top: $space-5;
+
+    border-top: 1px solid $color-700;
+
+  }
+
+
+  &__data {
+
+    display: flex;
+    flex-direction: column;
+
+    gap: $space-1;
+
+
+    span {
+
+      font-size: 0.65rem;
+      font-weight: 600;
+
+      color: $color-500;
+
+      letter-spacing: 0.08em;
+
+    }
+
+
+    strong {
+
+      font-size: $font-size-xs;
+      font-weight: 600;
+
+      color: $color-100;
+
+      line-height: 1.3;
+
+    }
+
+  }
+
+
+  // ========================================
+  // ACTION
+  // ========================================
+
+  &__action {
+
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    width: 100%;
+
+    margin-top: $space-6;
+    padding-top: $space-4;
+
+    color: $color-white;
+
+    border-top: 1px solid $color-700;
+
+    font-size: $font-size-xs;
+    font-weight: 700;
+
+    letter-spacing: 0.08em;
+
+    text-decoration: none;
+
+    transition:
+      color $transition-base $ease-standard;
+
+
+    i {
+
+      transition:
+        transform $transition-base $ease-smooth;
+
+    }
+
+
+    &:hover {
+
+      color: $color-red;
+
+
+      i {
+
+        transform: translateX(6px);
+
+      }
+
+    }
+
+  }
+
+
+  // ========================================
+  // HOVER
+  // ========================================
+
+  &:hover {
+
+    transform: translateY(-6px);
+
+    border-color: $color-500;
+
+    background: $color-800;
+
+
+    .competition-card__logo {
+
+      transform: scale(1.04);
+
+    }
+
+  }
+
+
+  // ========================================
+  // FINISHED STATE
+  // ========================================
+
+  &:has(
+    .competition-card__status--finished
+  ) {
+
+    opacity: 0.72;
+
+  }
+
+
+  // ========================================
+  // MOBILE
+  // ========================================
+
+  @media (max-width: 768px) {
+
+    min-height: 480px;
+
+    padding: $space-5;
+
+
+    &__logo {
+
+      height: 200px;
+
+    }
+
+
+    &__information {
+
+      gap: $space-3;
+
+    }
+
+
+    &__data {
+
+      strong {
+
+        font-size: 0.7rem;
+
+      }
+
+    }
+
+  }
+
+
+  // ========================================
+  // SMALL MOBILE
+  // ========================================
+
+  @media (max-width: 480px) {
+
+    min-height: 460px;
+
+
+    &__logo {
+
+      height: 180px;
+
+
+      img {
+
+        width: 80%;
+        height: 80%;
+
+      }
+
+    }
+
+
+    &__information {
+
+      grid-template-columns: 1fr;
+
+      gap: $space-3;
+
+    }
+
+
+    &__data {
+
+      display: grid;
+
+      grid-template-columns: 80px 1fr;
+
+      align-items: center;
+
+    }
+
+  }
+
+}

@@ -46,8 +46,12 @@ export function Navbar() {
 
       <div class="navbar__actions">
 
-        <a href="#explore" class="navbar__cta">
-          <span>Explorar NEXUS</span>
+        <a href="/login" class="navbar__login">
+          <span>Iniciar sesión</span>
+        </a>
+
+        <a href="/register" class="navbar__cta">
+          <span>Crear cuenta</span>
           <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
         </a>
 
@@ -93,8 +97,13 @@ export function Navbar() {
           <span>Calendario</span>
         </a>
 
-        <a href="#explore" class="navbar__mobile-cta">
-          <span>Explorar NEXUS</span>
+        <a href="/login" class="navbar__mobile-link">
+          <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+          <span>Iniciar sesión</span>
+        </a>
+
+        <a href="/register" class="navbar__mobile-cta">
+          <span>Crear cuenta</span>
           <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
         </a>
 
@@ -105,7 +114,9 @@ export function Navbar() {
 
   const menuToggle = navbar.querySelector(".navbar__menu-toggle");
   const mobileMenu = navbar.querySelector(".navbar__mobile-menu");
-  const mobileLinks = navbar.querySelectorAll(".navbar__mobile-link, .navbar__mobile-cta");
+  const mobileLinks = navbar.querySelectorAll(
+    ".navbar__mobile-link, .navbar__mobile-cta"
+  );
 
   function closeMenu() {
     navbar.classList.remove("navbar--menu-open");
@@ -122,6 +133,7 @@ export function Navbar() {
     const isOpen = navbar.classList.toggle("navbar--menu-open");
 
     menuToggle.setAttribute("aria-expanded", String(isOpen));
+
     menuToggle.setAttribute(
       "aria-label",
       isOpen ? "Cerrar menú" : "Abrir menú"

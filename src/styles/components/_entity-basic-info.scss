@@ -1,0 +1,575 @@
+// ========================================
+// NEXUS — Entity Basic Info
+// ========================================
+@use "../abstracts/variables" as *;
+.entity-basic-info {
+
+  width: 100%;
+
+
+  // ========================================
+  // SECTION
+  // ========================================
+
+  &__section {
+
+    width: 100%;
+    padding: $space-12 0;
+
+    border-top: 1px solid $color-800;
+
+    &:first-child {
+      border-top: 0;
+    }
+
+  }
+
+
+  // ========================================
+  // SECTION HEADER
+  // ========================================
+
+  &__section-header {
+
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: $space-6;
+
+    margin-bottom: $space-10;
+
+  }
+
+
+  &__number {
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+
+    border: 1px solid $color-700;
+
+    color: $color-red;
+
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+
+  }
+
+
+  &__eyebrow {
+
+    display: block;
+
+    margin-bottom: $space-2;
+
+    color: $color-red;
+
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+
+  }
+
+
+  &__section-header h2 {
+
+    margin: 0;
+
+    color: $color-white;
+
+    font-size: $font-size-2xl;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+
+  }
+
+
+  &__section-header p {
+
+    max-width: 620px;
+
+    margin: $space-3 0 0;
+
+    color: $color-300;
+
+    font-size: $font-size-sm;
+    line-height: 1.6;
+
+  }
+
+
+  // ========================================
+  // SECTION BODY
+  // ========================================
+
+  &__section-body {
+
+    display: flex;
+    flex-direction: column;
+    gap: $space-8;
+
+  }
+
+
+  // ========================================
+  // FIELDS
+  // ========================================
+
+  &__fields-grid {
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $space-6;
+
+  }
+
+
+  &__field {
+
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+
+  }
+
+
+  &__field label {
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-4;
+
+    color: $color-100;
+
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+
+  }
+
+
+  &__field label span {
+
+    color: $color-500;
+
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+
+  }
+
+
+  // ========================================
+  // INPUTS
+  // ========================================
+
+  &__field input,
+  &__field textarea {
+
+    width: 100%;
+
+    border: 1px solid $color-700;
+    border-radius: $radius-md;
+
+    background: $color-900;
+
+    color: $color-white;
+
+    font-family: $font-family-base;
+    font-size: $font-size-md;
+
+    outline: none;
+
+    transition:
+      border-color $transition-base $ease-standard,
+      background $transition-base $ease-standard,
+      box-shadow $transition-base $ease-standard;
+
+  }
+
+
+  &__field input {
+
+    min-height: 54px;
+
+    padding: 0 $space-4;
+
+  }
+
+
+  &__field textarea {
+
+    min-height: 140px;
+
+    padding: $space-4;
+
+    resize: vertical;
+
+    line-height: 1.6;
+
+  }
+
+
+  &__field input::placeholder,
+  &__field textarea::placeholder {
+
+    color: $color-500;
+
+  }
+
+
+  &__field input:hover,
+  &__field textarea:hover {
+
+    border-color: $color-500;
+
+  }
+
+
+  &__field input:focus,
+  &__field textarea:focus {
+
+    border-color: $color-red;
+
+    background: $color-950;
+
+    box-shadow: $glow-red-sm;
+
+  }
+
+
+  // ========================================
+  // HINT
+  // ========================================
+
+  &__hint {
+
+    margin-top: -$space-2;
+
+    color: $color-500;
+
+    font-size: $font-size-xs;
+    line-height: 1.5;
+
+  }
+
+
+  // ========================================
+  // LOGO
+  // ========================================
+
+  &__field--logo {
+
+    width: 100%;
+
+  }
+
+
+  // ========================================
+  // LOGO UPLOAD
+  // ========================================
+
+  .entity-logo-upload {
+
+    width: 100%;
+
+  }
+
+
+  .entity-logo-upload__area {
+
+    display: flex;
+    align-items: center;
+    gap: $space-5;
+
+    width: 100%;
+    min-height: 110px;
+
+    padding: $space-5;
+
+    border: 1px dashed $color-700;
+    border-radius: $radius-lg;
+
+    background: $color-900;
+
+    cursor: pointer;
+
+    transition:
+      border-color $transition-base $ease-standard,
+      background $transition-base $ease-standard,
+      box-shadow $transition-base $ease-standard;
+
+  }
+
+
+  .entity-logo-upload__area:hover {
+
+    border-color: $color-red;
+
+    background: $color-800;
+
+    box-shadow: $glow-red-sm;
+
+  }
+
+
+  .entity-logo-upload__preview {
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 72px;
+
+    width: 72px;
+    height: 72px;
+
+    overflow: hidden;
+
+    border: 1px solid $color-700;
+    border-radius: $radius-md;
+
+    background: $color-950;
+
+    color: $color-500;
+
+  }
+
+
+  .entity-logo-upload__preview i {
+
+    font-size: $font-size-xl;
+
+  }
+
+
+  .entity-logo-upload__preview img {
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+
+  }
+
+
+  .entity-logo-upload__content {
+
+    display: flex;
+    flex-direction: column;
+    gap: $space-1;
+
+    flex: 1;
+
+  }
+
+
+  .entity-logo-upload__content strong {
+
+    color: $color-white;
+
+    font-size: $font-size-sm;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+
+  }
+
+
+  .entity-logo-upload__content span {
+
+    color: $color-500;
+
+    font-size: $font-size-xs;
+
+  }
+
+
+  .entity-logo-upload__area > i {
+
+    color: $color-red;
+
+    font-size: $font-size-md;
+
+  }
+
+
+  // ========================================
+  // SOCIAL GRID
+  // ========================================
+
+  &__social-grid {
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $space-6;
+
+  }
+
+
+  // ========================================
+  // SOCIAL INPUT
+  // ========================================
+
+  &__input-icon {
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+  }
+
+
+  &__input-icon > i {
+
+    position: absolute;
+    left: $space-4;
+
+    z-index: $z-content;
+
+    width: 18px;
+
+    color: $color-500;
+
+    text-align: center;
+
+    pointer-events: none;
+
+    transition:
+      color $transition-base $ease-standard;
+
+  }
+
+
+  &__input-icon input {
+
+    padding-left: 3rem;
+
+  }
+
+
+  &__input-icon:focus-within > i {
+
+    color: $color-red;
+
+  }
+
+
+  // ========================================
+  // RESPONSIVE
+  // ========================================
+
+  @media (max-width: 768px) {
+
+    &__section {
+
+      padding: $space-10 0;
+
+    }
+
+
+    &__section-header {
+
+      grid-template-columns: 44px 1fr;
+      gap: $space-4;
+
+      margin-bottom: $space-8;
+
+    }
+
+
+    &__number {
+
+      width: 36px;
+      height: 36px;
+
+    }
+
+
+    &__section-header h2 {
+
+      font-size: $font-size-xl;
+
+    }
+
+
+    &__fields-grid,
+    &__social-grid {
+
+      grid-template-columns: 1fr;
+
+      gap: $space-5;
+
+    }
+
+
+    .entity-logo-upload__area {
+
+      min-height: 96px;
+
+      padding: $space-4;
+
+    }
+
+
+    .entity-logo-upload__preview {
+
+      flex-basis: 60px;
+
+      width: 60px;
+      height: 60px;
+
+    }
+
+  }
+
+
+  @media (max-width: 480px) {
+
+    &__section-header {
+
+      grid-template-columns: 1fr;
+
+      gap: $space-3;
+
+    }
+
+
+    &__number {
+
+      width: 34px;
+      height: 34px;
+
+    }
+
+
+    &__section-header p {
+
+      font-size: $font-size-xs;
+
+    }
+
+
+    .entity-logo-upload__area {
+
+      gap: $space-3;
+
+    }
+
+
+    .entity-logo-upload__content strong {
+
+      font-size: $font-size-xs;
+
+    }
+
+  }
+
+}

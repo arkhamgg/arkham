@@ -1,0 +1,981 @@
+// ========================================
+// NEXUS — Teams
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+.teams {
+  position: relative;
+
+  min-height: 100vh;
+  min-height: 100svh;
+
+  overflow: hidden;
+
+  background: $color-black;
+
+  border-top:
+    1px solid
+    rgba($color-white, 0.06);
+
+
+  // ========================================
+  // Background
+  // ========================================
+
+  &::before {
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+
+    background-image:
+      linear-gradient(
+        rgba($color-white, 0.02) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        90deg,
+        rgba($color-white, 0.02) 1px,
+        transparent 1px
+      );
+
+    background-size: 72px 72px;
+
+    mask-image:
+      linear-gradient(
+        to bottom,
+        black 0%,
+        rgba(0, 0, 0, 0.7) 60%,
+        transparent 100%
+      );
+  }
+
+
+  // ========================================
+  // Red Atmosphere
+  // ========================================
+
+  &::after {
+    content: "";
+
+    position: absolute;
+
+    width: 45vw;
+    height: 45vw;
+
+    right: -18%;
+    top: 20%;
+
+    border-radius: 50%;
+
+    background: $color-red;
+
+    filter: blur(180px);
+
+    opacity: 0.035;
+
+    pointer-events: none;
+  }
+
+
+  // ========================================
+  // Container
+  // ========================================
+
+  &__container {
+    position: relative;
+
+    z-index: $z-content;
+
+    width: min(
+      100% - ($container-padding * 2),
+      $container-max-width
+    );
+
+    margin: 0 auto;
+
+    padding-top: $space-32;
+    padding-bottom: $space-32;
+  }
+
+
+  // ========================================
+  // Header
+  // ========================================
+
+  &__header {
+    display: grid;
+
+    grid-template-columns:
+      minmax(160px, 0.35fr)
+      minmax(0, 1fr);
+
+    gap: $space-12;
+
+    margin-bottom: $space-20;
+  }
+
+
+  // ========================================
+  // Eyebrow
+  // ========================================
+
+  &__eyebrow {
+    display: flex;
+    align-items: flex-start;
+
+    gap: $space-4;
+
+    color: $color-500;
+
+    font-size: 0.65rem;
+    font-weight: 600;
+
+    letter-spacing: 0.16em;
+
+    text-transform: uppercase;
+
+    span:first-child {
+      color: $color-red;
+    }
+  }
+
+
+  // ========================================
+  // Heading
+  // ========================================
+
+  &__heading {
+    max-width: 900px;
+
+    h2 {
+      margin: 0;
+
+      font-size: clamp(
+        3rem,
+        6vw,
+        6.5rem
+      );
+
+      font-weight: 700;
+
+      line-height: 0.88;
+
+      letter-spacing: -0.06em;
+
+      text-transform: uppercase;
+
+      span {
+        display: block;
+
+        color: $color-red;
+      }
+    }
+
+    p {
+      max-width: 500px;
+
+      margin: $space-8 0 0;
+
+      color: $color-300;
+
+      font-size: $font-size-md;
+
+      line-height: 1.6;
+    }
+  }
+
+
+  // ========================================
+  // Teams List
+  // ========================================
+
+  &__list {
+    display: grid;
+
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+
+    gap: $space-5;
+  }
+
+
+  // ========================================
+  // Team Card
+  // ========================================
+
+  .team-card {
+    position: relative;
+
+    min-height: 470px;
+
+    display: flex;
+    flex-direction: column;
+
+    justify-content: space-between;
+
+    padding: $space-8;
+
+    overflow: hidden;
+
+    border:
+      1px solid
+      rgba($color-white, 0.08);
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba($color-white, 0.035),
+        rgba($color-white, 0.008)
+      );
+
+    transition:
+      border-color $transition-base $ease-standard,
+      transform $transition-base $ease-smooth,
+      box-shadow $transition-base $ease-standard;
+
+
+    // ======================================
+    // Background Number
+    // ======================================
+
+    &::before {
+      content: "";
+
+      position: absolute;
+
+      right: -10px;
+      top: -35px;
+
+      color: rgba(
+        $color-white,
+        0.025
+      );
+
+      font-size: 14rem;
+      font-weight: 700;
+
+      line-height: 1;
+
+      letter-spacing: -0.08em;
+
+      pointer-events: none;
+
+      transition:
+        color $transition-smooth $ease-standard;
+    }
+
+
+    // ======================================
+    // Technical Corner
+    // ======================================
+
+    &::after {
+      content: "";
+
+      position: absolute;
+
+      width: 90px;
+      height: 90px;
+
+      right: -45px;
+      bottom: -45px;
+
+      border:
+        1px solid
+        rgba($color-red, 0.25);
+
+      transform: rotate(45deg);
+
+      transition:
+        border-color $transition-base $ease-standard;
+    }
+
+
+    &:nth-child(1)::before {
+      content: "01";
+    }
+
+    &:nth-child(2)::before {
+      content: "02";
+    }
+
+    &:nth-child(3)::before {
+      content: "03";
+    }
+
+
+    // ======================================
+    // Hover
+    // ======================================
+
+    &:hover {
+      transform: translateY(-6px);
+
+      border-color:
+        rgba($color-red, 0.35);
+
+      box-shadow:
+        0 25px 70px
+        rgba(0, 0, 0, 0.45),
+
+        inset 0 0 80px
+        rgba($color-red, 0.025);
+
+      &::before {
+        color:
+          rgba($color-red, 0.045);
+      }
+
+      &::after {
+        border-color:
+          rgba($color-red, 0.5);
+      }
+
+      .team-card__logo {
+        border-color:
+          rgba($color-red, 0.55);
+
+        background:
+          rgba($color-red, 0.08);
+
+        transform:
+          scale(1.04);
+      }
+
+      .team-card__arrow {
+        background: $color-red;
+
+        color: $color-white;
+
+        transform:
+          translate(3px, -3px);
+      }
+
+      .team-card__name h3 {
+        transform:
+          translateX(4px);
+      }
+    }
+
+
+    // ======================================
+    // Top
+    // ======================================
+
+    &__top {
+      position: relative;
+
+      z-index: 2;
+
+      display: flex;
+
+      align-items: center;
+      justify-content: space-between;
+    }
+
+
+    // ======================================
+    // Index
+    // ======================================
+
+    &__index {
+      color: $color-500;
+
+      font-size: 0.62rem;
+      font-weight: 600;
+
+      letter-spacing: 0.14em;
+    }
+
+
+    // ======================================
+    // Status
+    // ======================================
+
+    &__status {
+      display: inline-flex;
+
+      align-items: center;
+
+      gap: $space-2;
+
+      color: $color-red;
+
+      font-size: 0.58rem;
+      font-weight: 600;
+
+      letter-spacing: 0.14em;
+
+      &::before {
+        content: "";
+
+        width: 5px;
+        height: 5px;
+
+        border-radius: 50%;
+
+        background: $color-red;
+
+        box-shadow:
+          0 0 8px
+          rgba($color-red, 0.75);
+      }
+    }
+
+
+    // ======================================
+    // Identity
+    // ======================================
+
+    &__identity {
+      position: relative;
+
+      z-index: 2;
+
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: flex-start;
+
+      gap: $space-8;
+    }
+
+
+    // ======================================
+    // Logo
+    // ======================================
+
+    &__logo {
+      width: 96px;
+      height: 96px;
+
+      display: grid;
+
+      place-items: center;
+
+      border:
+        1px solid
+        rgba($color-white, 0.12);
+
+      background:
+        rgba($color-white, 0.025);
+
+      color: $color-white;
+
+      font-size: $font-size-2xl;
+      font-weight: 700;
+
+      letter-spacing: -0.04em;
+
+      transition:
+        border-color $transition-base $ease-standard,
+        background $transition-base $ease-standard,
+        transform $transition-base $ease-smooth;
+    }
+
+
+    // ======================================
+    // Team Name
+    // ======================================
+
+    &__name {
+
+      > span {
+        display: block;
+
+        margin-bottom: $space-2;
+
+        color: $color-500;
+
+        font-size: 0.6rem;
+        font-weight: 600;
+
+        letter-spacing: 0.16em;
+      }
+
+      h3 {
+        margin: 0;
+
+        color: $color-white;
+
+        font-size: clamp(
+          2.5rem,
+          4vw,
+          4rem
+        );
+
+        font-weight: 700;
+
+        line-height: 0.9;
+
+        letter-spacing: -0.06em;
+
+        text-transform: uppercase;
+
+        transition:
+          transform $transition-base $ease-smooth;
+      }
+    }
+
+
+    // ======================================
+    // Metadata
+    // ======================================
+
+    &__meta {
+      position: relative;
+
+      z-index: 2;
+
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: $space-5;
+
+      padding-top: $space-5;
+
+      border-top:
+        1px solid
+        rgba($color-white, 0.07);
+
+      > div {
+        min-width: 0;
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: $space-2;
+
+        span {
+          color: $color-500;
+
+          font-size: 0.55rem;
+          font-weight: 600;
+
+          letter-spacing: 0.14em;
+        }
+
+        strong {
+          color: $color-300;
+
+          font-size: 0.65rem;
+          font-weight: 600;
+
+          letter-spacing: 0.08em;
+
+          white-space: nowrap;
+
+          overflow: hidden;
+
+          text-overflow: ellipsis;
+        }
+      }
+    }
+
+
+    // ======================================
+    // Footer
+    // ======================================
+
+    &__footer {
+      position: relative;
+
+      z-index: 2;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      gap: $space-4;
+
+      padding-top: $space-5;
+
+      border-top:
+        1px solid
+        rgba($color-white, 0.07);
+
+      color: $color-500;
+
+      font-size: 0.55rem;
+      font-weight: 600;
+
+      letter-spacing: 0.14em;
+    }
+
+
+    // ======================================
+    // Arrow
+    // ======================================
+
+    &__arrow {
+      width: 42px;
+      height: 42px;
+
+      flex-shrink: 0;
+
+      display: grid;
+
+      place-items: center;
+
+      border:
+        1px solid
+        rgba($color-white, 0.1);
+
+      color: $color-300;
+
+      transition:
+        background $transition-base $ease-standard,
+        color $transition-base $ease-standard,
+        transform $transition-base $ease-smooth;
+    }
+  }
+
+
+  // ========================================
+  // Bottom Link
+  // ========================================
+
+  &__bottom {
+    margin-top: $space-10;
+
+    padding-top: $space-5;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: $space-4;
+
+    border-top:
+      1px solid
+      rgba($color-white, 0.06);
+
+    color: $color-500;
+
+    font-size: 0.62rem;
+    font-weight: 600;
+
+    letter-spacing: 0.14em;
+
+    cursor: pointer;
+
+    transition:
+      color $transition-base $ease-standard;
+
+    i {
+      color: $color-red;
+
+      transition:
+        transform $transition-base $ease-smooth;
+    }
+
+    &:hover {
+      color: $color-white;
+
+      i {
+        transform:
+          translateX(5px);
+      }
+    }
+  }
+}
+
+
+// ========================================
+// Tablet
+// ========================================
+
+@media (max-width: 1000px) {
+
+  .teams {
+
+    &__list {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    }
+
+    .team-card {
+      min-height: 440px;
+    }
+  }
+}
+
+
+// ========================================
+// Tablet Portrait
+// ========================================
+
+@media (max-width: 820px) {
+
+  .teams {
+
+    &__container {
+      padding-top: $space-24;
+      padding-bottom: $space-24;
+    }
+
+    &__header {
+      grid-template-columns: 1fr;
+
+      gap: $space-6;
+
+      margin-bottom: $space-12;
+    }
+
+    &__list {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: $space-4;
+    }
+
+    .team-card {
+      min-height: 420px;
+
+      padding: $space-6;
+    }
+  }
+}
+
+
+// ========================================
+// Mobile
+// ========================================
+
+@media (max-width: 600px) {
+
+  .teams {
+
+    min-height: auto;
+
+    &__container {
+      width: min(
+        100% - 2rem,
+        $container-max-width
+      );
+
+      padding-top: $space-20;
+      padding-bottom: $space-20;
+    }
+
+    &__header {
+      margin-bottom: $space-10;
+    }
+
+    &__eyebrow {
+      font-size: 0.58rem;
+    }
+
+    &__heading {
+
+      h2 {
+        font-size: clamp(
+          2.8rem,
+          14vw,
+          4.5rem
+        );
+
+        line-height: 0.9;
+      }
+
+      p {
+        margin-top: $space-6;
+
+        font-size: $font-size-sm;
+      }
+    }
+
+    &__list {
+      grid-template-columns: 1fr;
+
+      gap: $space-4;
+    }
+
+    .team-card {
+      min-height: 390px;
+
+      padding: $space-6;
+
+      &::before {
+        font-size: 11rem;
+      }
+
+      &__logo {
+        width: 82px;
+        height: 82px;
+
+        font-size: $font-size-xl;
+      }
+
+      &__name {
+
+        h3 {
+          font-size: clamp(
+            2.6rem,
+            14vw,
+            4rem
+          );
+        }
+      }
+
+      &__meta {
+        gap: $space-4;
+      }
+
+      &__footer {
+        font-size: 0.5rem;
+      }
+    }
+
+    &__bottom {
+      justify-content: space-between;
+
+      font-size: 0.55rem;
+    }
+  }
+}
+
+
+// ========================================
+// Small Mobile
+// ========================================
+
+@media (max-width: 420px) {
+
+  .teams {
+
+    &__container {
+      width: min(
+        100% - 1.5rem,
+        $container-max-width
+      );
+    }
+
+    .team-card {
+      min-height: 370px;
+
+      padding: $space-5;
+
+      &__identity {
+        gap: $space-6;
+      }
+
+      &__logo {
+        width: 72px;
+        height: 72px;
+      }
+
+      &__meta {
+        grid-template-columns: 1fr;
+
+        gap: $space-4;
+      }
+
+      &__footer {
+        gap: $space-3;
+      }
+
+      &__arrow {
+        width: 36px;
+        height: 36px;
+      }
+    }
+  }
+}
+
+
+// ========================================
+// Scroll Reveal
+// ========================================
+
+.teams {
+
+  &__header,
+  .team-card,
+  &__bottom {
+    opacity: 0;
+
+    transform:
+      translateY(35px);
+
+    transition:
+      opacity 900ms $ease-smooth,
+      transform 900ms $ease-smooth;
+  }
+
+
+  // ========================================
+  // Visible State
+  // ========================================
+
+  &--visible {
+
+    .teams__header {
+      opacity: 1;
+
+      transform:
+        translateY(0);
+
+      transition-delay: 100ms;
+    }
+
+    .team-card {
+      opacity: 1;
+
+      transform:
+        translateY(0);
+
+      &:nth-child(1) {
+        transition-delay: 250ms;
+      }
+
+      &:nth-child(2) {
+        transition-delay: 400ms;
+      }
+
+      &:nth-child(3) {
+        transition-delay: 550ms;
+      }
+    }
+
+    .teams__bottom {
+      opacity: 1;
+
+      transform:
+        translateY(0);
+
+      transition-delay: 700ms;
+    }
+  }
+}
+
+
+// ========================================
+// Reduced Motion
+// ========================================
+
+@media (prefers-reduced-motion: reduce) {
+
+  .teams,
+  .teams *,
+  .teams *::before,
+  .teams *::after {
+
+    transition-duration: 0.01ms !important;
+
+    animation-duration: 0.01ms !important;
+
+    animation-iteration-count: 1 !important;
+  }
+}

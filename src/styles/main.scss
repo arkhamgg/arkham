@@ -4,3 +4,15 @@
 @use "./components/navbar";
 @use "./components/hero";
 @use "./components/hero-effects";
+@use "./components/competitions";
+@use "./components/teams";
+@use "./components/players";
+@use "./components/infrastructure";
+@use "./components/footer";
+@use "./components/competition-card";
+@use "./pages/competitions" as competitions-page;
+@use "./pages/register" as register-page;
+@use "./components/entity-basic-info";
+@use "./pages/create-league" as create-league-page;
+@use "./components/account-credentials";
+@use "./pages/create-tournament" as create-tournament-page;
