@@ -1,0 +1,632 @@
+// ========================================
+// NEXUS — Login
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+
+// ========================================
+// LOGIN PAGE
+// ========================================
+
+.login-page {
+
+  width: 100%;
+
+  min-height:
+    calc(100vh - $header-height);
+
+  padding:
+    $space-24
+    $container-padding
+    $space-32;
+
+  background:
+    $color-black;
+
+  opacity:
+    0;
+
+  transform:
+    translateY(20px);
+
+  transition:
+    opacity $transition-smooth $ease-smooth,
+    transform $transition-smooth $ease-smooth;
+
+
+  // ========================================
+  // VISIBLE
+  // ========================================
+
+  &--visible {
+
+    opacity:
+      1;
+
+    transform:
+      translateY(0);
+
+  }
+
+
+  // ========================================
+  // CONTAINER
+  // ========================================
+
+  &__container {
+
+    width: 100%;
+
+    min-height:
+      calc(
+        100vh
+        - $header-height
+        - $space-24
+        - $space-32
+      );
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+  }
+
+
+  // ========================================
+  // CONTENT
+  // ========================================
+
+  &__content {
+
+    width: 100%;
+
+    max-width:
+      560px;
+
+  }
+
+
+  // ========================================
+  // HEADER
+  // ========================================
+
+  &__header {
+
+    margin-bottom:
+      $space-10;
+
+  }
+
+
+  // ========================================
+  // EYEBROW
+  // ========================================
+
+  &__eyebrow {
+
+    display: block;
+
+    margin-bottom:
+      $space-4;
+
+    color:
+      $color-red;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.14em;
+
+  }
+
+
+  // ========================================
+  // TITLE
+  // ========================================
+
+  &__header h1 {
+
+    margin:
+      0;
+
+    color:
+      $color-white;
+
+    font-size:
+      clamp(3.5rem, 9vw, 7rem);
+
+    font-weight:
+      700;
+
+    line-height:
+      0.9;
+
+    letter-spacing:
+      -0.055em;
+
+  }
+
+
+  &__header h1 span {
+
+    display:
+      block;
+
+    color:
+      $color-red;
+
+  }
+
+
+  // ========================================
+  // DESCRIPTION
+  // ========================================
+
+  &__header p {
+
+    max-width:
+      480px;
+
+    margin:
+      $space-6
+      0
+      0;
+
+    color:
+      $color-300;
+
+    font-size:
+      $font-size-md;
+
+    line-height:
+      1.6;
+
+  }
+
+
+  // ========================================
+  // FORM
+  // ========================================
+
+  &__form {
+
+    width: 100%;
+
+    padding-top:
+      $space-8;
+
+    border-top:
+      1px solid $color-800;
+
+  }
+
+
+  // ========================================
+  // FIELD
+  // ========================================
+
+  &__field {
+
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    gap:
+      $space-2;
+
+    margin-bottom:
+      $space-6;
+
+  }
+
+
+  // ========================================
+  // LABEL
+  // ========================================
+
+  &__field label {
+
+    color:
+      $color-500;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.1em;
+
+  }
+
+
+  // ========================================
+  // INPUT
+  // ========================================
+
+  &__field input {
+
+    width: 100%;
+
+    min-height:
+      56px;
+
+    padding:
+      0
+      $space-4;
+
+    border:
+      1px solid $color-800;
+
+    border-radius:
+      $radius-md;
+
+    background:
+      $color-950;
+
+    color:
+      $color-white;
+
+    font-family:
+      $font-family-base;
+
+    font-size:
+      $font-size-md;
+
+    outline:
+      none;
+
+    transition:
+      border-color $transition-base $ease-standard,
+      box-shadow $transition-base $ease-standard;
+
+  }
+
+
+  // ========================================
+  // PLACEHOLDER
+  // ========================================
+
+  &__field input::placeholder {
+
+    color:
+      $color-500;
+
+  }
+
+
+  // ========================================
+  // INPUT FOCUS
+  // ========================================
+
+  &__field input:focus {
+
+    border-color:
+      $color-red;
+
+    box-shadow:
+      0 0 0 1px $color-red;
+
+  }
+
+
+  // ========================================
+  // INPUT ERROR
+  // ========================================
+
+  &__field input[aria-invalid="true"] {
+
+    border-color:
+      $color-error;
+
+    box-shadow:
+      0 0 0 1px $color-error;
+
+  }
+
+
+  // ========================================
+  // ERROR MESSAGE
+  // ========================================
+
+  &__error {
+
+    margin:
+      0
+      0
+      $space-6;
+
+    color:
+      $color-error;
+
+    font-size:
+      $font-size-sm;
+
+    line-height:
+      1.5;
+
+  }
+
+
+  // ========================================
+  // SUBMIT BUTTON
+  // ========================================
+
+  &__submit {
+
+    display:
+      inline-flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      center;
+
+    gap:
+      $space-4;
+
+    width: 100%;
+
+    min-height:
+      56px;
+
+    border:
+      1px solid $color-red;
+
+    border-radius:
+      $radius-md;
+
+    background:
+      $color-red;
+
+    color:
+      $color-white;
+
+    font-family:
+      $font-family-base;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.08em;
+
+    text-transform:
+      uppercase;
+
+    cursor:
+      pointer;
+
+    transition:
+      background $transition-base $ease-standard,
+      border-color $transition-base $ease-standard,
+      box-shadow $transition-base $ease-standard,
+      transform $transition-fast $ease-standard;
+
+  }
+
+
+  // ========================================
+  // SUBMIT HOVER
+  // ========================================
+
+  &__submit:hover {
+
+    background:
+      $color-red-light;
+
+    border-color:
+      $color-red-light;
+
+    box-shadow:
+      $glow-red-md;
+
+  }
+
+
+  // ========================================
+  // SUBMIT ACTIVE
+  // ========================================
+
+  &__submit:active {
+
+    transform:
+      translateY(1px);
+
+  }
+
+
+  // ========================================
+  // SUBMIT DISABLED
+  // ========================================
+
+  &__submit:disabled {
+
+    opacity:
+      0.65;
+
+    cursor:
+      wait;
+
+  }
+
+
+  // ========================================
+  // REGISTER
+  // ========================================
+
+  &__register {
+
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      space-between;
+
+    gap:
+      $space-4;
+
+    margin-top:
+      $space-8;
+
+    padding-top:
+      $space-6;
+
+    border-top:
+      1px solid $color-800;
+
+  }
+
+
+  // ========================================
+  // REGISTER TEXT
+  // ========================================
+
+  &__register span {
+
+    color:
+      $color-500;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.06em;
+
+  }
+
+
+  // ========================================
+  // REGISTER LINK
+  // ========================================
+
+  &__register a {
+
+    color:
+      $color-white;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.06em;
+
+    text-decoration:
+      none;
+
+    transition:
+      color $transition-base $ease-standard;
+
+  }
+
+
+  &__register a:hover {
+
+    color:
+      $color-red;
+
+  }
+
+
+  // ========================================
+  // TABLET / MOBILE
+  // ========================================
+
+  @media (max-width: 768px) {
+
+    padding:
+      $space-16
+      $container-padding
+      $space-24;
+
+
+    &__container {
+
+      min-height:
+        auto;
+
+      align-items:
+        flex-start;
+
+      padding-top:
+        $space-12;
+
+    }
+
+
+    &__header h1 {
+
+      font-size:
+        clamp(3rem, 15vw, 5rem);
+
+    }
+
+  }
+
+
+  // ========================================
+  // SMALL MOBILE
+  // ========================================
+
+  @media (max-width: 480px) {
+
+    padding:
+      $space-12
+      $space-4
+      $space-20;
+
+
+    &__register {
+
+      flex-direction:
+        column;
+
+      align-items:
+        flex-start;
+
+    }
+
+  }
+
+
+  // ========================================
+  // REDUCED MOTION
+  // ========================================
+
+  @media (prefers-reduced-motion: reduce) {
+
+    opacity:
+      1;
+
+    transform:
+      none;
+
+    transition:
+      none;
+
+  }
+
+}

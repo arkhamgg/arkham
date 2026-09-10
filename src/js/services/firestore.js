@@ -6,6 +6,7 @@ import {
   collection,
   doc,
   setDoc,
+  getDoc,
   serverTimestamp
 } from "firebase/firestore";
 
@@ -52,5 +53,46 @@ export async function createEntity(
 
 
   return entityRef.id;
+
+}
+
+
+// ========================================
+// GET ENTITY
+// ========================================
+
+export async function getEntity(
+  collectionName,
+  entityId
+) {
+
+  const entityRef =
+    doc(
+      db,
+      collectionName,
+      entityId
+    );
+
+
+  const entitySnapshot =
+    await getDoc(
+      entityRef
+    );
+
+
+  if (!entitySnapshot.exists()) {
+
+    return null;
+
+  }
+
+
+  return {
+    id:
+      entitySnapshot.id,
+
+    ...entitySnapshot.data()
+
+  };
 
 }

@@ -1,0 +1,290 @@
+// ========================================
+// NEXUS — Dashboard
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+
+.dashboard-page {
+
+  width: 100%;
+  min-height: calc(100vh - $header-height);
+
+  padding:
+    $space-24
+    $container-padding
+    $space-32;
+
+  background:
+    $color-black;
+
+
+  // ========================================
+  // CONTAINER
+  // ========================================
+
+  &__container {
+
+    width: 100%;
+    max-width: 1000px;
+
+    margin: 0 auto;
+
+  }
+
+
+  // ========================================
+  // HEADER
+  // ========================================
+
+  &__header {
+
+    margin-bottom:
+      $space-12;
+
+  }
+
+
+  &__status {
+
+    display: inline-block;
+
+    margin-bottom:
+      $space-4;
+
+    color:
+      $color-red;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight: 700;
+
+    letter-spacing:
+      0.12em;
+
+    text-transform:
+      uppercase;
+
+  }
+
+
+  &__header h1 {
+
+    margin: 0;
+
+    color:
+      $color-white;
+
+    font-size:
+      clamp(3rem, 8vw, 6rem);
+
+    font-weight: 700;
+
+    line-height: 0.95;
+
+    letter-spacing:
+      -0.05em;
+
+  }
+
+
+  &__header p {
+
+    margin:
+      $space-6
+      0
+      0;
+
+    color:
+      $color-300;
+
+    font-size:
+      $font-size-md;
+
+  }
+
+
+  // ========================================
+  // SESSION
+  // ========================================
+
+  &__session {
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    border-top:
+      1px solid $color-800;
+
+  }
+
+
+  // ========================================
+  // ITEM
+  // ========================================
+
+  &__item {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap:
+      $space-2;
+
+    min-height: 120px;
+
+    padding:
+      $space-6;
+
+    border-bottom:
+      1px solid $color-800;
+
+    border-right:
+      1px solid $color-800;
+
+  }
+
+
+  &__item span {
+
+    color:
+      $color-500;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight: 700;
+
+    letter-spacing:
+      0.1em;
+
+  }
+
+
+  &__item strong {
+
+    color:
+      $color-white;
+
+    font-size:
+      $font-size-md;
+
+    font-weight: 500;
+
+    word-break:
+      break-word;
+
+  }
+
+
+  // ========================================
+  // LOGOUT
+  // ========================================
+
+  &__logout {
+
+    margin-top:
+      $space-8;
+
+    min-height:
+      52px;
+
+    padding:
+      0
+      $space-6;
+
+    border:
+      1px solid $color-red;
+
+    background:
+      transparent;
+
+    color:
+      $color-white;
+
+    font-family:
+      $font-family-base;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight: 700;
+
+    letter-spacing:
+      0.08em;
+
+    text-transform:
+      uppercase;
+
+    cursor: pointer;
+
+    transition:
+      background $transition-base $ease-standard,
+      color $transition-base $ease-standard;
+
+  }
+
+
+  &__logout:hover {
+
+    background:
+      $color-red;
+
+    color:
+      $color-white;
+
+  }
+
+
+  // ========================================
+  // MOBILE
+  // ========================================
+
+  @media (max-width: 768px) {
+
+    padding:
+      $space-16
+      $container-padding
+      $space-24;
+
+
+    &__session {
+
+      grid-template-columns:
+        1fr;
+
+    }
+
+
+    &__item {
+
+      border-right:
+        none;
+
+    }
+
+  }
+
+
+  @media (max-width: 480px) {
+
+    padding:
+      $space-12
+      $space-4
+      $space-20;
+
+
+    &__header h1 {
+
+      font-size:
+        clamp(2.75rem, 16vw, 4rem);
+
+    }
+
+  }
+
+}

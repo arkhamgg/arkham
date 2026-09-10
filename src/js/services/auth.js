@@ -3,7 +3,10 @@
 // ========================================
 
 import {
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut
 } from "firebase/auth";
 
 import { auth } from "./firebase.js";
@@ -26,5 +29,55 @@ export async function createAccount(
     );
 
   return userCredential.user;
+
+}
+
+
+// ========================================
+// LOGIN
+// ========================================
+
+export async function login(
+  email,
+  password
+) {
+
+  const userCredential =
+    await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+  return userCredential.user;
+
+}
+
+
+// ========================================
+// AUTH STATE
+// ========================================
+
+export function observeAuthState(
+  callback
+) {
+
+  return onAuthStateChanged(
+    auth,
+    callback
+  );
+
+}
+
+
+// ========================================
+// SIGN OUT
+// ========================================
+
+export async function logout() {
+
+  await signOut(
+    auth
+  );
 
 }

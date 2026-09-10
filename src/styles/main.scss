@@ -16,3 +16,5 @@
 @use "./pages/create-league" as create-league-page;
 @use "./components/account-credentials";
 @use "./pages/create-tournament" as create-tournament-page;
+@use "./pages/dashboard";
+@use "./pages/login" as login;

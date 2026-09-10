@@ -6,6 +6,11 @@ import { EntityBasicInfo } from "../components/entityBasicInfo.js";
 import { AccountCredentials } from "../components/accountCredentials.js";
 
 import { createAccount } from "../services/auth.js";
+
+import {
+  waitForAuthenticatedSession
+} from "../services/session.js";
+
 import { createEntity } from "../services/firestore.js";
 
 
@@ -58,7 +63,7 @@ export function CreateTournament() {
 
           <p>
             Define la identidad y presencia
-            oficial de tu torneo dentro de NEXUS.
+            oficial de tu liga dentro de NEXUS.
           </p>
 
         </div>
@@ -74,6 +79,7 @@ export function CreateTournament() {
         class="create-tournament-page__form"
         novalidate
       >
+
 
         <!-- ========================================
              BASIC INFORMATION
@@ -117,7 +123,7 @@ export function CreateTournament() {
           >
 
             <span>
-              CREAR TORNEO
+              CREAR LIGA
             </span>
 
             <i
@@ -128,6 +134,7 @@ export function CreateTournament() {
           </button>
 
         </footer>
+
 
       </form>
 
@@ -359,7 +366,7 @@ export function CreateTournament() {
 
 
         // ========================================
-        // TOURNAMENT DATA
+        // LEAGUE DATA
         // ========================================
 
         const tournamentData = {
@@ -372,6 +379,13 @@ export function CreateTournament() {
 
           description:
             formData.get("description"),
+
+          foundationYear:
+            Number(
+              formData.get(
+                "foundationYear"
+              )
+            ),
 
           instagram:
             formData.get("instagram"),
@@ -442,10 +456,38 @@ export function CreateTournament() {
         );
 
 
+        // ========================================
+        // WAIT FOR NEXUS SESSION
+        // ========================================
+
+        const session =
+          await waitForAuthenticatedSession();
+
+        console.log(
+          "NEXUS — Sesión autenticada:",
+          session
+        );
+
+
+        // ========================================
+        // NAVIGATE TO DASHBOARD
+        // ========================================
+
+        window.history.pushState(
+          {},
+          "",
+          "/dashboard"
+        );
+
+        window.dispatchEvent(
+          new PopStateEvent("popstate")
+        );
+
+
       } catch (error) {
 
         console.error(
-          "NEXUS — Error creando Torneo:",
+          "NEXUS — Error creando Liga:",
           error
         );
 

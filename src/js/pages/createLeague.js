@@ -6,6 +6,11 @@ import { EntityBasicInfo } from "../components/entityBasicInfo.js";
 import { AccountCredentials } from "../components/accountCredentials.js";
 
 import { createAccount } from "../services/auth.js";
+
+import {
+  waitForAuthenticatedSession
+} from "../services/session.js";
+
 import { createEntity } from "../services/firestore.js";
 
 
@@ -448,6 +453,34 @@ export function CreateLeague() {
         console.log(
           "NEXUS — Perfil de usuario creado:",
           user.uid
+        );
+
+
+        // ========================================
+        // WAIT FOR NEXUS SESSION
+        // ========================================
+
+        const session =
+          await waitForAuthenticatedSession();
+
+        console.log(
+          "NEXUS — Sesión autenticada:",
+          session
+        );
+
+
+        // ========================================
+        // NAVIGATE TO DASHBOARD
+        // ========================================
+
+        window.history.pushState(
+          {},
+          "",
+          "/dashboard"
+        );
+
+        window.dispatchEvent(
+          new PopStateEvent("popstate")
         );
 
 
