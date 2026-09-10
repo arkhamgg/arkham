@@ -18,3 +18,6 @@
 @use "./pages/create-tournament" as create-tournament-page;
 @use "./pages/dashboard";
 @use "./pages/login" as login;
+@use "./pages/create-team" as create-team;
+@use "./components/playerBasicInfo";
+@use "./pages/create-player";

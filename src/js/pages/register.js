@@ -3,13 +3,21 @@
 // ========================================
 
 export function Register() {
-  const page = document.createElement("main");
 
-  page.className = "register-page";
-  page.id = "register-page";
+  const page =
+    document.createElement("main");
+
+  page.className =
+    "register-page";
+
+  page.id =
+    "register-page";
+
 
   page.innerHTML = `
+
     <div class="register-page__container">
+
 
       <!-- ========================================
            HEADER
@@ -73,10 +81,12 @@ export function Register() {
             </span>
 
             <span class="register-type__icon">
+
               <i
                 class="fa-solid fa-trophy"
                 aria-hidden="true"
               ></i>
+
             </span>
 
             <span class="register-type__content">
@@ -93,10 +103,12 @@ export function Register() {
             </span>
 
             <span class="register-type__arrow">
+
               <i
                 class="fa-solid fa-arrow-right"
                 aria-hidden="true"
               ></i>
+
             </span>
 
           </button>
@@ -117,10 +129,12 @@ export function Register() {
             </span>
 
             <span class="register-type__icon">
+
               <i
                 class="fa-solid fa-bolt"
                 aria-hidden="true"
               ></i>
+
             </span>
 
             <span class="register-type__content">
@@ -137,10 +151,12 @@ export function Register() {
             </span>
 
             <span class="register-type__arrow">
+
               <i
                 class="fa-solid fa-arrow-right"
                 aria-hidden="true"
               ></i>
+
             </span>
 
           </button>
@@ -161,10 +177,12 @@ export function Register() {
             </span>
 
             <span class="register-type__icon">
+
               <i
                 class="fa-solid fa-user"
                 aria-hidden="true"
               ></i>
+
             </span>
 
             <span class="register-type__content">
@@ -181,10 +199,12 @@ export function Register() {
             </span>
 
             <span class="register-type__arrow">
+
               <i
                 class="fa-solid fa-arrow-right"
                 aria-hidden="true"
               ></i>
+
             </span>
 
           </button>
@@ -205,10 +225,12 @@ export function Register() {
             </span>
 
             <span class="register-type__icon">
+
               <i
                 class="fa-solid fa-shield-halved"
                 aria-hidden="true"
               ></i>
+
             </span>
 
             <span class="register-type__content">
@@ -225,10 +247,12 @@ export function Register() {
             </span>
 
             <span class="register-type__arrow">
+
               <i
                 class="fa-solid fa-arrow-right"
                 aria-hidden="true"
               ></i>
+
             </span>
 
           </button>
@@ -279,6 +303,7 @@ export function Register() {
         </span>
 
         <a href="/login">
+
           INICIAR SESIÓN
 
           <i
@@ -291,6 +316,7 @@ export function Register() {
       </footer>
 
     </div>
+
   `;
 
 
@@ -299,151 +325,252 @@ export function Register() {
   // ========================================
 
   const typeButtons =
-    page.querySelectorAll(".register-type");
+    page.querySelectorAll(
+      ".register-type"
+    );
+
 
   const continueButton =
     page.querySelector(
       ".register-page__continue-button"
     );
 
+
   const selectionLabel =
     page.querySelector(
       ".register-page__selection"
     );
 
-  let selectedType = null;
+
+  let selectedType =
+    null;
 
 
-  typeButtons.forEach((button) => {
+  typeButtons.forEach(
+    (button) => {
 
-    button.addEventListener("click", () => {
+      button.addEventListener(
+        "click",
+        () => {
 
-      // Remove previous selection
+          // ========================================
+          // REMOVE PREVIOUS SELECTION
+          // ========================================
 
-      typeButtons.forEach((item) => {
+          typeButtons.forEach(
+            (item) => {
 
-        item.classList.remove(
-          "register-type--selected"
-        );
+              item.classList.remove(
+                "register-type--selected"
+              );
 
-      });
+            }
+          );
 
 
-      // Select current type
+          // ========================================
+          // SELECT CURRENT TYPE
+          // ========================================
 
-      button.classList.add(
-        "register-type--selected"
+          button.classList.add(
+            "register-type--selected"
+          );
+
+
+          // ========================================
+          // SAVE SELECTED TYPE
+          // ========================================
+
+          selectedType =
+            button.dataset.type;
+
+
+          // ========================================
+          // GET VISIBLE NAME
+          // ========================================
+
+          const selectedName =
+            button
+              .querySelector(
+                ".register-type__content strong"
+              )
+              .textContent
+              .trim();
+
+
+          // ========================================
+          // UPDATE SELECTION LABEL
+          // ========================================
+
+          selectionLabel.textContent =
+            `SELECCIONADO: ${selectedName}`;
+
+
+          // ========================================
+          // ENABLE CONTINUE BUTTON
+          // ========================================
+
+          continueButton.disabled =
+            false;
+
+        }
       );
 
-
-      // Save selected type
-
-      selectedType =
-        button.dataset.type;
-
-
-      // Get visible name
-
-      const selectedName =
-        button.querySelector(
-          ".register-type__content strong"
-        ).textContent.trim();
-
-
-      // Update selection label
-
-      selectionLabel.textContent =
-        `SELECCIONADO: ${selectedName}`;
-
-
-      // Enable continue button
-
-      continueButton.disabled = false;
-
-    });
-
-  });
+    }
+  );
 
 
   // ========================================
   // CONTINUE
   // ========================================
 
-  continueButton.addEventListener("click", () => {
+  continueButton.addEventListener(
+    "click",
+    () => {
 
-    if (!selectedType) {
-      return;
+      if (!selectedType) {
+
+        return;
+
+      }
+
+
+      console.log(
+        "NEXUS — Tipo de cuenta seleccionado:",
+        selectedType
+      );
+
+
+      // ========================================
+      // LEAGUE
+      // ========================================
+
+      if (
+        selectedType ===
+        "league"
+      ) {
+
+        window.history.pushState(
+          {},
+          "",
+          "/register/league"
+        );
+
+
+        window.dispatchEvent(
+          new PopStateEvent(
+            "popstate"
+          )
+        );
+
+
+        return;
+
+      }
+
+
+      // ========================================
+      // TOURNAMENT
+      // ========================================
+
+      if (
+        selectedType ===
+        "tournament"
+      ) {
+
+        window.history.pushState(
+          {},
+          "",
+          "/register/tournament"
+        );
+
+
+        window.dispatchEvent(
+          new PopStateEvent(
+            "popstate"
+          )
+        );
+
+
+        return;
+
+      }
+
+
+      // ========================================
+      // TEAM
+      // ========================================
+
+      if (
+        selectedType ===
+        "team"
+      ) {
+
+        window.history.pushState(
+          {},
+          "",
+          "/register/team"
+        );
+
+
+        window.dispatchEvent(
+          new PopStateEvent(
+            "popstate"
+          )
+        );
+
+
+        return;
+
+      }
+
+
+      // ========================================
+      // PLAYER
+      // ========================================
+
+      if (
+        selectedType ===
+        "player"
+      ) {
+
+        window.history.pushState(
+          {},
+          "",
+          "/register/player"
+        );
+
+
+        window.dispatchEvent(
+          new PopStateEvent(
+            "popstate"
+          )
+        );
+
+
+        return;
+
+      }
+
     }
-
-
-    console.log(
-      "NEXUS — Tipo de cuenta seleccionado:",
-      selectedType
-    );
-
-
-    // ========================================
-    // LEAGUE
-    // ========================================
-
-    if (selectedType === "league") {
-
-      window.history.pushState(
-        {},
-        "",
-        "/register/league"
-      );
-
-      window.dispatchEvent(
-        new PopStateEvent("popstate")
-      );
-
-      return;
-    }
-
-
-    // ========================================
-    // TOURNAMENT
-    // ========================================
-
-    if (selectedType === "tournament") {
-
-      window.history.pushState(
-        {},
-        "",
-        "/register/tournament"
-      );
-
-      window.dispatchEvent(
-        new PopStateEvent("popstate")
-      );
-
-      return;
-    }
-
-
-    // ========================================
-    // FUTURE ROUTES
-    // ========================================
-
-    // player → formulario de Jugador
-    // team   → formulario de Equipo
-
-  });
+  );
 
 
   // ========================================
   // PAGE REVEAL
   // ========================================
 
-  requestAnimationFrame(() => {
+  requestAnimationFrame(
+    () => {
 
-    page.classList.add(
-      "register-page--visible"
-    );
+      page.classList.add(
+        "register-page--visible"
+      );
 
-  });
+    }
+  );
 
 
   return page;
+
 }

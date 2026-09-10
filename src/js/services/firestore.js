@@ -7,6 +7,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
   updateDoc,
   serverTimestamp
 } from "firebase/firestore";
@@ -95,6 +96,44 @@ export async function getEntity(
     ...entitySnapshot.data()
 
   };
+
+}
+
+
+// ========================================
+// GET ENTITIES
+// ========================================
+
+export async function getEntities(
+  collectionName
+) {
+
+  const collectionRef =
+    collection(
+      db,
+      collectionName
+    );
+
+
+  const collectionSnapshot =
+    await getDocs(
+      collectionRef
+    );
+
+
+  return collectionSnapshot.docs.map(
+    (document) => {
+
+      return {
+        id:
+          document.id,
+
+        ...document.data()
+
+      };
+
+    }
+  );
 
 }
 

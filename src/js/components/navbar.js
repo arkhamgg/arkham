@@ -69,7 +69,7 @@ export function Navbar() {
 
 
         <a
-          href="#competitions"
+          href="/competitions"
           class="navbar__link"
         >
 
@@ -86,7 +86,7 @@ export function Navbar() {
 
 
         <a
-          href="#teams"
+          href="/teams"
           class="navbar__link"
         >
 
@@ -103,7 +103,7 @@ export function Navbar() {
 
 
         <a
-          href="#players"
+          href="/players"
           class="navbar__link"
         >
 
@@ -120,7 +120,7 @@ export function Navbar() {
 
 
         <a
-          href="#calendar"
+          href="/calendar"
           class="navbar__link"
         >
 
@@ -225,7 +225,7 @@ export function Navbar() {
 
 
         <a
-          href="#competitions"
+          href="/competitions"
           class="navbar__mobile-link"
         >
 
@@ -394,6 +394,7 @@ export function Navbar() {
         "navbar--authenticated"
       );
 
+
       // ========================================
       // DESKTOP
       // ========================================
@@ -402,6 +403,7 @@ export function Navbar() {
         "/dashboard";
 
       sessionAction.innerHTML = `
+
         <i
           class="fa-solid fa-user"
           aria-hidden="true"
@@ -410,12 +412,12 @@ export function Navbar() {
         <span>
           Mi NEXUS
         </span>
+
       `;
 
 
       // "Crear cuenta" is hidden by
       // .navbar--authenticated
-
 
 
       // ========================================
@@ -426,6 +428,7 @@ export function Navbar() {
         "/dashboard";
 
       mobileSessionAction.innerHTML = `
+
         <i
           class="fa-solid fa-user"
           aria-hidden="true"
@@ -434,10 +437,8 @@ export function Navbar() {
         <span>
           Mi NEXUS
         </span>
+
       `;
-
-
-      
 
 
       return;
@@ -453,20 +454,26 @@ export function Navbar() {
       "navbar--authenticated"
     );
 
+
     sessionAction.href =
       "/login";
 
+
     sessionAction.innerHTML = `
+
       <span>
         Iniciar sesión
       </span>
+
     `;
 
 
     mobileSessionAction.href =
       "/login";
 
+
     mobileSessionAction.innerHTML = `
+
       <i
         class="fa-solid fa-right-to-bracket"
         aria-hidden="true"
@@ -475,8 +482,8 @@ export function Navbar() {
       <span>
         Iniciar sesión
       </span>
-    `;
 
+    `;
 
   }
 
@@ -488,6 +495,7 @@ export function Navbar() {
   onSessionChange(
     updateSessionUI
   );
+
 
   // ========================================
   // APPLY CURRENT SESSION
@@ -508,21 +516,26 @@ export function Navbar() {
       "navbar--menu-open"
     );
 
+
     menuToggle.setAttribute(
       "aria-expanded",
       "false"
     );
+
 
     menuToggle.setAttribute(
       "aria-label",
       "Abrir menú"
     );
 
+
     menuToggle.innerHTML = `
+
       <i
         class="fa-solid fa-bars"
         aria-hidden="true"
       ></i>
+
     `;
 
   }
@@ -551,6 +564,7 @@ export function Navbar() {
 
 
     menuToggle.innerHTML = `
+
       <i
         class="fa-solid ${
           isOpen
@@ -559,6 +573,7 @@ export function Navbar() {
         }"
         aria-hidden="true"
       ></i>
+
     `;
 
   }

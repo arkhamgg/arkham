@@ -4,68 +4,64 @@
 
 import { CompetitionCard } from "../components/competitionCard.js";
 
+import {
+  getEntities
+} from "../services/firestore.js";
+
 
 // ========================================
-// MOCK DATA
+// NORMALIZE COMPETITION
 // ========================================
 
-const competitions = [
-  {
-    id: "master",
-    index: "01",
-    name: "MASTER LEGENDS",
-    game: "Smash Bros",
-    logo: "public/logo-1.png",
-    logoText: "M",
-    status: "active",
-    statusLabel: "ACTIVA",
-    startDate: "12 SEP 2026",
-    dates: "6 FECHAS",
-    location: "GUATEMALA"
-  },
+function normalizeCompetition(
+  competition,
+  type,
+  index
+) {
 
-  {
-    id: "chapin",
-    index: "02",
-    name: "Chapin Leagues",
-    game: "FREE FIRE",
-    logo: "public/logo-2.png",
-    logoText: "C",
-    status: "upcoming",
-    statusLabel: "PRÓXIMA",
-    startDate: "OCT 2026",
-    dates: "1 FECHA",
-    location: "GUATEMALA"
-  },
+  return {
 
-  {
-    id: "lgd",
-    index: "03",
-    name: "LGD2",
-    game: "DOTA2",
-    logo: "public/logo-3.png",
-    logoText: "O",
-    status: "upcoming",
-    statusLabel: "PRÓXIMA",
-    startDate: "NOV 2026",
-    dates: "1 FECHA",
-    location: "GUATEMALA"
-  },
+    id:
+      competition.id,
 
-  {
-    id: "dominion",
-    index: "04",
-    name: "Dominion",
-    game: "Call Of Duty",
-    logo: "public/logo-4.png",
-    logoText: "S",
-    status: "finished",
-    statusLabel: "FINALIZADA",
-    startDate: "JUN 2026",
-    dates: "4 FECHAS",
-    location: "GUATEMALA"
-  }
-];
+    index:
+      String(index).padStart(2, "0"),
+
+    type,
+
+    name:
+      competition.name || "SIN NOMBRE",
+
+    game:
+      competition.game || "—",
+
+    logo:
+      competition.logo?.url || null,
+
+    logoText:
+      competition.shortName ||
+      competition.name?.charAt(0) ||
+      "NX",
+
+    status:
+      competition.status || "registered",
+
+    statusLabel:
+      competition.statusLabel ||
+      "REGISTRADA",
+
+    startDate:
+      competition.startDate || "—",
+
+    dates:
+      competition.dates || "—",
+
+    location:
+      competition.location || "—"
+
+  };
+
+}
 
 
 // ========================================
@@ -74,10 +70,14 @@ const competitions = [
 
 export function Competitions() {
 
-  const page = document.createElement("main");
+  const page =
+    document.createElement("main");
 
-  page.className = "competitions-page";
-  page.id = "competitions-page";
+  page.className =
+    "competitions-page";
+
+  page.id =
+    "competitions-page";
 
 
   page.innerHTML = `
@@ -127,7 +127,10 @@ export function Competitions() {
       >
 
         <button
-          class="competitions-filter competitions-filter--active"
+          class="
+            competitions-filter
+            competitions-filter--active
+          "
           data-filter="all"
           type="button"
         >
@@ -172,10 +175,23 @@ export function Competitions() {
 
 
       <!-- ========================================
+           LOADING
+           ======================================== -->
+
+      <div class="competitions-page__loading">
+
+        <span>
+          CARGANDO COMPETENCIAS...
+        </span>
+
+      </div>
+
+
+      <!-- ========================================
            EMPTY STATE
            ======================================== -->
 
-      <div class="competitions-page__empty">
+      <div class="competitions-page__empty" hidden>
 
         <span>
           NO HAY COMPETENCIAS DISPONIBLES
@@ -187,26 +203,43 @@ export function Competitions() {
   `;
 
 
-  const grid = page.querySelector(
-    ".competitions-page__grid"
-  );
+  const grid =
+    page.querySelector(
+      ".competitions-page__grid"
+    );
 
-  const emptyState = page.querySelector(
-    ".competitions-page__empty"
-  );
 
-  const filterButtons = page.querySelectorAll(
-    ".competitions-filter"
-  );
+  const loadingState =
+    page.querySelector(
+      ".competitions-page__loading"
+    );
+
+
+  const emptyState =
+    page.querySelector(
+      ".competitions-page__empty"
+    );
+
+
+  const filterButtons =
+    page.querySelectorAll(
+      ".competitions-filter"
+    );
+
+
+  let competitions = [];
 
 
   // ========================================
   // RENDER
   // ========================================
 
-  function renderCompetitions(filter = "all") {
+  function renderCompetitions(
+    filter = "all"
+  ) {
 
     grid.innerHTML = "";
+
 
     const filteredCompetitions =
       filter === "all"
@@ -220,9 +253,10 @@ export function Competitions() {
     filteredCompetitions.forEach(
       (competition) => {
 
-        const card = CompetitionCard(
-          competition
-        );
+        const card =
+          CompetitionCard(
+            competition
+          );
 
         grid.appendChild(card);
 
@@ -232,6 +266,110 @@ export function Competitions() {
 
     emptyState.hidden =
       filteredCompetitions.length !== 0;
+
+  }
+
+
+  // ========================================
+  // LOAD COMPETITIONS
+  // ========================================
+
+  async function loadCompetitions() {
+
+    try {
+
+      console.log(
+        "NEXUS — Cargando competencias..."
+      );
+
+
+      const [
+        leagues,
+        tournaments
+      ] = await Promise.all([
+
+        getEntities(
+          "leagues"
+        ),
+
+        getEntities(
+          "tournaments"
+        )
+
+      ]);
+
+
+      console.log(
+        "NEXUS — Ligas:",
+        leagues
+      );
+
+
+      console.log(
+        "NEXUS — Torneos:",
+        tournaments
+      );
+
+
+      const normalizedLeagues =
+        leagues.map(
+          (league, index) =>
+            normalizeCompetition(
+              league,
+              "league",
+              index + 1
+            )
+        );
+
+
+      const normalizedTournaments =
+        tournaments.map(
+          (tournament, index) =>
+            normalizeCompetition(
+              tournament,
+              "tournament",
+              normalizedLeagues.length +
+                index +
+                1
+            )
+        );
+
+
+      competitions = [
+        ...normalizedLeagues,
+        ...normalizedTournaments
+      ];
+
+
+      loadingState.hidden =
+        true;
+
+
+      renderCompetitions();
+
+
+      console.log(
+        "NEXUS — Competencias cargadas:",
+        competitions
+      );
+
+    } catch (error) {
+
+      console.error(
+        "NEXUS — Error cargando competencias:",
+        error
+      );
+
+
+      loadingState.hidden =
+        true;
+
+
+      emptyState.hidden =
+        false;
+
+    }
+
   }
 
 
@@ -239,77 +377,92 @@ export function Competitions() {
   // FILTERS
   // ========================================
 
-  filterButtons.forEach((button) => {
+  filterButtons.forEach(
+    (button) => {
 
-    button.addEventListener(
-      "click",
-      () => {
+      button.addEventListener(
+        "click",
+        () => {
 
-        const filter =
-          button.dataset.filter;
-
-
-        filterButtons.forEach(
-          (filterButton) => {
-
-            filterButton.classList.remove(
-              "competitions-filter--active"
-            );
-
-          }
-        );
+          const filter =
+            button.dataset.filter;
 
 
-        button.classList.add(
-          "competitions-filter--active"
-        );
+          filterButtons.forEach(
+            (filterButton) => {
+
+              filterButton.classList.remove(
+                "competitions-filter--active"
+              );
+
+            }
+          );
 
 
-        renderCompetitions(filter);
+          button.classList.add(
+            "competitions-filter--active"
+          );
 
-      }
-    );
 
-  });
+          renderCompetitions(
+            filter
+          );
+
+        }
+      );
+
+    }
+  );
 
 
   // ========================================
-  // INITIAL RENDER
+  // INITIAL LOAD
   // ========================================
 
-  renderCompetitions();
+  loadCompetitions();
 
 
   // ========================================
   // SCROLL REVEAL
   // ========================================
 
-  const observer = new IntersectionObserver(
-    (entries) => {
+  const observer =
+    new IntersectionObserver(
+      (entries) => {
 
-      entries.forEach((entry) => {
+        entries.forEach(
+          (entry) => {
 
-        if (entry.isIntersecting) {
+            if (
+              entry.isIntersecting
+            ) {
 
-          page.classList.add(
-            "competitions-page--visible"
-          );
+              page.classList.add(
+                "competitions-page--visible"
+              );
 
-          observer.unobserve(page);
 
-        }
+              observer.unobserve(
+                page
+              );
 
-      });
+            }
 
-    },
-    {
-      threshold: 0.1
-    }
+          }
+        );
+
+      },
+      {
+        threshold: 0.1
+      }
+    );
+
+
+  observer.observe(
+    page
   );
 
 
-  observer.observe(page);
-
-
   return page;
+
 }

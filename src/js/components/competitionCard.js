@@ -3,11 +3,19 @@
 // ========================================
 
 export function CompetitionCard(competition) {
-  const card = document.createElement("article");
 
-  card.className = "competition-card";
+  const card =
+    document.createElement("a");
+
+  card.className =
+    "competition-card";
+
+  card.href =
+    `/competitions/${competition.id}`;
+
 
   card.innerHTML = `
+
     <div class="competition-card__top">
 
       <span class="competition-card__index">
@@ -18,8 +26,11 @@ export function CompetitionCard(competition) {
         competition-card__status
         competition-card__status--${competition.status}
       ">
+
         <span></span>
+
         ${competition.statusLabel}
+
       </span>
 
     </div>
@@ -117,10 +128,7 @@ export function CompetitionCard(competition) {
          ACTION
          ======================================== -->
 
-    <a
-      class="competition-card__action"
-      href="/competitions/${competition.id}"
-    >
+    <div class="competition-card__action">
 
       <span>
         VER COMPETENCIA
@@ -131,9 +139,11 @@ export function CompetitionCard(competition) {
         aria-hidden="true"
       ></i>
 
-    </a>
+    </div>
 
   `;
 
+
   return card;
+
 }

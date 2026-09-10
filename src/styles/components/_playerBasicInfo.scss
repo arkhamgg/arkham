@@ -1,0 +1,783 @@
+// ========================================
+// NEXUS — Player Basic Info Component
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+
+.player-basic-info {
+
+  width: 100%;
+
+
+  // ========================================
+  // SECTION
+  // ========================================
+
+  &__section {
+
+    width: 100%;
+
+    padding:
+      $space-16
+      0;
+
+    border-bottom:
+      1px solid
+      $color-800;
+
+  }
+
+
+  // ========================================
+  // SECTION HEADER
+  // ========================================
+
+  &__section-header {
+
+    display: grid;
+
+    grid-template-columns:
+      auto
+      1fr;
+
+    gap: $space-6;
+
+    margin-bottom: $space-10;
+
+  }
+
+
+  // ========================================
+  // SECTION NUMBER
+  // ========================================
+
+  &__section-number {
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+
+    border:
+      1px solid
+      $color-700;
+
+    color:
+      $color-red;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight: 700;
+
+    letter-spacing:
+      0.08em;
+
+  }
+
+
+  // ========================================
+  // SECTION HEADING
+  // ========================================
+
+  &__section-heading {
+
+    h2 {
+
+      margin: 0;
+
+      color:
+        $color-white;
+
+      font-size:
+        $font-size-lg;
+
+      font-weight: 700;
+
+      letter-spacing:
+        0.04em;
+
+      line-height: 1.2;
+
+      text-transform:
+        uppercase;
+
+    }
+
+
+    p {
+
+      max-width: 620px;
+
+      margin:
+        $space-2
+        0
+        0;
+
+      color:
+        $color-500;
+
+      font-size:
+        $font-size-sm;
+
+      line-height: 1.5;
+
+    }
+
+  }
+
+
+  // ========================================
+  // CONTENT
+  // ========================================
+
+  &__content {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: $space-8;
+
+  }
+
+
+  // ========================================
+  // PHOTO
+  // ========================================
+
+  &__photo {
+
+    width: 100%;
+
+  }
+
+
+  // ========================================
+  // FIELD
+  // ========================================
+
+  &__field {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: $space-2;
+
+  }
+
+
+  // ========================================
+  // LABEL
+  // ========================================
+
+  &__label {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: $space-2;
+
+    color:
+      $color-300;
+
+    font-size:
+      $font-size-xs;
+
+    font-weight: 700;
+
+    letter-spacing:
+      0.1em;
+
+    text-transform:
+      uppercase;
+
+  }
+
+
+  &__label span {
+
+    color:
+      $color-500;
+
+    font-size:
+      10px;
+
+    letter-spacing:
+      0.08em;
+
+  }
+
+
+  // ========================================
+  // PHOTO UPLOAD
+  // ========================================
+
+  .player-photo-upload {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: $space-6;
+
+    width: 100%;
+
+    padding:
+      $space-4;
+
+    border:
+      1px solid
+      $color-800;
+
+    background:
+      $color-950;
+
+    transition:
+      border-color
+        $transition-base
+        $ease-standard,
+      background
+        $transition-base
+        $ease-standard;
+
+  }
+
+
+  .player-photo-upload:hover {
+
+    border-color:
+      $color-700;
+
+    background:
+      $color-900;
+
+  }
+
+
+  // ========================================
+  // PHOTO PREVIEW
+  // ========================================
+
+  .player-photo-upload__preview {
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    width: 96px;
+    height: 96px;
+
+    overflow: hidden;
+
+    border:
+      1px solid
+      $color-700;
+
+    background:
+      $color-black;
+
+    color:
+      $color-500;
+
+    cursor: pointer;
+
+    transition:
+      border-color
+        $transition-base
+        $ease-standard,
+      color
+        $transition-base
+        $ease-standard;
+
+  }
+
+
+  .player-photo-upload__preview:hover {
+
+    border-color:
+      $color-red;
+
+    color:
+      $color-red;
+
+  }
+
+
+  .player-photo-upload__preview i {
+
+    font-size:
+      1.5rem;
+
+  }
+
+
+  .player-photo-upload__preview img {
+
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+  }
+
+
+  // ========================================
+  // PHOTO INFO
+  // ========================================
+
+  .player-photo-upload__info {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: $space-1;
+
+  }
+
+
+  .player-photo-upload__info strong {
+
+    color:
+      $color-white;
+
+    font-size:
+      $font-size-sm;
+
+    font-weight: 700;
+
+    letter-spacing:
+      0.06em;
+
+  }
+
+
+  .player-photo-upload__info span {
+
+    color:
+      $color-500;
+
+    font-size:
+      $font-size-xs;
+
+    line-height: 1.5;
+
+  }
+
+
+  // ========================================
+  // NAME GRID
+  // ========================================
+
+  &__grid {
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap:
+      $space-6;
+
+  }
+
+
+  // ========================================
+  // INPUT
+  // ========================================
+
+  &__input {
+
+    width: 100%;
+
+    min-height: 52px;
+
+    padding:
+      0
+      $space-4;
+
+    border:
+      1px solid
+      $color-700;
+
+    border-radius:
+      $radius-md;
+
+    background:
+      $color-950;
+
+    color:
+      $color-white;
+
+    font-family:
+      $font-family-base;
+
+    font-size:
+      $font-size-sm;
+
+    line-height: 1;
+
+    transition:
+      border-color
+        $transition-base
+        $ease-standard,
+      background
+        $transition-base
+        $ease-standard,
+      box-shadow
+        $transition-base
+        $ease-standard;
+
+  }
+
+
+  &__input::placeholder {
+
+    color:
+      $color-500;
+
+  }
+
+
+  &__input:hover {
+
+    border-color:
+      $color-500;
+
+  }
+
+
+  &__input:focus {
+
+    border-color:
+      $color-red;
+
+    background:
+      $color-900;
+
+    outline: none;
+
+    box-shadow:
+      0 0 0 1px
+      $color-red;
+
+  }
+
+
+  // ========================================
+  // DATE INPUT
+  // ========================================
+
+  &__input[type="date"] {
+
+    color-scheme:
+      dark;
+
+  }
+
+
+  // ========================================
+  // SOCIALS
+  // ========================================
+
+  &__socials {
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap:
+      $space-6;
+
+  }
+
+
+  // ========================================
+  // SOCIAL INPUT
+  // ========================================
+
+  &__social-input {
+
+    display: flex;
+
+    align-items: center;
+
+    min-height: 52px;
+
+    border:
+      1px solid
+      $color-700;
+
+    border-radius:
+      $radius-md;
+
+    background:
+      $color-950;
+
+    overflow: hidden;
+
+    transition:
+      border-color
+        $transition-base
+        $ease-standard,
+      background
+        $transition-base
+        $ease-standard,
+      box-shadow
+        $transition-base
+        $ease-standard;
+
+  }
+
+
+  &__social-input > span {
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-width: 44px;
+    height: 52px;
+
+    border-right:
+      1px solid
+      $color-800;
+
+    color:
+      $color-500;
+
+    font-size:
+      $font-size-sm;
+
+    font-weight: 700;
+
+  }
+
+
+  &__social-input .player-basic-info__input {
+
+    min-height: 50px;
+
+    border: 0;
+    border-radius: 0;
+
+    background:
+      transparent;
+
+    box-shadow: none;
+
+  }
+
+
+  &__social-input .player-basic-info__input:focus {
+
+    border: 0;
+
+    background:
+      transparent;
+
+    box-shadow: none;
+
+  }
+
+
+  &__social-input:focus-within {
+
+    border-color:
+      $color-red;
+
+    background:
+      $color-900;
+
+    box-shadow:
+      0 0 0 1px
+      $color-red;
+
+  }
+
+
+  // ========================================
+  // INVALID
+  // ========================================
+
+  [aria-invalid="true"] {
+
+    border-color:
+      $color-error;
+
+    box-shadow:
+      0 0 0 1px
+      $color-error;
+
+  }
+
+
+  // ========================================
+  // RESPONSIVE
+  // ========================================
+
+  @media (max-width: 768px) {
+
+    &__section {
+
+      padding:
+        $space-12
+        0;
+
+    }
+
+
+    &__section-header {
+
+      gap:
+        $space-4;
+
+      margin-bottom:
+        $space-8;
+
+    }
+
+
+    &__section-number {
+
+      width: 36px;
+      height: 36px;
+
+    }
+
+
+    &__section-heading h2 {
+
+      font-size:
+        $font-size-md;
+
+    }
+
+
+    &__section-heading p {
+
+      font-size:
+        $font-size-xs;
+
+    }
+
+
+    &__grid {
+
+      grid-template-columns:
+        1fr;
+
+      gap:
+        $space-6;
+
+    }
+
+
+    &__socials {
+
+      grid-template-columns:
+        1fr;
+
+      gap:
+        $space-6;
+
+    }
+
+
+    .player-photo-upload {
+
+      align-items:
+        flex-start;
+
+    }
+
+  }
+
+
+  // ========================================
+  // SMALL MOBILE
+  // ========================================
+
+  @media (max-width: 480px) {
+
+    &__section-header {
+
+      grid-template-columns:
+        1fr;
+
+      gap:
+        $space-3;
+
+    }
+
+
+    &__section-number {
+
+      width: 32px;
+      height: 32px;
+
+    }
+
+
+    &__section-heading h2 {
+
+      font-size:
+        $font-size-sm;
+
+    }
+
+
+    .player-photo-upload {
+
+      flex-direction:
+        column;
+
+      align-items:
+        flex-start;
+
+    }
+
+
+    .player-photo-upload__preview {
+
+      width: 88px;
+      height: 88px;
+
+    }
+
+  }
+
+
+  // ========================================
+  // REDUCED MOTION
+  // ========================================
+
+  @media (prefers-reduced-motion: reduce) {
+
+    .player-photo-upload,
+    .player-photo-upload__preview,
+    &__input,
+    &__social-input {
+
+      transition:
+        none;
+
+    }
+
+  }
+
+}

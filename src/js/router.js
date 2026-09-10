@@ -9,6 +9,8 @@ import { CreateLeague } from "./pages/createLeague.js";
 import { CreateTournament } from "./pages/createTournament.js";
 import { Dashboard } from "./pages/dashboard.js";
 import { Login } from "./pages/login.js";
+import { CreateTeam } from "./pages/createTeam.js";
+import { CreatePlayer } from "./pages/createPlayer.js";
 // ========================================
 // ROUTES
 // ========================================
@@ -21,6 +23,8 @@ const routes = {
   "/register/tournament": CreateTournament,
   "/dashboard": Dashboard,
   "/login": Login,
+  "/register/team": CreateTeam,
+  "/register/player": CreatePlayer,
 };
 
 

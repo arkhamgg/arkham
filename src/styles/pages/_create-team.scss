@@ -1,0 +1,465 @@
+// ========================================
+// NEXUS — Create Team Page
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+
+.create-team-page {
+
+  width: 100%;
+  min-height: calc(100vh - $header-height);
+
+  padding:
+    $space-24
+    $container-padding
+    $space-32;
+
+  background: $color-black;
+
+  opacity: 0;
+
+  transform: translateY(20px);
+
+  transition:
+    opacity $transition-smooth $ease-smooth,
+    transform $transition-smooth $ease-smooth;
+
+
+  // ========================================
+  // PAGE REVEAL
+  // ========================================
+
+  &--visible {
+
+    opacity: 1;
+
+    transform: translateY(0);
+
+  }
+
+
+  // ========================================
+  // CONTAINER
+  // ========================================
+
+  &__container {
+
+    width: 100%;
+    max-width: $container-max-width;
+
+    margin: 0 auto;
+
+  }
+
+
+  // ========================================
+  // HEADER
+  // ========================================
+
+  &__header {
+
+    display: flex;
+    flex-direction: column;
+
+    gap: $space-8;
+
+    margin-bottom: $space-16;
+
+  }
+
+
+  // ========================================
+  // EYEBROW
+  // ========================================
+
+  &__eyebrow {
+
+    display: flex;
+    align-items: center;
+
+    gap: $space-4;
+
+    color: $color-500;
+
+    font-size: $font-size-xs;
+    font-weight: 700;
+
+    letter-spacing: 0.14em;
+
+    text-transform: uppercase;
+
+  }
+
+
+  &__eyebrow span:first-child {
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+
+    border: 1px solid $color-700;
+
+    color: $color-red;
+
+    font-size: $font-size-xs;
+
+  }
+
+
+  // ========================================
+  // HEADING
+  // ========================================
+
+  &__heading {
+
+    max-width: 900px;
+
+  }
+
+
+  &__heading h1 {
+
+    margin: 0;
+
+    color: $color-white;
+
+    font-size: clamp(3rem, 7vw, 7rem);
+
+    font-weight: 700;
+
+    line-height: 0.95;
+
+    letter-spacing: -0.055em;
+
+    text-transform: uppercase;
+
+  }
+
+
+  &__heading h1 span {
+
+    display: block;
+
+    color: $color-red;
+
+  }
+
+
+  &__heading p {
+
+    max-width: 620px;
+
+    margin:
+      $space-8
+      0
+      0;
+
+    color: $color-300;
+
+    font-size: $font-size-lg;
+
+    line-height: 1.6;
+
+  }
+
+
+  // ========================================
+  // FORM
+  // ========================================
+
+  &__form {
+
+    width: 100%;
+
+  }
+
+
+  // ========================================
+  // BASIC INFORMATION
+  // ========================================
+
+  &__basic-info {
+
+    width: 100%;
+
+    border-top: 1px solid $color-800;
+
+  }
+
+
+  // ========================================
+  // ACTIONS
+  // ========================================
+
+  &__actions {
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: $space-4;
+
+    margin-top: $space-8;
+    padding-top: $space-8;
+
+    border-top: 1px solid $color-800;
+
+  }
+
+
+  // ========================================
+  // BUTTON
+  // ========================================
+
+  &__button {
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 52px;
+
+    padding:
+      0
+      $space-6;
+
+    border: 1px solid transparent;
+    border-radius: $radius-md;
+
+    font-family: $font-family-base;
+    font-size: $font-size-xs;
+    font-weight: 700;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+
+    cursor: pointer;
+
+    transition:
+      background $transition-base $ease-standard,
+      border-color $transition-base $ease-standard,
+      color $transition-base $ease-standard,
+      box-shadow $transition-base $ease-standard,
+      transform $transition-fast $ease-standard;
+
+  }
+
+
+  // ========================================
+  // CANCEL
+  // ========================================
+
+  &__button--cancel {
+
+    border-color: $color-700;
+
+    background: transparent;
+
+    color: $color-300;
+
+  }
+
+
+  &__button--cancel:hover {
+
+    border-color: $color-500;
+
+    background: $color-900;
+
+    color: $color-white;
+
+  }
+
+
+  // ========================================
+  // PRIMARY
+  // ========================================
+
+  &__button--primary {
+
+    gap: $space-4;
+
+    border-color: $color-red;
+
+    background: $color-red;
+
+    color: $color-white;
+
+  }
+
+
+  &__button--primary i {
+
+    font-size: $font-size-sm;
+
+    transition:
+      transform $transition-base $ease-standard;
+
+  }
+
+
+  &__button--primary:hover {
+
+    background: $color-red-light;
+
+    border-color: $color-red-light;
+
+    box-shadow: $glow-red-md;
+
+  }
+
+
+  &__button--primary:hover i {
+
+    transform: translateX(4px);
+
+  }
+
+
+  &__button:active {
+
+    transform: translateY(1px);
+
+  }
+
+
+  &__button:focus-visible {
+
+    outline: 2px solid $color-red-light;
+
+    outline-offset: 3px;
+
+  }
+
+
+  // ========================================
+  // INVALID FIELDS
+  // ========================================
+
+  [aria-invalid="true"] {
+
+    border-color: $color-error;
+
+    box-shadow:
+      0 0 0 1px $color-error;
+
+  }
+
+
+  // ========================================
+  // RESPONSIVE
+  // ========================================
+
+  @media (max-width: 768px) {
+
+    min-height: calc(100vh - $header-height);
+
+    padding:
+      $space-16
+      $container-padding
+      $space-24;
+
+
+    &__header {
+
+      gap: $space-6;
+
+      margin-bottom: $space-10;
+
+    }
+
+
+    &__heading h1 {
+
+      font-size:
+        clamp(3rem, 15vw, 5rem);
+
+    }
+
+
+    &__heading p {
+
+      margin-top: $space-6;
+
+      font-size: $font-size-md;
+
+    }
+
+
+    &__actions {
+
+      justify-content: stretch;
+
+    }
+
+
+    &__button {
+
+      flex: 1;
+
+    }
+
+  }
+
+
+  @media (max-width: 480px) {
+
+    padding:
+      $space-12
+      $space-4
+      $space-20;
+
+
+    &__heading h1 {
+
+      font-size:
+        clamp(2.75rem, 16vw, 4rem);
+
+    }
+
+
+    &__heading p {
+
+      font-size: $font-size-sm;
+
+    }
+
+
+    &__actions {
+
+      flex-direction: column-reverse;
+
+      align-items: stretch;
+
+    }
+
+
+    &__button {
+
+      width: 100%;
+
+    }
+
+  }
+
+
+  // ========================================
+  // REDUCED MOTION
+  // ========================================
+
+  @media (prefers-reduced-motion: reduce) {
+
+    opacity: 1;
+
+    transform: none;
+
+    transition: none;
+
+  }
+
+}
