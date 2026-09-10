@@ -7,6 +7,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  updateDoc,
   serverTimestamp
 } from "firebase/firestore";
 
@@ -94,5 +95,36 @@ export async function getEntity(
     ...entitySnapshot.data()
 
   };
+
+}
+
+
+// ========================================
+// UPDATE ENTITY
+// ========================================
+
+export async function updateEntity(
+  collectionName,
+  entityId,
+  entityData
+) {
+
+  const entityRef =
+    doc(
+      db,
+      collectionName,
+      entityId
+    );
+
+
+  await updateDoc(
+    entityRef,
+    {
+      ...entityData,
+
+      updatedAt:
+        serverTimestamp()
+    }
+  );
 
 }

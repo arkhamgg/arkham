@@ -8,10 +8,18 @@ import { AccountCredentials } from "../components/accountCredentials.js";
 import { createAccount } from "../services/auth.js";
 
 import {
-  waitForAuthenticatedSession
+  waitForAuthenticatedSession,
+  refreshSession
 } from "../services/session.js";
 
-import { createEntity } from "../services/firestore.js";
+import {
+  createEntity,
+  updateEntity
+} from "../services/firestore.js";
+
+import {
+  uploadImage
+} from "../services/imagekit.js";
 
 
 // ========================================
@@ -342,6 +350,20 @@ export function CreateLeague() {
 
 
       // ========================================
+      // LOGO FILE
+      // ========================================
+
+      const logoInput =
+        form.querySelector(
+          "#entity-logo"
+        );
+
+
+      const logoFile =
+        logoInput?.files?.[0] || null;
+
+
+      // ========================================
       // CREATE FIREBASE ACCOUNT
       // ========================================
 
@@ -429,6 +451,70 @@ export function CreateLeague() {
 
 
         // ========================================
+        // UPLOAD LOGO
+        // ========================================
+
+        if (logoFile) {
+
+          console.log(
+            "NEXUS — Subiendo logo de la liga..."
+          );
+
+
+          const logoResult =
+            await uploadImage(
+              logoFile,
+              {
+                folder:
+                  "/nexus/leagues"
+              }
+            );
+
+
+          console.log(
+            "NEXUS — Logo subido:",
+            logoResult
+          );
+
+
+          // ========================================
+          // UPDATE LEAGUE WITH LOGO
+          // ========================================
+
+          await updateEntity(
+            "leagues",
+            leagueId,
+            {
+              logo: {
+
+                url:
+                  logoResult.url,
+
+                fileId:
+                  logoResult.fileId,
+
+                filePath:
+                  logoResult.filePath
+
+              }
+            }
+          );
+
+
+          console.log(
+            "NEXUS — Referencia del logo guardada."
+          );
+
+        } else {
+
+          console.log(
+            "NEXUS — Liga sin logo."
+          );
+
+        }
+
+
+        // ========================================
         // CREATE USER PROFILE
         // ========================================
 
@@ -463,9 +549,24 @@ export function CreateLeague() {
         const session =
           await waitForAuthenticatedSession();
 
+
         console.log(
           "NEXUS — Sesión autenticada:",
           session
+        );
+
+
+        // ========================================
+        // REFRESH NEXUS SESSION
+        // ========================================
+
+        const refreshedSession =
+          await refreshSession();
+
+
+        console.log(
+          "NEXUS — Sesión actualizada:",
+          refreshedSession
         );
 
 
@@ -478,6 +579,7 @@ export function CreateLeague() {
           "",
           "/dashboard"
         );
+
 
         window.dispatchEvent(
           new PopStateEvent("popstate")

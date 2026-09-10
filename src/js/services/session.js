@@ -2,44 +2,18 @@
 // NEXUS — Session Service
 // ========================================
 
-import {
-  authReady
-} from "./firebase.js";
-
-import {
-  observeAuthState
-} from "./auth.js";
-
-import {
-  getEntity
-} from "./firestore.js";
+import { authReady } from "./firebase.js";
+import { observeAuthState } from "./auth.js";
+import { getEntity } from "./firestore.js";
 
 
-// ========================================
-// CURRENT SESSION
-// ========================================
+let currentSession = null;
 
-let currentSession =
-  null;
+let initialized = false;
 
+let initializationPromise = null;
 
-// ========================================
-// SESSION STATE
-// ========================================
-
-let initialized =
-  false;
-
-let initializationPromise =
-  null;
-
-let sessionInitialized =
-  false;
-
-
-// ========================================
-// SESSION LISTENERS
-// ========================================
+let sessionInitialized = false;
 
 const sessionListeners =
   new Set();
@@ -72,10 +46,6 @@ export function initializeSession(
   callback = null
 ) {
 
-  // ========================================
-  // REGISTER CALLBACK
-  // ========================================
-
   if (callback) {
 
     sessionListeners.add(
@@ -84,10 +54,6 @@ export function initializeSession(
 
   }
 
-
-  // ========================================
-  // ALREADY INITIALIZED
-  // ========================================
 
   if (initialized) {
 
@@ -104,35 +70,18 @@ export function initializeSession(
   }
 
 
-  // ========================================
-  // INITIALIZATION
-  // ========================================
-
-  initialized =
-    true;
+  initialized = true;
 
 
   initializationPromise =
     new Promise(
       (resolve) => {
 
-        // ========================================
-        // WAIT FOR AUTH PERSISTENCE
-        // ========================================
-
         authReady.then(
           () => {
 
-            // ========================================
-            // OBSERVE AUTH STATE
-            // ========================================
-
             observeAuthState(
               async (user) => {
-
-                // ========================================
-                // NO AUTHENTICATED USER
-                // ========================================
 
                 if (!user) {
 
@@ -153,10 +102,6 @@ export function initializeSession(
                 }
 
 
-                // ========================================
-                // GET NEXUS USER PROFILE
-                // ========================================
-
                 try {
 
                   const profile =
@@ -165,10 +110,6 @@ export function initializeSession(
                       user.uid
                     );
 
-
-                  // ========================================
-                  // CREATE SESSION
-                  // ========================================
 
                   currentSession = {
 
@@ -182,25 +123,21 @@ export function initializeSession(
 
                     },
 
-                    profile:
-                      profile
+                    profile
 
                   };
 
 
-                  // ========================================
-                  // SESSION READY
-                  // ========================================
-
                   sessionInitialized =
                     true;
 
+
                   notifySessionListeners();
+
 
                   resolve(
                     currentSession
                   );
-
 
                 } catch (error) {
 
@@ -213,10 +150,13 @@ export function initializeSession(
                   currentSession =
                     null;
 
+
                   sessionInitialized =
                     true;
 
+
                   notifySessionListeners();
+
 
                   resolve(
                     null
@@ -240,10 +180,13 @@ export function initializeSession(
             currentSession =
               null;
 
+
             sessionInitialized =
               true;
 
+
             notifySessionListeners();
+
 
             resolve(
               null
@@ -262,6 +205,51 @@ export function initializeSession(
 
 
 // ========================================
+// REFRESH SESSION PROFILE
+// ========================================
+
+export async function refreshSession() {
+
+  if (
+    !currentSession ||
+    !currentSession.user ||
+    !currentSession.user.uid
+  ) {
+
+    return null;
+
+  }
+
+
+  const profile =
+    await getEntity(
+      "users",
+      currentSession.user.uid
+    );
+
+
+  currentSession = {
+
+    ...currentSession,
+
+    profile
+
+  };
+
+
+  sessionInitialized =
+    true;
+
+
+  notifySessionListeners();
+
+
+  return currentSession;
+
+}
+
+
+// ========================================
 // GET CURRENT SESSION
 // ========================================
 
@@ -273,7 +261,7 @@ export function getCurrentSession() {
 
 
 // ========================================
-// SESSION INITIALIZATION STATE
+// SESSION INITIALIZED
 // ========================================
 
 export function isSessionInitialized() {
@@ -289,10 +277,6 @@ export function isSessionInitialized() {
 
 export function waitForAuthenticatedSession() {
 
-  // ========================================
-  // SESSION ALREADY AVAILABLE
-  // ========================================
-
   if (currentSession) {
 
     return Promise.resolve(
@@ -302,10 +286,6 @@ export function waitForAuthenticatedSession() {
   }
 
 
-  // ========================================
-  // WAIT FOR SESSION
-  // ========================================
-
   return new Promise(
     (resolve) => {
 
@@ -313,7 +293,9 @@ export function waitForAuthenticatedSession() {
         (session) => {
 
           if (!session) {
+
             return;
+
           }
 
 
@@ -340,7 +322,7 @@ export function waitForAuthenticatedSession() {
 
 
 // ========================================
-// SESSION LISTENER
+// SESSION CHANGE
 // ========================================
 
 export function onSessionChange(

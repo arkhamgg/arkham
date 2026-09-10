@@ -8,10 +8,18 @@ import { AccountCredentials } from "../components/accountCredentials.js";
 import { createAccount } from "../services/auth.js";
 
 import {
-  waitForAuthenticatedSession
+  waitForAuthenticatedSession,
+  refreshSession
 } from "../services/session.js";
 
-import { createEntity } from "../services/firestore.js";
+import {
+  createEntity,
+  updateEntity
+} from "../services/firestore.js";
+
+import {
+  uploadImage
+} from "../services/imagekit.js";
 
 
 // ========================================
@@ -63,7 +71,7 @@ export function CreateTournament() {
 
           <p>
             Define la identidad y presencia
-            oficial de tu liga dentro de NEXUS.
+            oficial de tu torneo dentro de NEXUS.
           </p>
 
         </div>
@@ -123,7 +131,7 @@ export function CreateTournament() {
           >
 
             <span>
-              CREAR LIGA
+              CREAR TORNEO
             </span>
 
             <i
@@ -342,6 +350,20 @@ export function CreateTournament() {
 
 
       // ========================================
+      // LOGO FILE
+      // ========================================
+
+      const logoInput =
+        form.querySelector(
+          "#entity-logo"
+        );
+
+
+      const logoFile =
+        logoInput?.files?.[0] || null;
+
+
+      // ========================================
       // CREATE FIREBASE ACCOUNT
       // ========================================
 
@@ -366,7 +388,7 @@ export function CreateTournament() {
 
 
         // ========================================
-        // LEAGUE DATA
+        // TOURNAMENT DATA
         // ========================================
 
         const tournamentData = {
@@ -379,13 +401,6 @@ export function CreateTournament() {
 
           description:
             formData.get("description"),
-
-          foundationYear:
-            Number(
-              formData.get(
-                "foundationYear"
-              )
-            ),
 
           instagram:
             formData.get("instagram"),
@@ -429,6 +444,70 @@ export function CreateTournament() {
 
 
         // ========================================
+        // UPLOAD LOGO
+        // ========================================
+
+        if (logoFile) {
+
+          console.log(
+            "NEXUS — Subiendo logo del torneo..."
+          );
+
+
+          const logoResult =
+            await uploadImage(
+              logoFile,
+              {
+                folder:
+                  "/nexus/tournaments"
+              }
+            );
+
+
+          console.log(
+            "NEXUS — Logo del torneo subido:",
+            logoResult
+          );
+
+
+          // ========================================
+          // UPDATE TOURNAMENT WITH LOGO
+          // ========================================
+
+          await updateEntity(
+            "tournaments",
+            tournamentId,
+            {
+              logo: {
+
+                url:
+                  logoResult.url,
+
+                fileId:
+                  logoResult.fileId,
+
+                filePath:
+                  logoResult.filePath
+
+              }
+            }
+          );
+
+
+          console.log(
+            "NEXUS — Referencia del logo del torneo guardada."
+          );
+
+        } else {
+
+          console.log(
+            "NEXUS — Torneo sin logo."
+          );
+
+        }
+
+
+        // ========================================
         // CREATE USER PROFILE
         // ========================================
 
@@ -463,9 +542,24 @@ export function CreateTournament() {
         const session =
           await waitForAuthenticatedSession();
 
+
         console.log(
           "NEXUS — Sesión autenticada:",
           session
+        );
+
+
+        // ========================================
+        // REFRESH NEXUS SESSION
+        // ========================================
+
+        const refreshedSession =
+          await refreshSession();
+
+
+        console.log(
+          "NEXUS — Sesión actualizada:",
+          refreshedSession
         );
 
 
@@ -479,6 +573,7 @@ export function CreateTournament() {
           "/dashboard"
         );
 
+
         window.dispatchEvent(
           new PopStateEvent("popstate")
         );
@@ -487,7 +582,7 @@ export function CreateTournament() {
       } catch (error) {
 
         console.error(
-          "NEXUS — Error creando Liga:",
+          "NEXUS — Error creando Torneo:",
           error
         );
 
