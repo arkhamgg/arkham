@@ -7,7 +7,7 @@ import { logout } from "../services/auth.js";
 
 import {
   getCurrentAccount,
-  createCurrentAccount
+  provisionCurrentAccount
 } from "../services/account.js";
 
 
@@ -79,16 +79,16 @@ export function Dashboard() {
 
 
   // ========================================
-  // ACCOUNT DATA
+  // ACCOUNT PROVISIONING
   // ========================================
 
-  createCurrentAccount()
+  provisionCurrentAccount()
     .then(
-      (accountData) => {
+      (result) => {
 
         console.log(
-          "NEXUS — Account Data:",
-          accountData
+          "NEXUS — Account Provisioning:",
+          result
         );
 
       }
@@ -97,7 +97,7 @@ export function Dashboard() {
       (error) => {
 
         console.error(
-          "NEXUS — Error cargando Account:",
+          "NEXUS — Error en Account Provisioning:",
           error
         );
 
@@ -175,10 +175,6 @@ export function Dashboard() {
 
           <span>
             ID DE ENTIDAD
-          </span>
-
-          <strong>
-            ${session.profile?.entityId || "—"}
           </strong>
 
         </div>

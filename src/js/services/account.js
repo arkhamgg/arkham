@@ -3,6 +3,10 @@
 // ========================================
 
 import {
+  auth
+} from "./firebase.js";
+
+import {
   getCurrentSession,
   refreshSession
 } from "./session.js";
@@ -193,6 +197,64 @@ export async function createCurrentAccount() {
     "accounts",
     uid
   );
+
+}
+
+
+// ========================================
+// PROVISION CURRENT ACCOUNT
+// ========================================
+
+export async function provisionCurrentAccount() {
+
+  const user =
+    auth.currentUser;
+
+
+  if (!user) {
+
+    return null;
+
+  }
+
+
+  const idToken =
+    await user.getIdToken();
+
+
+  const response =
+    await fetch(
+      "/api/account-provision",
+      {
+        method:
+          "POST",
+
+        headers: {
+
+          Authorization:
+            `Bearer ${idToken}`
+
+        }
+
+      }
+    );
+
+
+  const data =
+    await response.json();
+
+
+  if (!response.ok) {
+
+    throw new Error(
+      data.error ||
+      "No fue posible provisionar la cuenta."
+    );
+
+  }
+
+
+  return data;
 
 }
 
