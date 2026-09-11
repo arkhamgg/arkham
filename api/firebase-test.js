@@ -3,6 +3,7 @@
 // ========================================
 
 import { firebaseAdminApp } from "./_lib/firebaseAdmin.js";
+import { getFirestore } from "firebase-admin/firestore";
 
 
 // ========================================
@@ -17,50 +18,38 @@ export async function GET() {
     // VERIFY FIREBASE ADMIN
     // ========================================
 
-    const projectId =
-      firebaseAdminApp.options.projectId;
+    const firestore =
+      getFirestore(firebaseAdminApp);
 
-
-    if (!projectId) {
-
-      return Response.json(
-        {
-          error:
-            "Firebase Admin no tiene projectId configurado."
-        },
-        {
-          status: 500
-        }
-      );
-
-    }
+    await firestore
+      .collection("_nexus_connection_test")
+      .limit(1)
+      .get();
 
 
     // ========================================
     // RESPONSE
     // ========================================
 
-    return Response.json(
-      {
-        success: true,
-        message:
-          "Firebase Admin inicializado correctamente.",
-        projectId
-      }
-    );
+    return Response.json({
+      success: true,
+      message:
+        "Firebase Admin conectado correctamente."
+    });
 
   } catch (error) {
 
     console.error(
-      "NEXUS — Error inicializando Firebase Admin:",
+      "NEXUS — Error probando Firebase Admin:",
       error
     );
-
 
     return Response.json(
       {
         error:
-          "No fue posible inicializar Firebase Admin."
+          "Firebase Admin no pudo conectarse correctamente.",
+        code:
+          error?.code || null
       },
       {
         status: 500
