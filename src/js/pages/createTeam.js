@@ -18,6 +18,10 @@ import {
 } from "../services/firestore.js";
 
 import {
+  createCurrentAccount
+} from "../services/account.js";
+
+import {
   uploadImage
 } from "../services/imagekit.js";
 
@@ -201,6 +205,7 @@ export function CreateTeam() {
         "/register"
       );
 
+
       window.dispatchEvent(
         new PopStateEvent("popstate")
       );
@@ -249,6 +254,7 @@ export function CreateTeam() {
               "true"
             );
 
+
             isValid =
               false;
 
@@ -285,6 +291,7 @@ export function CreateTeam() {
           "aria-invalid",
           "true"
         );
+
 
         isValid =
           false;
@@ -514,6 +521,20 @@ export function CreateTeam() {
         console.log(
           "NEXUS — Perfil de usuario creado:",
           user.uid
+        );
+
+
+        // ========================================
+        // CREATE ACCOUNT
+        // ========================================
+
+        const account =
+          await createCurrentAccount();
+
+
+        console.log(
+          "NEXUS — Account creada:",
+          account
         );
 
 

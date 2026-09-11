@@ -5,6 +5,11 @@
 import { getCurrentSession } from "../services/session.js";
 import { logout } from "../services/auth.js";
 
+import {
+  getCurrentAccount,
+  createCurrentAccount
+} from "../services/account.js";
+
 
 // ========================================
 // PAGE
@@ -33,6 +38,11 @@ export function Dashboard() {
 
   if (!session) {
 
+    console.log(
+      "NEXUS — No hay sesión activa"
+    );
+
+
     page.innerHTML = `
 
       <div class="dashboard-page__container">
@@ -52,6 +62,47 @@ export function Dashboard() {
     return page;
 
   }
+
+
+  // ========================================
+  // ACCOUNT
+  // ========================================
+
+  const account =
+    getCurrentAccount();
+
+
+  console.log(
+    "NEXUS — Account:",
+    account
+  );
+
+
+  // ========================================
+  // ACCOUNT DATA
+  // ========================================
+
+  createCurrentAccount()
+    .then(
+      (accountData) => {
+
+        console.log(
+          "NEXUS — Account Data:",
+          accountData
+        );
+
+      }
+    )
+    .catch(
+      (error) => {
+
+        console.error(
+          "NEXUS — Error cargando Account:",
+          error
+        );
+
+      }
+    );
 
 
   // ========================================
