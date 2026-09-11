@@ -136,6 +136,49 @@ export async function getCurrentAccountSubscription() {
 
 
 // ========================================
+// GET CURRENT ACCOUNT CONTEXT
+// ========================================
+
+export async function getCurrentAccountContext() {
+
+  const account =
+    await getCurrentAccountData();
+
+
+  if (!account) {
+
+    return null;
+
+  }
+
+
+  let subscription =
+    null;
+
+
+  if (account.subscriptionId) {
+
+    subscription =
+      await getAccountSubscription(
+        account.uid,
+        account.subscriptionId
+      );
+
+  }
+
+
+  return {
+
+    account,
+
+    subscription
+
+  };
+
+}
+
+
+// ========================================
 // PROVISION CURRENT ACCOUNT
 // ========================================
 

@@ -6,7 +6,7 @@ import { getCurrentSession } from "../services/session.js";
 import { logout } from "../services/auth.js";
 
 import {
-  getCurrentAccount
+  getCurrentAccountContext
 } from "../services/account.js";
 
 
@@ -64,21 +64,7 @@ export function Dashboard() {
 
 
   // ========================================
-  // ACCOUNT
-  // ========================================
-
-  const account =
-    getCurrentAccount();
-
-
-  console.log(
-    "NEXUS — Account:",
-    account
-  );
-
-
-  // ========================================
-  // DASHBOARD
+  // INITIAL STATE
   // ========================================
 
   page.innerHTML = `
@@ -96,7 +82,7 @@ export function Dashboard() {
         </h1>
 
         <p>
-          Sesión autenticada correctamente.
+          Cargando información de tu cuenta...
         </p>
 
       </header>
@@ -133,11 +119,11 @@ export function Dashboard() {
         <div class="dashboard-page__item">
 
           <span>
-            TIPO DE ENTIDAD
+            CUENTA
           </span>
 
           <strong>
-            ${session.profile?.entityType || "—"}
+            CARGANDO...
           </strong>
 
         </div>
@@ -146,11 +132,37 @@ export function Dashboard() {
         <div class="dashboard-page__item">
 
           <span>
-            ID DE ENTIDAD
+            PLAN
           </span>
 
           <strong>
-            ${session.profile?.entityId || "—"}
+            CARGANDO...
+          </strong>
+
+        </div>
+
+
+        <div class="dashboard-page__item">
+
+          <span>
+            SUSCRIPCIÓN
+          </span>
+
+          <strong>
+            CARGANDO...
+          </strong>
+
+        </div>
+
+
+        <div class="dashboard-page__item">
+
+          <span>
+            ESTADO
+          </span>
+
+          <strong>
+            CARGANDO...
           </strong>
 
         </div>
@@ -171,14 +183,172 @@ export function Dashboard() {
 
 
   // ========================================
-  // LOGOUT
+  // ELEMENTS
   // ========================================
+
+  const container =
+    page.querySelector(
+      ".dashboard-page__container"
+    );
+
+  const headerDescription =
+    page.querySelector(
+      ".dashboard-page__header p"
+    );
+
+  const items =
+    page.querySelectorAll(
+      ".dashboard-page__item strong"
+    );
+
 
   const logoutButton =
     page.querySelector(
       ".dashboard-page__logout"
     );
 
+
+  // ========================================
+  // LOAD ACCOUNT CONTEXT
+  // ========================================
+
+  async function loadAccountContext() {
+
+    try {
+
+      const context =
+        await getCurrentAccountContext();
+
+
+      // ====================================
+      // ACCOUNT NOT FOUND
+      // ====================================
+
+      if (!context) {
+
+        console.error(
+          "NEXUS — No fue posible cargar la cuenta."
+        );
+
+
+        headerDescription.textContent =
+          "No fue posible cargar la información de tu cuenta.";
+
+        items[2].textContent =
+          "NO DISPONIBLE";
+
+        items[3].textContent =
+          "—";
+
+        items[4].textContent =
+          "—";
+
+        items[5].textContent =
+          "—";
+
+        return;
+
+      }
+
+
+      const {
+        account,
+        subscription
+      } = context;
+
+
+      // ====================================
+      // ACCOUNT
+      // ====================================
+
+      items[2].textContent =
+        account.accountStatus ||
+        "—";
+
+
+      // ====================================
+      // PLAN
+      // ====================================
+
+      items[3].textContent =
+        account.planId ||
+        "—";
+
+
+      // ====================================
+      // SUBSCRIPTION
+      // ====================================
+
+      items[4].textContent =
+        subscription?.status ||
+        "—";
+
+
+      // ====================================
+      // ACCOUNT STATUS
+      // ====================================
+
+      items[5].textContent =
+        account.accountStatus ||
+        "—";
+
+
+      // ====================================
+      // DESCRIPTION
+      // ====================================
+
+      headerDescription.textContent =
+        "Cuenta NEXUS cargada correctamente.";
+
+
+      // ====================================
+      // DEBUG
+      // ====================================
+
+      console.log(
+        "NEXUS — Account Context:",
+        context
+      );
+
+    } catch (error) {
+
+      console.error(
+        "NEXUS — Error cargando Account Context:",
+        error
+      );
+
+
+      headerDescription.textContent =
+        "Ocurrió un error cargando la información de tu cuenta.";
+
+
+      items[2].textContent =
+        "ERROR";
+
+      items[3].textContent =
+        "—";
+
+      items[4].textContent =
+        "—";
+
+      items[5].textContent =
+        "—";
+
+    }
+
+  }
+
+
+  // ========================================
+  // LOAD
+  // ========================================
+
+  loadAccountContext();
+
+
+  // ========================================
+  // LOGOUT
+  // ========================================
 
   logoutButton.addEventListener(
     "click",
