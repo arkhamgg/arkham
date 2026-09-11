@@ -11,6 +11,7 @@ import { Dashboard } from "./pages/dashboard.js";
 import { Login } from "./pages/login.js";
 import { CreateTeam } from "./pages/createTeam.js";
 import { CreatePlayer } from "./pages/createPlayer.js";
+import { Teams } from "./pages/teams.js";
 // ========================================
 // ROUTES
 // ========================================
@@ -25,6 +26,7 @@ const routes = {
   "/login": Login,
   "/register/team": CreateTeam,
   "/register/player": CreatePlayer,
+  "/teams": Teams,
 };
 
 

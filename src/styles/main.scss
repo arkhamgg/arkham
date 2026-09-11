@@ -21,3 +21,5 @@
 @use "./pages/create-team" as create-team;
 @use "./components/playerBasicInfo";
 @use "./pages/create-player";
+@use "./pages/teams" as teams-page;
+@use "./components/teamCard";

@@ -1,0 +1,355 @@
+// ========================================
+// NEXUS — Team Card
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+.team-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  padding: $space-5;
+
+  overflow: hidden;
+
+  background: $color-900;
+  color: $color-white;
+  text-decoration: none;
+
+  transition:
+    transform $transition-base $ease-smooth,
+    background $transition-base $ease-standard;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.035),
+        transparent 45%
+      );
+
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 2px;
+
+    background: $color-red;
+
+    transform: scaleX(0);
+    transform-origin: left;
+
+    transition:
+      transform $transition-base $ease-smooth;
+  }
+
+  &:hover {
+    background: $color-800;
+    transform: translateY(-4px);
+
+    &::after {
+      transform: scaleX(1);
+    }
+
+    .team-card__logo {
+      transform: scale(1.04);
+    }
+
+    .team-card__action {
+      color: $color-white;
+
+      i {
+        transform: translateX(4px);
+      }
+    }
+  }
+
+  // ========================================
+  // TOP
+  // ========================================
+
+  &__top {
+    position: relative;
+    z-index: $z-content;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    min-height: 24px;
+  }
+
+  &__rank {
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: $color-500;
+  }
+
+  &__featured {
+    padding: $space-1 $space-2;
+
+    border: 1px solid rgba(227, 6, 19, 0.45);
+
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: $color-red;
+
+    white-space: nowrap;
+  }
+
+  // ========================================
+  // LOGO
+  // ========================================
+
+  &__logo {
+    position: relative;
+    z-index: $z-content;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 1;
+
+    min-height: 150px;
+
+    transition:
+      transform $transition-smooth $ease-smooth;
+
+    img {
+      display: block;
+
+      width: min(65%, 180px);
+      max-height: 150px;
+
+      object-fit: contain;
+
+      filter:
+        grayscale(100%)
+        contrast(1.1);
+
+      transition:
+        filter $transition-base $ease-standard;
+    }
+
+    span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 110px;
+      height: 110px;
+
+      border: 1px solid $color-700;
+
+      font-size: $font-size-3xl;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+
+      color: $color-white;
+      background: $color-950;
+    }
+  }
+
+  // ========================================
+  // IDENTITY
+  // ========================================
+
+  &__identity {
+    position: relative;
+    z-index: $z-content;
+
+    padding-top: $space-4;
+
+    border-top: 1px solid $color-700;
+  }
+
+  &__short-name {
+    display: block;
+    margin-bottom: $space-1;
+
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+
+    color: $color-red;
+  }
+
+  h3 {
+    margin: 0;
+
+    font-size: $font-size-md;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+
+    text-transform: uppercase;
+  }
+
+  // ========================================
+  // ACTION
+  // ========================================
+
+  &__action {
+    position: relative;
+    z-index: $z-content;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-top: $space-5;
+    padding-top: $space-3;
+
+    border-top: 1px solid $color-800;
+
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+
+    color: $color-500;
+
+    transition:
+      color $transition-fast $ease-standard;
+
+    i {
+      transition:
+        transform $transition-fast $ease-smooth;
+    }
+  }
+
+  // ========================================
+  // FEATURED — HALL OF FAME
+  // ========================================
+
+  &--featured {
+
+    min-height: 460px;
+
+    background:
+      linear-gradient(
+        180deg,
+        $color-800 0%,
+        $color-900 60%,
+        $color-950 100%
+      );
+
+    .team-card__rank {
+      font-size: $font-size-sm;
+      color: $color-white;
+    }
+
+    .team-card__logo {
+      min-height: 230px;
+
+      img {
+        width: min(70%, 230px);
+        max-height: 210px;
+      }
+
+      span {
+        width: 140px;
+        height: 140px;
+
+        font-size: $font-size-4xl;
+      }
+    }
+
+    h3 {
+      font-size: $font-size-lg;
+    }
+  }
+
+  // ========================================
+  // NUMBER ONE
+  // ========================================
+
+  &:first-child {
+    border-top: 2px solid $color-red;
+
+    .team-card__rank {
+      color: $color-red;
+    }
+  }
+
+  // ========================================
+  // FOCUS
+  // ========================================
+
+  &:focus-visible {
+    outline: 2px solid $color-red;
+    outline-offset: -2px;
+  }
+
+  // ========================================
+  // MOBILE
+  // ========================================
+
+  @media (max-width: 768px) {
+
+    min-height: 300px;
+
+    &--featured {
+      min-height: 400px;
+
+      .team-card__logo {
+        min-height: 200px;
+      }
+    }
+
+    &__logo {
+      min-height: 140px;
+    }
+  }
+
+  @media (max-width: 480px) {
+
+    min-height: 300px;
+
+    &--featured {
+      min-height: 380px;
+
+      .team-card__logo {
+        min-height: 190px;
+      }
+    }
+
+    &__logo {
+      min-height: 150px;
+    }
+  }
+
+  // ========================================
+  // REDUCED MOTION
+  // ========================================
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+
+    &::after {
+      transition: none;
+    }
+
+    &__logo,
+    &__action i {
+      transition: none;
+    }
+  }
+}
