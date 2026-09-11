@@ -2,8 +2,13 @@
 // NEXUS — Firebase Admin Test
 // ========================================
 
-import { firebaseAdminApp } from "./_lib/firebaseAdmin.js";
-import { getFirestore } from "firebase-admin/firestore";
+import {
+  getFirestore
+} from "firebase-admin/firestore";
+
+import {
+  getFirebaseAdminApp
+} from "./_lib/firebaseAdmin.js";
 
 
 // ========================================
@@ -14,8 +19,12 @@ export async function GET() {
 
   try {
 
+    const firebaseAdminApp =
+      getFirebaseAdminApp();
+
     const firestore =
       getFirestore(firebaseAdminApp);
+
 
     await firestore
       .collection("_nexus_connection_test")
@@ -35,6 +44,7 @@ export async function GET() {
       "NEXUS — Error probando Firebase Admin:",
       error
     );
+
 
     return Response.json(
       {

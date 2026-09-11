@@ -12,8 +12,7 @@ import {
 } from "./session.js";
 
 import {
-  getEntity,
-  createEntity
+  getEntity
 } from "./firestore.js";
 
 import {
@@ -137,71 +136,6 @@ export async function getCurrentAccountSubscription() {
 
 
 // ========================================
-// CREATE CURRENT ACCOUNT
-// ========================================
-
-export async function createCurrentAccount() {
-
-  const session =
-    getCurrentSession();
-
-
-  if (
-    !session ||
-    !session.user ||
-    !session.user.uid
-  ) {
-
-    return null;
-
-  }
-
-
-  const uid =
-    session.user.uid;
-
-
-  const existingAccount =
-    await getEntity(
-      "accounts",
-      uid
-    );
-
-
-  if (existingAccount) {
-
-    return existingAccount;
-
-  }
-
-
-  const accountData = {
-
-    planId:
-      "free",
-
-    accountStatus:
-      "active"
-
-  };
-
-
-  await createEntity(
-    "accounts",
-    accountData,
-    uid
-  );
-
-
-  return await getEntity(
-    "accounts",
-    uid
-  );
-
-}
-
-
-// ========================================
 // PROVISION CURRENT ACCOUNT
 // ========================================
 
@@ -213,7 +147,9 @@ export async function provisionCurrentAccount() {
 
   if (!user) {
 
-    return null;
+    throw new Error(
+      "No hay un usuario autenticado para provisionar la cuenta."
+    );
 
   }
 
@@ -232,7 +168,10 @@ export async function provisionCurrentAccount() {
         headers: {
 
           Authorization:
-            `Bearer ${idToken}`
+            `Bearer ${idToken}`,
+
+          "Content-Type":
+            "application/json"
 
         }
 
@@ -240,21 +179,47 @@ export async function provisionCurrentAccount() {
     );
 
 
-  const data =
-    await response.json();
+  const contentType =
+    response.headers.get(
+      "content-type"
+    ) || "";
+
+
+  const responseBody =
+    contentType.includes("application/json")
+      ? await response.json()
+      : await response.text();
 
 
   if (!response.ok) {
 
+    const message =
+      typeof responseBody === "string"
+        ? responseBody
+        : responseBody?.error;
+
+
     throw new Error(
-      data.error ||
+      message ||
       "No fue posible provisionar la cuenta."
     );
 
   }
 
 
-  return data;
+  if (
+    typeof responseBody !== "object" ||
+    responseBody === null
+  ) {
+
+    throw new Error(
+      "El servidor devolvió una respuesta inesperada."
+    );
+
+  }
+
+
+  return responseBody;
 
 }
 

@@ -6,17 +6,6 @@ import ImageKit from "@imagekit/nodejs";
 
 
 // ========================================
-// IMAGEKIT CLIENT
-// ========================================
-
-const imagekit =
-  new ImageKit({
-    privateKey:
-      process.env.IMAGEKIT_PRIVATE_KEY
-  });
-
-
-// ========================================
 // API HANDLER
 // ========================================
 
@@ -46,16 +35,23 @@ export async function GET() {
 
 
     // ========================================
+    // IMAGEKIT CLIENT
+    // ========================================
+
+    const imagekit =
+      new ImageKit({
+        privateKey:
+          process.env.IMAGEKIT_PRIVATE_KEY
+      });
+
+
+    // ========================================
     // GENERATE AUTH PARAMETERS
     // ========================================
 
     const authenticationParameters =
       imagekit.helper.getAuthenticationParameters();
 
-
-    // ========================================
-    // RESPONSE
-    // ========================================
 
     return Response.json(
       authenticationParameters
@@ -64,7 +60,7 @@ export async function GET() {
   } catch (error) {
 
     console.error(
-      "NEXUS — Error generando autenticación ImageKit:",
+      "NEXUS — Error generando autenticación de ImageKit:",
       error
     );
 

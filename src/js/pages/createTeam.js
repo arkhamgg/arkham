@@ -18,7 +18,7 @@ import {
 } from "../services/firestore.js";
 
 import {
-  createCurrentAccount
+  provisionCurrentAccount
 } from "../services/account.js";
 
 import {
@@ -525,16 +525,16 @@ export function CreateTeam() {
 
 
         // ========================================
-        // CREATE ACCOUNT
+        // PROVISION ACCOUNT
         // ========================================
 
-        const account =
-          await createCurrentAccount();
+        const accountProvision =
+          await provisionCurrentAccount();
 
 
         console.log(
-          "NEXUS — Account creada:",
-          account
+          "NEXUS — Account provisionada:",
+          accountProvision
         );
 
 

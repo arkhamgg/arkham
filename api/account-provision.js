@@ -3,20 +3,14 @@
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import {
+  FieldValue,
+  getFirestore
+} from "firebase-admin/firestore";
 
-import { firebaseAdminApp } from "./_lib/firebaseAdmin.js";
-
-
-// ========================================
-// FIREBASE SERVICES
-// ========================================
-
-const adminAuth =
-  getAuth(firebaseAdminApp);
-
-const firestore =
-  getFirestore(firebaseAdminApp);
+import {
+  getFirebaseAdminApp
+} from "./_lib/firebaseAdmin.js";
 
 
 // ========================================
@@ -28,11 +22,27 @@ export async function POST(request) {
   try {
 
     // ========================================
-    // VERIFY AUTHORIZATION HEADER
+    // FIREBASE ADMIN
+    // ========================================
+
+    const firebaseAdminApp =
+      getFirebaseAdminApp();
+
+    const adminAuth =
+      getAuth(firebaseAdminApp);
+
+    const firestore =
+      getFirestore(firebaseAdminApp);
+
+
+    // ========================================
+    // AUTHORIZATION HEADER
     // ========================================
 
     const authorization =
-      request.headers.get("authorization");
+      request.headers.get(
+        "authorization"
+      );
 
 
     if (
@@ -53,12 +63,10 @@ export async function POST(request) {
     }
 
 
-    // ========================================
-    // EXTRACT ID TOKEN
-    // ========================================
-
     const idToken =
-      authorization.substring(7);
+      authorization
+        .slice(7)
+        .trim();
 
 
     if (!idToken) {
@@ -81,7 +89,9 @@ export async function POST(request) {
     // ========================================
 
     const decodedToken =
-      await adminAuth.verifyIdToken(idToken);
+      await adminAuth.verifyIdToken(
+        idToken
+      );
 
 
     const uid =
@@ -107,47 +117,71 @@ export async function POST(request) {
         async (transaction) => {
 
           const accountSnapshot =
-            await transaction.get(accountRef);
+            await transaction.get(
+              accountRef
+            );
 
-
-          // ========================================
-          // ACCOUNT ALREADY EXISTS
-          // ========================================
 
           if (accountSnapshot.exists) {
 
             const accountData =
               accountSnapshot.data();
 
+            const existingSubscriptionId =
+              accountData.subscriptionId ||
+              null;
 
-            // ----------------------------------------
-            // ACCOUNT ALREADY PROVISIONED
-            // ----------------------------------------
 
-            if (
-              accountData.subscriptionId
-            ) {
+            // ========================================
+            // EXISTING SUBSCRIPTION
+            // ========================================
 
-              return {
-                created: false,
-                accountId: uid,
-                subscriptionId:
-                  accountData.subscriptionId,
-                planId:
-                  accountData.planId || "free"
-              };
+            if (existingSubscriptionId) {
+
+              const subscriptionRef =
+                firestore
+                  .collection("subscriptions")
+                  .doc(existingSubscriptionId);
+
+              const subscriptionSnapshot =
+                await transaction.get(
+                  subscriptionRef
+                );
+
+
+              if (
+                subscriptionSnapshot.exists &&
+                subscriptionSnapshot.data()?.accountId === uid
+              ) {
+
+                return {
+                  created: false,
+                  repaired: false,
+                  accountId: uid,
+                  subscriptionId:
+                    existingSubscriptionId,
+                  planId:
+                    accountData.planId ||
+                    "free"
+                };
+
+              }
 
             }
 
 
-            // ----------------------------------------
-            // ACCOUNT EXISTS WITHOUT SUBSCRIPTION
-            // ----------------------------------------
+            // ========================================
+            // REPAIR / CREATE SUBSCRIPTION
+            // ========================================
 
             const subscriptionRef =
               firestore
                 .collection("subscriptions")
                 .doc();
+
+            const planId =
+              accountData.planId ||
+              "free";
 
 
             transaction.create(
@@ -156,8 +190,7 @@ export async function POST(request) {
                 accountId:
                   uid,
 
-                planId:
-                  accountData.planId || "free",
+                planId,
 
                 status:
                   "active",
@@ -180,6 +213,10 @@ export async function POST(request) {
                 subscriptionId:
                   subscriptionRef.id,
 
+                accountStatus:
+                  accountData.accountStatus ||
+                  "active",
+
                 updatedAt:
                   FieldValue.serverTimestamp()
               }
@@ -188,18 +225,18 @@ export async function POST(request) {
 
             return {
               created: false,
+              repaired: true,
               accountId: uid,
               subscriptionId:
                 subscriptionRef.id,
-              planId:
-                accountData.planId || "free"
+              planId
             };
 
           }
 
 
           // ========================================
-          // CREATE NEW ACCOUNT
+          // CREATE ACCOUNT + SUBSCRIPTION
           // ========================================
 
           const subscriptionRef =
@@ -255,6 +292,7 @@ export async function POST(request) {
 
           return {
             created: true,
+            repaired: false,
             accountId: uid,
             subscriptionId:
               subscriptionRef.id,
@@ -265,10 +303,6 @@ export async function POST(request) {
         }
       );
 
-
-    // ========================================
-    // RESPONSE
-    // ========================================
 
     return Response.json({
       success: true,
@@ -282,10 +316,6 @@ export async function POST(request) {
       error
     );
 
-
-    // ========================================
-    // INVALID / EXPIRED TOKEN
-    // ========================================
 
     if (
       error?.code ===
@@ -308,10 +338,6 @@ export async function POST(request) {
 
     }
 
-
-    // ========================================
-    // SERVER ERROR
-    // ========================================
 
     return Response.json(
       {

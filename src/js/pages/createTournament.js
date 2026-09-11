@@ -8,6 +8,10 @@ import { AccountCredentials } from "../components/accountCredentials.js";
 import { createAccount } from "../services/auth.js";
 
 import {
+  provisionCurrentAccount
+} from "../services/account.js";
+
+import {
   waitForAuthenticatedSession,
   refreshSession
 } from "../services/session.js";
@@ -532,6 +536,20 @@ export function CreateTournament() {
         console.log(
           "NEXUS — Perfil de usuario creado:",
           user.uid
+        );
+
+
+        // ========================================
+        // PROVISION ACCOUNT
+        // ========================================
+
+        const accountProvision =
+          await provisionCurrentAccount();
+
+
+        console.log(
+          "NEXUS — Account provisionada:",
+          accountProvision
         );
 
 

@@ -6,8 +6,7 @@ import { getCurrentSession } from "../services/session.js";
 import { logout } from "../services/auth.js";
 
 import {
-  getCurrentAccount,
-  provisionCurrentAccount
+  getCurrentAccount
 } from "../services/account.js";
 
 
@@ -76,33 +75,6 @@ export function Dashboard() {
     "NEXUS — Account:",
     account
   );
-
-
-  // ========================================
-  // ACCOUNT PROVISIONING
-  // ========================================
-
-  provisionCurrentAccount()
-    .then(
-      (result) => {
-
-        console.log(
-          "NEXUS — Account Provisioning:",
-          result
-        );
-
-      }
-    )
-    .catch(
-      (error) => {
-
-        console.error(
-          "NEXUS — Error en Account Provisioning:",
-          error
-        );
-
-      }
-    );
 
 
   // ========================================
@@ -175,6 +147,10 @@ export function Dashboard() {
 
           <span>
             ID DE ENTIDAD
+          </span>
+
+          <strong>
+            ${session.profile?.entityId || "—"}
           </strong>
 
         </div>
@@ -223,7 +199,6 @@ export function Dashboard() {
         console.log(
           "NEXUS — Sesión cerrada correctamente"
         );
-
 
       } catch (error) {
 

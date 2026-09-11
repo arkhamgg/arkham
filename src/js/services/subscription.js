@@ -3,7 +3,6 @@
 // ========================================
 
 import {
-  createEntity,
   getEntity
 } from "./firestore.js";
 
@@ -57,55 +56,6 @@ export function createSubscription(
       null
 
   };
-
-}
-
-
-// ========================================
-// CREATE PERSISTENT SUBSCRIPTION
-// ========================================
-
-export async function createPersistentSubscription(
-  accountId,
-  planId,
-  status = SUBSCRIPTION_STATUS.ACTIVE
-) {
-
-  if (!accountId) {
-
-    return null;
-
-  }
-
-
-  if (!planId) {
-
-    return null;
-
-  }
-
-
-  const subscriptionData =
-    createSubscription(
-      planId,
-      status
-    );
-
-
-  const subscriptionId =
-    await createEntity(
-      "subscriptions",
-      {
-        accountId,
-        ...subscriptionData
-      }
-    );
-
-
-  return await getEntity(
-    "subscriptions",
-    subscriptionId
-  );
 
 }
 

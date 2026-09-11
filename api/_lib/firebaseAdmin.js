@@ -2,37 +2,72 @@
 // NEXUS — Firebase Admin
 // ========================================
 
-import { cert, getApps, initializeApp } from "firebase-admin/app";
+import {
+  cert,
+  getApps,
+  initializeApp
+} from "firebase-admin/app";
 
 
 // ========================================
-// FIREBASE ADMIN APP
+// GET FIREBASE ADMIN APP
 // ========================================
 
-const firebaseAdminApp =
-  getApps().length > 0
-    ? getApps()[0]
-    : initializeApp({
-        credential: cert({
-          projectId:
-            process.env.FIREBASE_PROJECT_ID,
+export function getFirebaseAdminApp() {
 
-          clientEmail:
-            process.env.FIREBASE_CLIENT_EMAIL,
-
-          privateKey:
-            process.env.FIREBASE_PRIVATE_KEY.replace(
-              /\\n/g,
-              "\n"
-            )
-        })
-      });
+  const requiredEnvironmentVariables = [
+    "FIREBASE_PROJECT_ID",
+    "FIREBASE_CLIENT_EMAIL",
+    "FIREBASE_PRIVATE_KEY"
+  ];
 
 
-// ========================================
-// EXPORT
-// ========================================
+  const missingEnvironmentVariables =
+    requiredEnvironmentVariables.filter(
+      (name) => !process.env[name]
+    );
 
-export {
-  firebaseAdminApp
-};
+
+  if (
+    missingEnvironmentVariables.length > 0
+  ) {
+
+    throw new Error(
+      `Faltan variables de Firebase Admin: ${missingEnvironmentVariables.join(", ")}`
+    );
+
+  }
+
+
+  if (getApps().length > 0) {
+
+    return getApps()[0];
+
+  }
+
+
+  const privateKey =
+    process.env.FIREBASE_PRIVATE_KEY.replace(
+      /\\n/g,
+      "\n"
+    );
+
+
+  return initializeApp({
+
+    credential:
+      cert({
+
+        projectId:
+          process.env.FIREBASE_PROJECT_ID,
+
+        clientEmail:
+          process.env.FIREBASE_CLIENT_EMAIL,
+
+        privateKey
+
+      })
+
+  });
+
+}
