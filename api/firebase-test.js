@@ -14,10 +14,6 @@ export async function GET() {
 
   try {
 
-    // ========================================
-    // VERIFY FIREBASE ADMIN
-    // ========================================
-
     const firestore =
       getFirestore(firebaseAdminApp);
 
@@ -26,10 +22,6 @@ export async function GET() {
       .limit(1)
       .get();
 
-
-    // ========================================
-    // RESPONSE
-    // ========================================
 
     return Response.json({
       success: true,
@@ -46,10 +38,13 @@ export async function GET() {
 
     return Response.json(
       {
+        success: false,
         error:
           "Firebase Admin no pudo conectarse correctamente.",
         code:
-          error?.code || null
+          error?.code || null,
+        message:
+          error?.message || null
       },
       {
         status: 500
