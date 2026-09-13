@@ -4,13 +4,6 @@
 //
 // Gestión segura del staff administrativo.
 //
-// Endpoint:
-//
-// GET   /api/admin-staff
-// PATCH /api/admin-staff
-//
-// Arquitectura:
-//
 // Frontend
 //    ↓
 // Firebase ID Token
@@ -19,7 +12,11 @@
 //    ↓
 // Firebase Admin SDK
 //    ↓
-// adminUsers
+// adminUsers/{uid}
+//
+// Métodos:
+// GET   → listar staff
+// PATCH → modificar rol / estado
 //
 // ========================================
 
@@ -34,7 +31,6 @@ import {
 import {
   getFirebaseAdminApp
 } from "./_lib/firebaseAdmin.js";
-
 
 // ========================================
 // CONSTANTES
@@ -133,62 +129,60 @@ const ROLE_PERMISSIONS = {
 // ========================================
 
 function successResponse(
+  res,
   data = {},
   status = 200
 ) {
 
-  return Response.json(
-    {
+  return res
+    .status(status)
+    .json({
+
       success:
         true,
 
       ...data
-    },
-    {
-      status
-    }
-  );
+
+    });
 
 }
 
 
 function errorResponse(
+  res,
   message,
   status = 400
 ) {
 
-  return Response.json(
-    {
+  return res
+    .status(status)
+    .json({
+
       success:
         false,
 
       error:
         message
-    },
-    {
-      status
-    }
-  );
+
+    });
 
 }
 
 
 // ========================================
-// BEARER TOKEN
+// AUTHORIZATION HEADER
 // ========================================
 
 function getBearerToken(
-  request
+  req
 ) {
 
   const authorization =
-    request.headers.get(
-      "authorization"
-    );
+    req.headers?.authorization ||
+    "";
 
 
   if (
-    !authorization ||
     !authorization.startsWith(
       "Bearer "
     )
@@ -211,16 +205,47 @@ function getBearerToken(
 
 
 // ========================================
+// FIREBASE ADMIN
+// ========================================
+
+function getAdminServices() {
+
+  const firebaseAdminApp =
+    getFirebaseAdminApp();
+
+
+  return {
+
+    adminAuth:
+      getAuth(
+        firebaseAdminApp
+      ),
+
+    firestore:
+      getFirestore(
+        firebaseAdminApp
+      )
+
+  };
+
+}
+
+
+// ========================================
 // AUTHENTICATED ADMIN
 // ========================================
 
 async function getAuthenticatedAdmin(
-  request
+  req
 ) {
+
+  // --------------------------------------
+  // TOKEN
+  // --------------------------------------
 
   const idToken =
     getBearerToken(
-      request
+      req
     );
 
 
@@ -239,25 +264,20 @@ async function getAuthenticatedAdmin(
   }
 
 
-  const firebaseAdminApp =
-    getFirebaseAdminApp();
+  // --------------------------------------
+  // FIREBASE ADMIN
+  // --------------------------------------
+
+  const {
+    adminAuth,
+    firestore
+  } =
+    getAdminServices();
 
 
-  const adminAuth =
-    getAuth(
-      firebaseAdminApp
-    );
-
-
-  const firestore =
-    getFirestore(
-      firebaseAdminApp
-    );
-
-
-  // ----------------------------------------
-  // VERIFY FIREBASE TOKEN
-  // ----------------------------------------
+  // --------------------------------------
+  // VERIFY TOKEN
+  // --------------------------------------
 
   let decodedToken;
 
@@ -282,8 +302,10 @@ async function getAuthenticatedAdmin(
         "El token de autenticación no es válido."
       );
 
+
     authError.status =
       401;
+
 
     throw authError;
 
@@ -294,9 +316,9 @@ async function getAuthenticatedAdmin(
     decodedToken.uid;
 
 
-  // ----------------------------------------
-  // GET ADMIN USER
-  // ----------------------------------------
+  // --------------------------------------
+  // ADMIN USER
+  // --------------------------------------
 
   const adminRef =
     firestore
@@ -319,8 +341,10 @@ async function getAuthenticatedAdmin(
         "El usuario no tiene acceso administrativo."
       );
 
+
     error.status =
       403;
+
 
     throw error;
 
@@ -331,9 +355,9 @@ async function getAuthenticatedAdmin(
     adminSnapshot.data();
 
 
-  // ----------------------------------------
+  // --------------------------------------
   // STATUS
-  // ----------------------------------------
+  // --------------------------------------
 
   const status =
     adminUser.status ||
@@ -350,17 +374,19 @@ async function getAuthenticatedAdmin(
         "El usuario administrativo está inactivo."
       );
 
+
     error.status =
       403;
+
 
     throw error;
 
   }
 
 
-  // ----------------------------------------
+  // --------------------------------------
   // ROLE
-  // ----------------------------------------
+  // --------------------------------------
 
   const roleId =
     adminUser.roleId ||
@@ -380,17 +406,19 @@ async function getAuthenticatedAdmin(
         "El rol administrativo no es válido."
       );
 
+
     error.status =
       403;
+
 
     throw error;
 
   }
 
 
-  // ----------------------------------------
+  // --------------------------------------
   // PERMISSIONS
-  // ----------------------------------------
+  // --------------------------------------
 
   const permissions =
     ROLE_PERMISSIONS[
@@ -439,8 +467,10 @@ function requirePermission(
         "No tienes permisos para realizar esta operación."
       );
 
+
     error.status =
       403;
+
 
     throw error;
 
@@ -450,7 +480,7 @@ function requirePermission(
 
 
 // ========================================
-// NORMALIZE USER
+// NORMALIZE STAFF USER
 // ========================================
 
 function normalizeStaffUser(
@@ -504,81 +534,134 @@ function normalizeStaffUser(
 // ========================================
 
 async function handleGet(
-  request
+  req,
+  res
 ) {
 
-  const access =
-    await getAuthenticatedAdmin(
-      request
+  try {
+
+    console.log(
+      "NEXUS — Admin Staff API: GET recibido."
     );
 
 
-  requirePermission(
-    access,
-    "staff.view"
-  );
+    // ------------------------------------
+    // AUTH
+    // ------------------------------------
 
-
-  const snapshot =
-    await access.firestore
-      .collection(
-        ADMIN_USERS_COLLECTION
-      )
-      .get();
-
-
-  const users =
-    snapshot.docs
-      .map(
-        normalizeStaffUser
-      )
-      .sort(
-        (a, b) => {
-
-          const nameA =
-            String(
-              a.displayName ||
-              a.email ||
-              ""
-            );
-
-
-          const nameB =
-            String(
-              b.displayName ||
-              b.email ||
-              ""
-            );
-
-
-          return nameA.localeCompare(
-            nameB
-          );
-
-        }
+    const access =
+      await getAuthenticatedAdmin(
+        req
       );
 
 
-  console.log(
-    "NEXUS — Admin Staff API: staff cargado.",
-    {
-      actorUid:
-        access.uid,
+    console.log(
+      "NEXUS — Admin Staff API: autenticación OK.",
+      {
+        uid:
+          access.uid,
 
-      actorRole:
-        access.roleId,
-
-      count:
-        users.length
-    }
-  );
+        role:
+          access.roleId
+      }
+    );
 
 
-  return successResponse({
+    // ------------------------------------
+    // PERMISSION
+    // ------------------------------------
 
-    users
+    requirePermission(
+      access,
+      "staff.view"
+    );
 
-  });
+
+    // ------------------------------------
+    // GET STAFF
+    // ------------------------------------
+
+    const snapshot =
+      await access.firestore
+        .collection(
+          ADMIN_USERS_COLLECTION
+        )
+        .get();
+
+
+    const users =
+      snapshot.docs
+        .map(
+          normalizeStaffUser
+        )
+        .sort(
+          (a, b) => {
+
+            const nameA =
+              String(
+                a.displayName ||
+                a.email ||
+                ""
+              );
+
+
+            const nameB =
+              String(
+                b.displayName ||
+                b.email ||
+                ""
+              );
+
+
+            return nameA.localeCompare(
+              nameB
+            );
+
+          }
+        );
+
+
+    console.log(
+      "NEXUS — Admin Staff API: staff cargado.",
+      {
+        actorUid:
+          access.uid,
+
+        actorRole:
+          access.roleId,
+
+        count:
+          users.length
+      }
+    );
+
+
+    return successResponse(
+      res,
+      {
+        users
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "NEXUS — Admin Staff API GET:",
+      error
+    );
+
+
+    return errorResponse(
+      res,
+
+      error.message ||
+        "No fue posible cargar el staff administrativo.",
+
+      error.status ||
+        500
+    );
+
+  }
 
 }
 
@@ -588,288 +671,362 @@ async function handleGet(
 // ========================================
 
 async function handlePatch(
-  request
+  req,
+  res
 ) {
-
-  const access =
-    await getAuthenticatedAdmin(
-      request
-    );
-
-
-  requirePermission(
-    access,
-    "staff.manage"
-  );
-
-
-  let body;
-
 
   try {
 
-    body =
-      await request.json();
-
-  } catch {
-
-    return errorResponse(
-      "El cuerpo de la solicitud no contiene JSON válido.",
-      400
+    console.log(
+      "NEXUS — Admin Staff API: PATCH recibido."
     );
 
-  }
+
+    // ------------------------------------
+    // AUTH
+    // ------------------------------------
+
+    const access =
+      await getAuthenticatedAdmin(
+        req
+      );
 
 
-  const uid =
-    body?.uid ||
-    null;
+    // ------------------------------------
+    // PERMISSION
+    // ------------------------------------
 
-
-  const action =
-    body?.action ||
-    null;
-
-
-  if (!uid) {
-
-    return errorResponse(
-      "El UID del usuario administrativo es obligatorio.",
-      400
+    requirePermission(
+      access,
+      "staff.manage"
     );
 
-  }
+
+    // ------------------------------------
+    // BODY
+    // ------------------------------------
+
+    let body =
+      req.body || {};
 
 
-  if (!action) {
-
-    return errorResponse(
-      "La acción administrativa es obligatoria.",
-      400
-    );
-
-  }
-
-
-  // ----------------------------------------
-  // PREVENT SELF MODIFICATION
-  // ----------------------------------------
-
-  if (
-    uid === access.uid &&
-    (
-      action === "updateRole" ||
-      action === "updateStatus"
-    )
-  ) {
-
-    return errorResponse(
-      "No puedes modificar tu propio acceso administrativo.",
-      403
-    );
-
-  }
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        return errorResponse(
+          res,
+          "El cuerpo de la solicitud no contiene JSON válido.",
+          400
+        );
+      }
+    }
 
 
-  // ----------------------------------------
-  // TARGET USER
-  // ----------------------------------------
-  // Preferimos el document ID cuando coincide con el UID.
-  // Si el documento fue creado con otro ID, buscamos por el
-  // campo uid para mantener compatibilidad con registros existentes.
-
-  let adminRef =
-    access.firestore
-      .collection(
-        ADMIN_USERS_COLLECTION
-      )
-      .doc(uid);
+    const uid =
+      body?.uid ||
+      null;
 
 
-  let adminSnapshot =
-    await adminRef.get();
+    const action =
+      body?.action ||
+      null;
 
 
-  if (!adminSnapshot.exists) {
+    if (!uid) {
 
-    const querySnapshot =
-      await access.firestore
+      return errorResponse(
+        res,
+
+        "El UID del usuario administrativo es obligatorio.",
+
+        400
+      );
+
+    }
+
+
+    if (!action) {
+
+      return errorResponse(
+        res,
+
+        "La acción administrativa es obligatoria.",
+
+        400
+      );
+
+    }
+
+
+    // ------------------------------------
+    // PREVENT SELF MODIFICATION
+    // ------------------------------------
+
+    if (
+      uid === access.uid
+    ) {
+
+      if (
+        action === "updateRole" ||
+        action === "updateStatus"
+      ) {
+
+        return errorResponse(
+          res,
+
+          "No puedes modificar tu propio acceso administrativo.",
+
+          403
+        );
+
+      }
+
+    }
+
+
+    // ------------------------------------
+    // TARGET
+    // ------------------------------------
+
+    let adminRef =
+      access.firestore
         .collection(
           ADMIN_USERS_COLLECTION
         )
-        .where("uid", "==", uid)
-        .limit(1)
-        .get();
+        .doc(uid);
 
 
-    if (querySnapshot.empty) {
+    let adminSnapshot =
+      await adminRef.get();
+
+
+    // Compatibilidad con documentos cuyo ID no coincide con uid.
+    if (!adminSnapshot.exists) {
+
+      const uidSnapshot =
+        await access.firestore
+          .collection(
+            ADMIN_USERS_COLLECTION
+          )
+          .where(
+            "uid",
+            "==",
+            uid
+          )
+          .limit(1)
+          .get();
+
+
+      if (!uidSnapshot.empty) {
+
+        adminSnapshot =
+          uidSnapshot.docs[0];
+
+        adminRef =
+          adminSnapshot.ref;
+
+      }
+
+    }
+
+
+    if (!adminSnapshot.exists) {
 
       return errorResponse(
+        res,
+
         "El usuario administrativo no existe.",
+
         404
       );
 
     }
 
 
-    adminSnapshot =
-      querySnapshot.docs[0];
-
-
-    adminRef =
-      adminSnapshot.ref;
-
-  }
-
-
-  // ----------------------------------------
-  // UPDATE ROLE
-  // ----------------------------------------
-
-  if (
-    action ===
-    "updateRole"
-  ) {
-
-    const roleId =
-      body?.roleId ||
-      null;
-
+    // ------------------------------------
+    // UPDATE ROLE
+    // ------------------------------------
 
     if (
-      !Object.values(
-        ADMIN_ROLES
-      ).includes(
-        roleId
-      )
+      action ===
+      "updateRole"
     ) {
 
-      return errorResponse(
-        "El rol administrativo no es válido.",
-        400
+      const roleId =
+        body?.roleId ||
+        null;
+
+
+      if (
+        !Object.values(
+          ADMIN_ROLES
+        ).includes(
+          roleId
+        )
+      ) {
+
+        return errorResponse(
+          res,
+
+          "El rol administrativo no es válido.",
+
+          400
+        );
+
+      }
+
+
+      await adminRef.update({
+
+        roleId,
+
+        updatedAt:
+          new Date()
+
+      });
+
+
+      console.log(
+        "NEXUS — Admin Staff API: rol actualizado.",
+        {
+          actorUid:
+            access.uid,
+
+          targetUid:
+            uid,
+
+          roleId
+        }
+      );
+
+
+      const updatedSnapshot =
+        await adminRef.get();
+
+
+      return successResponse(
+        res,
+        {
+
+          user:
+            normalizeStaffUser(
+              updatedSnapshot
+            )
+
+        }
       );
 
     }
 
 
-    await adminRef.update({
-
-      roleId,
-
-      updatedAt:
-        new Date()
-
-    });
-
-
-    const updatedSnapshot =
-      await adminRef.get();
-
-
-    console.log(
-      "NEXUS — Admin Staff API: rol actualizado.",
-      {
-        actorUid:
-          access.uid,
-
-        targetUid:
-          uid,
-
-        roleId
-      }
-    );
-
-
-    return successResponse({
-
-      user:
-        normalizeStaffUser(
-          updatedSnapshot
-        )
-
-    });
-
-  }
-
-
-  // ----------------------------------------
-  // UPDATE STATUS
-  // ----------------------------------------
-
-  if (
-    action ===
-    "updateStatus"
-  ) {
-
-    const status =
-      body?.status ||
-      null;
-
+    // ------------------------------------
+    // UPDATE STATUS
+    // ------------------------------------
 
     if (
-      !Object.values(
-        ADMIN_USER_STATUS
-      ).includes(
-        status
-      )
+      action ===
+      "updateStatus"
     ) {
 
-      return errorResponse(
-        "El estado administrativo no es válido.",
-        400
+      const status =
+        body?.status ||
+        null;
+
+
+      if (
+        !Object.values(
+          ADMIN_USER_STATUS
+        ).includes(
+          status
+        )
+      ) {
+
+        return errorResponse(
+          res,
+
+          "El estado administrativo no es válido.",
+
+          400
+        );
+
+      }
+
+
+      await adminRef.update({
+
+        status,
+
+        updatedAt:
+          new Date()
+
+      });
+
+
+      console.log(
+        "NEXUS — Admin Staff API: estado actualizado.",
+        {
+          actorUid:
+            access.uid,
+
+          targetUid:
+            uid,
+
+          status
+        }
+      );
+
+
+      const updatedSnapshot =
+        await adminRef.get();
+
+
+      return successResponse(
+        res,
+        {
+
+          user:
+            normalizeStaffUser(
+              updatedSnapshot
+            )
+
+        }
       );
 
     }
 
 
-    await adminRef.update({
+    // ------------------------------------
+    // UNKNOWN ACTION
+    // ------------------------------------
 
-      status,
+    return errorResponse(
+      res,
 
-      updatedAt:
-        new Date()
+      "La acción administrativa no es válida.",
 
-    });
+      400
+    );
 
+  } catch (error) {
 
-    const updatedSnapshot =
-      await adminRef.get();
-
-
-    console.log(
-      "NEXUS — Admin Staff API: estado actualizado.",
-      {
-        actorUid:
-          access.uid,
-
-        targetUid:
-          uid,
-
-        status
-      }
+    console.error(
+      "NEXUS — Admin Staff API PATCH:",
+      error
     );
 
 
-    return successResponse({
+    return errorResponse(
+      res,
 
-      user:
-        normalizeStaffUser(
-          updatedSnapshot
-        )
+      error.message ||
+        "No fue posible modificar el usuario administrativo.",
 
-    });
+      error.status ||
+        500
+    );
 
   }
-
-
-  // ----------------------------------------
-  // UNKNOWN ACTION
-  // ----------------------------------------
-
-  return errorResponse(
-    "La acción administrativa no es válida.",
-    400
-  );
 
 }
 
@@ -878,61 +1035,60 @@ async function handlePatch(
 // MAIN VERCEL HANDLER
 // ========================================
 //
-// Un único handler para todos los métodos.
-//
-// Esto evita depender del routing de métodos
-// múltiples del deployment actual.
+// Un único entrypoint.
+// Evita problemas de routing por método HTTP.
 //
 // ========================================
 
 export default async function handler(
-  request
+  req,
+  res
 ) {
 
-  try {
-
-    switch (
-      request.method
-    ) {
-
-      case "GET":
-
-        return await handleGet(
-          request
-        );
+  console.log(
+    "NEXUS — Admin Staff API:",
+    req.method
+  );
 
 
-      case "PATCH":
+  if (
+    req.method ===
+    "GET"
+  ) {
 
-        return await handlePatch(
-          request
-        );
-
-
-      default:
-
-        return errorResponse(
-          "Método HTTP no permitido.",
-          405
-        );
-
-    }
-
-  } catch (error) {
-
-    console.error(
-      "NEXUS — Admin Staff API:",
-      error
-    );
-
-
-    return errorResponse(
-      error.message ||
-        "No fue posible procesar la solicitud administrativa.",
-      error.status ||
-        500
+    return handleGet(
+      req,
+      res
     );
 
   }
+
+
+  if (
+    req.method ===
+    "PATCH"
+  ) {
+
+    return handlePatch(
+      req,
+      res
+    );
+
+  }
+
+
+  res.setHeader(
+    "Allow",
+    "GET, PATCH"
+  );
+
+
+  return errorResponse(
+    res,
+
+    "Método HTTP no permitido.",
+
+    405
+  );
 
 }
