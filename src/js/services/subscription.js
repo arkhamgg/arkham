@@ -19,14 +19,32 @@ export const SUBSCRIPTION_STATUS = {
   PENDING:
     "pending",
 
-  EXPIRED:
-    "expired",
+  PAST_DUE:
+    "past_due",
+
+  SUSPENDED:
+    "suspended",
 
   CANCELLED:
     "cancelled",
 
-  SUSPENDED:
-    "suspended"
+  EXPIRED:
+    "expired"
+
+};
+
+
+// ========================================
+// SUBSCRIPTION PERIOD
+// ========================================
+
+export const SUBSCRIPTION_PERIOD = {
+
+  MONTHLY:
+    "monthly",
+
+  YEARLY:
+    "yearly"
 
 };
 
@@ -37,14 +55,90 @@ export const SUBSCRIPTION_STATUS = {
 
 export function createSubscription(
   planId,
-  status = SUBSCRIPTION_STATUS.ACTIVE
+  options = {}
 ) {
+
+  const {
+
+    accountId = null,
+
+    status =
+      SUBSCRIPTION_STATUS.ACTIVE,
+
+    period =
+      SUBSCRIPTION_PERIOD.MONTHLY,
+
+    currency =
+      "GTQ",
+
+    billingDate =
+      null,
+
+    paymentDeadline =
+      null,
+
+    currentPeriodStart =
+      null,
+
+    currentPeriodEnd =
+      null,
+
+    nextBillingAt =
+      null,
+
+    gracePeriodDays =
+      0
+
+  } = options;
+
 
   return {
 
+    // ========================================
+    // IDENTITY
+    // ========================================
+
+    accountId,
+
     planId,
 
+
+    // ========================================
+    // STATUS
+    // ========================================
+
     status,
+
+
+    // ========================================
+    // BILLING CONFIGURATION
+    // ========================================
+
+    period,
+
+    currency,
+
+    billingDate,
+
+    paymentDeadline,
+
+    gracePeriodDays,
+
+
+    // ========================================
+    // CURRENT BILLING PERIOD
+    // ========================================
+
+    currentPeriodStart,
+
+    currentPeriodEnd,
+
+    nextBillingAt,
+
+
+    // ========================================
+    // LIFECYCLE
+    // ========================================
 
     createdAt:
       null,
@@ -52,7 +146,13 @@ export function createSubscription(
     activatedAt:
       null,
 
-    expiresAt:
+    cancelledAt:
+      null,
+
+    suspendedAt:
+      null,
+
+    expiredAt:
       null
 
   };
@@ -159,6 +259,214 @@ export function isSubscriptionActive(
 
 
 // ========================================
+// CHECK BILLING ACCESS
+// ========================================
+//
+// ACTIVE
+// → acceso normal
+//
+// PAST_DUE
+// → puede existir acceso durante
+//   grace period
+//
+// PENDING
+// → depende del flujo de activación
+//
+// SUSPENDED / CANCELLED / EXPIRED
+// → sin acceso operativo
+//
+
+export function hasSubscriptionAccess(
+  subscription
+) {
+
+  if (!subscription) {
+
+    return false;
+
+  }
+
+
+  return (
+    subscription.status ===
+      SUBSCRIPTION_STATUS.ACTIVE ||
+
+    subscription.status ===
+      SUBSCRIPTION_STATUS.PAST_DUE
+  );
+
+}
+
+
+// ========================================
+// CHECK GRACE PERIOD
+// ========================================
+
+export function isWithinGracePeriod(
+  subscription,
+  now = new Date()
+) {
+
+  if (!subscription) {
+
+    return false;
+
+  }
+
+
+  if (
+    subscription.status !==
+    SUBSCRIPTION_STATUS.PAST_DUE
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    !subscription.paymentDeadline
+  ) {
+
+    return false;
+
+  }
+
+
+  const deadline =
+    toDate(
+      subscription.paymentDeadline
+    );
+
+
+  if (!deadline) {
+
+    return false;
+
+  }
+
+
+  return (
+    now.getTime() <=
+    deadline.getTime()
+  );
+
+}
+
+
+// ========================================
+// CHECK SUBSCRIPTION EXPIRED
+// ========================================
+
+export function isSubscriptionExpired(
+  subscription,
+  now = new Date()
+) {
+
+  if (!subscription) {
+
+    return true;
+
+  }
+
+
+  if (
+    subscription.status ===
+      SUBSCRIPTION_STATUS.EXPIRED ||
+
+    subscription.status ===
+      SUBSCRIPTION_STATUS.CANCELLED
+  ) {
+
+    return true;
+
+  }
+
+
+  if (
+    !subscription.currentPeriodEnd
+  ) {
+
+    return false;
+
+  }
+
+
+  const periodEnd =
+    toDate(
+      subscription.currentPeriodEnd
+    );
+
+
+  if (!periodEnd) {
+
+    return false;
+
+  }
+
+
+  return (
+    now.getTime() >
+    periodEnd.getTime()
+  );
+
+}
+
+
+// ========================================
+// CHECK EFFECTIVE ACCESS
+// ========================================
+//
+// Esta función NO modifica Firestore.
+// Solamente determina si la suscripción
+// puede considerarse vigente para acceso.
+//
+// La decisión final de capacidades seguirá
+// pasando por capabilityResolver.
+//
+
+export function hasEffectiveSubscriptionAccess(
+  subscription,
+  now = new Date()
+) {
+
+  if (!subscription) {
+
+    return false;
+
+  }
+
+
+  if (
+    isSubscriptionActive(
+      subscription
+    )
+  ) {
+
+    return true;
+
+  }
+
+
+  if (
+    subscription.status ===
+    SUBSCRIPTION_STATUS.PAST_DUE
+  ) {
+
+    return isWithinGracePeriod(
+      subscription,
+      now
+    );
+
+  }
+
+
+  return false;
+
+}
+
+
+// ========================================
 // GET SUBSCRIPTION PLAN
 // ========================================
 
@@ -175,5 +483,131 @@ export function getSubscriptionPlanId(
 
   return subscription.planId ||
     null;
+
+}
+
+
+// ========================================
+// GET SUBSCRIPTION STATUS
+// ========================================
+
+export function getSubscriptionStatus(
+  subscription
+) {
+
+  if (!subscription) {
+
+    return null;
+
+  }
+
+
+  return subscription.status ||
+    null;
+
+}
+
+
+// ========================================
+// GET SUBSCRIPTION PERIOD
+// ========================================
+
+export function getSubscriptionPeriod(
+  subscription
+) {
+
+  if (!subscription) {
+
+    return null;
+
+  }
+
+
+  return subscription.period ||
+    null;
+
+}
+
+
+// ========================================
+// DATE NORMALIZER
+// ========================================
+//
+// Firebase puede devolver:
+//
+// - Date
+// - Firestore Timestamp
+// - string
+// - number
+//
+// Normalizamos para que los helpers
+// trabajen de forma consistente.
+//
+
+function toDate(
+  value
+) {
+
+  if (!value) {
+
+    return null;
+
+  }
+
+
+  if (
+    value instanceof Date
+  ) {
+
+    return value;
+
+  }
+
+
+  if (
+    typeof value.toDate ===
+    "function"
+  ) {
+
+    return value.toDate();
+
+  }
+
+
+  if (
+    typeof value ===
+    "number"
+  ) {
+
+    const date =
+      new Date(value);
+
+    return isNaN(
+      date.getTime()
+    )
+      ? null
+      : date;
+
+  }
+
+
+  if (
+    typeof value ===
+    "string"
+  ) {
+
+    const date =
+      new Date(value);
+
+    return isNaN(
+      date.getTime()
+    )
+      ? null
+      : date;
+
+  }
+
+
+  return null;
 
 }

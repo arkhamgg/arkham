@@ -39,12 +39,22 @@ export function getFirebaseAdminApp() {
   }
 
 
-  if (getApps().length > 0) {
+  // ======================================
+  // REUSE EXISTING APP
+  // ======================================
+
+  if (
+    getApps().length > 0
+  ) {
 
     return getApps()[0];
 
   }
 
+
+  // ======================================
+  // PRIVATE KEY
+  // ======================================
 
   const privateKey =
     process.env.FIREBASE_PRIVATE_KEY.replace(
@@ -52,6 +62,19 @@ export function getFirebaseAdminApp() {
       "\n"
     );
 
+
+  // ======================================
+  // STORAGE BUCKET
+  // ======================================
+
+  const storageBucket =
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    `${process.env.FIREBASE_PROJECT_ID}.appspot.com`;
+
+
+  // ======================================
+  // INITIALIZE APP
+  // ======================================
 
   return initializeApp({
 
@@ -66,7 +89,9 @@ export function getFirebaseAdminApp() {
 
         privateKey
 
-      })
+      }),
+
+    storageBucket
 
   });
 
