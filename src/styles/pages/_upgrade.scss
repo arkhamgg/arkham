@@ -1,7 +1,17 @@
 // ========================================
-// NEXUS — Upgrade Page
+// NEXUS — Upgrade to Pro
 // ========================================
+
+// ----------------------------------------
+// Page
+// ----------------------------------------
+
 @use "../abstracts/variables" as *;
+
+.upgrade-page-root {
+  width: 100%;
+}
+
 .upgrade-page {
   width: 100%;
   min-height: 100%;
@@ -10,502 +20,679 @@
 }
 
 
-// ========================================
-// CONTAINER
-// ========================================
+// ----------------------------------------
+// Container
+// ----------------------------------------
 
 .upgrade-page__container {
-  width: min(100%, 1280px);
+  width: 100%;
+  max-width: $container-max-width;
   margin: 0 auto;
-  padding: 32px 20px 48px;
+
+  padding:
+    $space-8
+    $container-padding
+    $space-16;
 }
 
 
-// ========================================
-// HEADER
-// ========================================
+// ----------------------------------------
+// Header
+// ----------------------------------------
 
 .upgrade-page__header {
-  margin-bottom: 36px;
-  max-width: 760px;
+  margin-bottom: $space-12;
 }
 
 .upgrade-page__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 10px;
+  display: block;
 
-  font-size: 11px;
+  margin-bottom: $space-2;
+
+  color: $color-red;
+
+  font-size: $font-size-xs;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   line-height: 1.4;
-
-  color: $color-300;
 }
 
 .upgrade-page__header h1 {
-  margin: 0;
-  max-width: 720px;
+  max-width: 760px;
 
-  font-size: clamp(32px, 5vw, 54px);
-  font-weight: 700;
-  line-height: 1.02;
-  letter-spacing: -0.035em;
+  margin: 0;
 
   color: $color-white;
+
+  font-size: $font-size-3xl;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 
 .upgrade-page__header p {
-  margin: 18px 0 0;
   max-width: 650px;
 
-  font-size: 15px;
-  line-height: 1.7;
+  margin:
+    $space-3
+    0
+    0;
 
   color: $color-300;
+
+  font-size: $font-size-sm;
+  line-height: 1.65;
 }
 
 
-// ========================================
-// SECTION
-// ========================================
+// ----------------------------------------
+// Sections
+// ----------------------------------------
 
 .upgrade-page__section {
-  margin-top: 40px;
+  margin-top: $space-12;
 }
 
 .upgrade-page__section-heading {
   display: flex;
-  align-items: center;
-  gap: 14px;
 
-  margin-bottom: 16px;
+  align-items: center;
+
+  gap: $space-3;
+
+  margin-bottom: $space-4;
 }
 
 .upgrade-page__section-heading::after {
   content: "";
 
   flex: 1;
+
   height: 1px;
 
   background: $color-700;
 }
 
 .upgrade-page__section-heading span {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  flex: 0 0 auto;
 
   color: $color-500;
+
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
 }
 
 
-// ========================================
-// COMPARISON
-// ========================================
+// ----------------------------------------
+// Plan Comparison
+// ----------------------------------------
 
 .upgrade-page__comparison {
   display: grid;
+
   grid-template-columns: 1fr;
-  gap: 16px;
+
+  gap: $space-4;
 }
 
 
-// ========================================
-// PLAN CARD
-// ========================================
+// ----------------------------------------
+// Plan Card
+// ----------------------------------------
 
 .upgrade-page__plan-card {
   position: relative;
 
   display: flex;
+
   flex-direction: column;
 
   min-width: 0;
-  padding: 24px;
 
-  border: 1px solid $color-700;
-  border-radius: 16px;
+  padding: $space-6;
+
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-xl;
 
   background: $color-900;
 
+  box-shadow: $shadow-sm;
+
   transition:
-    border-color 180ms ease,
-    transform 180ms ease;
+    transform $transition-fast $ease-standard,
+    border-color $transition-fast $ease-standard,
+    box-shadow $transition-fast $ease-standard;
 }
 
 .upgrade-page__plan-card:hover {
   border-color: $color-500;
+
+  box-shadow: $shadow-md;
+
+  transform: translateY(-2px);
 }
 
+
+// ----------------------------------------
+// Pro Plan Card
+// ----------------------------------------
+
 .upgrade-page__plan-card--pro {
-  border-color: $color-500;
+  border-color: rgba(227, 6, 19, 0.45);
+
   background:
     linear-gradient(
       145deg,
       $color-900 0%,
-      $color-800 100%
+      $color-800 60%,
+      $color-900 100%
     );
+
+  box-shadow:
+    $shadow-md,
+    $glow-red-sm;
 }
 
 .upgrade-page__plan-card--pro:hover {
-  border-color: $color-300;
+  border-color: $color-red;
+
+  box-shadow:
+    $shadow-md,
+    $glow-red-md;
 }
 
 
-// ========================================
-// RECOMMENDED BADGE
-// ========================================
+// ----------------------------------------
+// Pro Badge
+// ----------------------------------------
 
 .upgrade-page__pro-badge {
   position: absolute;
-  top: 16px;
-  right: 16px;
+
+  top: $space-4;
+  right: $space-4;
 
   display: inline-flex;
+
   align-items: center;
 
-  padding: 6px 9px;
+  gap: $space-1;
 
-  border: 1px solid $color-500;
-  border-radius: 999px;
+  padding:
+    $space-2
+    $space-3;
 
-  background: $color-800;
+  border:
+    1px solid
+    rgba(227, 6, 19, 0.45);
+
+  border-radius: $radius-full;
+
+  background: rgba(227, 6, 19, 0.08);
+
+  color: $color-red-light;
 
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.12em;
+  line-height: 1;
 
-  color: $color-white;
+  box-shadow: $glow-red-sm;
 }
 
 
-// ========================================
-// PLAN HEADER
-// ========================================
+// ----------------------------------------
+// Plan Top
+// ----------------------------------------
 
-.upgrade-page__plan-card-header {
+.upgrade-page__plan-top {
   display: flex;
+
   align-items: flex-start;
   justify-content: space-between;
 
-  gap: 20px;
+  gap: $space-4;
+
+  padding-right: 0;
 }
 
 .upgrade-page__plan-card--pro
-  .upgrade-page__plan-card-header {
-  padding-right: 90px;
+  .upgrade-page__plan-top {
+  padding-right: 96px;
 }
 
-.upgrade-page__plan-eyebrow {
-  display: block;
-  margin-bottom: 8px;
 
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+// ----------------------------------------
+// Plan Label
+// ----------------------------------------
+
+.upgrade-page__plan-label {
+  display: block;
+
+  margin-bottom: $space-2;
 
   color: $color-500;
+
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
 }
 
-.upgrade-page__plan-card h2 {
+.upgrade-page__plan-card--pro
+  .upgrade-page__plan-label {
+  color: $color-red;
+}
+
+
+// ----------------------------------------
+// Plan Title
+// ----------------------------------------
+
+.upgrade-page__plan-top h2 {
   margin: 0;
 
-  font-size: 30px;
+  color: $color-white;
+
+  font-size: $font-size-2xl;
   font-weight: 700;
   line-height: 1;
 
   letter-spacing: -0.025em;
-
-  color: $color-white;
-}
-
-.upgrade-page__plan-card p {
-  margin: 12px 0 0;
-  max-width: 470px;
-
-  font-size: 13px;
-  line-height: 1.6;
-
-  color: $color-300;
 }
 
 
-// ========================================
-// PLAN ICON
-// ========================================
+// ----------------------------------------
+// Plan Icon
+// ----------------------------------------
 
 .upgrade-page__plan-icon {
-  flex: 0 0 auto;
-
   display: flex;
+
   align-items: center;
   justify-content: center;
 
-  width: 42px;
-  height: 42px;
+  flex: 0 0 auto;
 
-  border: 1px solid $color-700;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-md;
 
   background: $color-950;
 
   color: $color-300;
 
-  font-size: 15px;
+  font-size: $font-size-sm;
 }
 
 .upgrade-page__plan-card--pro
   .upgrade-page__plan-icon {
-  border-color: $color-500;
-  color: $color-white;
+  border-color: rgba(227, 6, 19, 0.45);
+
+  background: rgba(227, 6, 19, 0.06);
+
+  color: $color-red-light;
+
+  box-shadow: $glow-red-sm;
 }
 
 
-// ========================================
-// DIVIDER
-// ========================================
+// ----------------------------------------
+// Plan Description
+// ----------------------------------------
 
-.upgrade-page__plan-divider {
+.upgrade-page__plan-description {
+  max-width: 500px;
+
+  margin:
+    $space-4
+    0
+    0;
+
+  color: $color-300;
+
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+
+// ----------------------------------------
+// Divider
+// ----------------------------------------
+
+.upgrade-page__divider {
   width: 100%;
   height: 1px;
 
-  margin: 24px 0;
+  margin:
+    $space-6
+    0;
 
   background: $color-700;
 }
 
 
-// ========================================
-// FEATURE GROUP
-// ========================================
+// ----------------------------------------
+// Feature List
+// ----------------------------------------
 
-.upgrade-page__feature-group {
+.upgrade-page__feature-list {
   display: flex;
+
   flex-direction: column;
-  gap: 14px;
+
+  gap: $space-4;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
 }
 
-.upgrade-page__feature-title {
-  margin-bottom: 2px;
-
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-
-  color: $color-500;
-}
-
-
-// ========================================
-// FEATURE
-// ========================================
-
-.upgrade-page__feature {
+.upgrade-page__feature-list li {
   display: flex;
-  align-items: flex-start;
-  gap: 11px;
 
-  font-size: 13px;
-  line-height: 1.5;
+  align-items: flex-start;
+
+  gap: $space-3;
 
   color: $color-100;
+
+  font-size: $font-size-sm;
+  line-height: 1.55;
 }
 
-.upgrade-page__feature i {
+.upgrade-page__feature-list li i {
   flex: 0 0 auto;
 
   margin-top: 3px;
 
-  font-size: 11px;
-
   color: $color-300;
+
+  font-size: $font-size-xs;
 }
 
 .upgrade-page__plan-card--pro
-  .upgrade-page__feature i {
-  color: $color-white;
+  .upgrade-page__feature-list li i {
+  color: $color-red-light;
 }
 
 
-// ========================================
-// PLAN STATE
-// ========================================
+// ----------------------------------------
+// Plan Footer
+// ----------------------------------------
 
-.upgrade-page__plan-state {
+.upgrade-page__plan-footer {
   display: flex;
+
   align-items: center;
-  gap: 9px;
+  justify-content: space-between;
 
-  margin-top: 28px;
-  padding-top: 18px;
+  gap: $space-4;
 
-  border-top: 1px solid $color-700;
+  margin-top: auto;
+  padding-top: $space-6;
 
-  font-size: 12px;
-  font-weight: 600;
-
-  color: $color-300;
+  border-top:
+    1px solid
+    $color-700;
 }
 
-.upgrade-page__plan-state i {
-  font-size: 11px;
+.upgrade-page__plan-footer span {
+  color: $color-500;
+
+  font-size: $font-size-xs;
+  line-height: 1.4;
 }
 
-.upgrade-page__plan-state--pro {
+.upgrade-page__plan-footer strong {
   color: $color-white;
+
+  font-size: $font-size-sm;
+  font-weight: 700;
+}
+
+.upgrade-page__plan-card--pro
+  .upgrade-page__plan-footer strong {
+  color: $color-red-light;
 }
 
 
-// ========================================
-// VALUE GRID
-// ========================================
+// ----------------------------------------
+// Value Grid
+// ----------------------------------------
 
 .upgrade-page__value-grid {
   display: grid;
+
   grid-template-columns: 1fr;
-  gap: 12px;
+
+  gap: $space-3;
 }
 
 
-// ========================================
-// VALUE CARD
-// ========================================
+// ----------------------------------------
+// Value Card
+// ----------------------------------------
 
 .upgrade-page__value-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  display: grid;
 
-  padding: 20px;
+  grid-template-columns: auto 1fr;
 
-  border: 1px solid $color-700;
-  border-radius: 14px;
+  column-gap: $space-4;
+  row-gap: $space-2;
+
+  padding: $space-5;
+
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-lg;
 
   background: $color-900;
+
+  transition:
+    transform $transition-fast $ease-standard,
+    border-color $transition-fast $ease-standard,
+    background $transition-fast $ease-standard;
 }
 
+.upgrade-page__value-card:hover {
+  border-color: $color-500;
+
+  background: $color-800;
+
+  transform: translateY(-1px);
+}
+
+
+// ----------------------------------------
+// Value Icon
+// ----------------------------------------
+
 .upgrade-page__value-icon {
-  flex: 0 0 auto;
+  grid-row: span 2;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
 
-  border: 1px solid $color-700;
-  border-radius: 10px;
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-md;
 
   background: $color-950;
 
   color: $color-100;
 
-  font-size: 13px;
+  font-size: $font-size-sm;
 }
+
+.upgrade-page__value-card:hover
+  .upgrade-page__value-icon {
+  border-color: $color-red;
+
+  color: $color-red-light;
+
+  box-shadow: $glow-red-sm;
+}
+
+
+// ----------------------------------------
+// Value Content
+// ----------------------------------------
 
 .upgrade-page__value-card h3 {
   margin: 0;
 
-  font-size: 15px;
-  font-weight: 700;
-
   color: $color-white;
+
+  font-size: $font-size-md;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .upgrade-page__value-card p {
-  margin: 7px 0 0;
-
-  font-size: 12px;
-  line-height: 1.65;
+  margin: 0;
 
   color: $color-300;
+
+  font-size: $font-size-xs;
+  line-height: 1.65;
 }
 
 
-// ========================================
+// ----------------------------------------
 // CTA
-// ========================================
+// ----------------------------------------
 
 .upgrade-page__cta {
   display: flex;
+
   flex-direction: column;
-  gap: 24px;
 
-  margin-top: 40px;
-  padding: 24px;
+  gap: $space-6;
 
-  border: 1px solid $color-700;
-  border-radius: 16px;
+  margin-top: $space-12;
 
-  background: $color-900;
+  padding: $space-6;
+
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-xl;
+
+  background:
+    linear-gradient(
+      135deg,
+      $color-900 0%,
+      $color-800 100%
+    );
+
+  box-shadow: $shadow-sm;
 }
 
 .upgrade-page__cta-content {
   max-width: 650px;
 }
 
+.upgrade-page__cta-content .upgrade-page__eyebrow {
+  margin-bottom: $space-2;
+}
+
 .upgrade-page__cta-content h2 {
   margin: 0;
 
-  font-size: 24px;
+  color: $color-white;
+
+  font-size: $font-size-2xl;
   font-weight: 700;
   line-height: 1.15;
 
   letter-spacing: -0.02em;
-
-  color: $color-white;
 }
 
 .upgrade-page__cta-content p {
-  margin: 10px 0 0;
-
-  font-size: 13px;
-  line-height: 1.6;
+  margin:
+    $space-2
+    0
+    0;
 
   color: $color-300;
+
+  font-size: $font-size-sm;
+  line-height: 1.6;
 }
 
 
-// ========================================
-// CTA ACTIONS
-// ========================================
+// ----------------------------------------
+// CTA Actions
+// ----------------------------------------
 
 .upgrade-page__cta-actions {
   display: flex;
+
   flex-direction: column-reverse;
-  gap: 10px;
+
+  gap: $space-2;
 }
 
 
-// ========================================
-// BUTTONS
-// ========================================
+// ----------------------------------------
+// Buttons
+// ----------------------------------------
 
 .upgrade-page__primary-button,
 .upgrade-page__secondary-button {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
-  gap: 9px;
+
+  gap: $space-2;
 
   min-height: 46px;
-  padding: 0 18px;
 
-  border-radius: 10px;
+  padding:
+    0
+    $space-5;
 
-  font-family: inherit;
-  font-size: 12px;
+  border-radius: $radius-md;
+
+  font-family: $font-family-base;
+
+  font-size: $font-size-xs;
   font-weight: 700;
+
+  line-height: 1;
 
   cursor: pointer;
 
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease,
-    transform 160ms ease;
+    transform $transition-fast $ease-standard,
+    background $transition-fast $ease-standard,
+    border-color $transition-fast $ease-standard,
+    color $transition-fast $ease-standard,
+    box-shadow $transition-fast $ease-standard;
 }
 
 .upgrade-page__primary-button:active,
@@ -513,35 +700,50 @@
   transform: translateY(1px);
 }
 
+.upgrade-page__primary-button:focus-visible,
+.upgrade-page__secondary-button:focus-visible {
+  outline: 2px solid $color-red-light;
+  outline-offset: 3px;
+}
 
-// ========================================
-// PRIMARY
-// ========================================
+
+// ----------------------------------------
+// Primary Button
+// ----------------------------------------
 
 .upgrade-page__primary-button {
-  border: 1px solid $color-white;
+  border:
+    1px solid
+    $color-red;
 
-  background: $color-white;
+  background: $color-red;
 
-  color: $color-black;
+  color: $color-white;
 }
 
 .upgrade-page__primary-button:hover {
-  background: $color-100;
-  border-color: $color-100;
+  border-color: $color-red-light;
+
+  background: $color-red-light;
+
+  box-shadow: $glow-red-sm;
+
+  transform: translateY(-1px);
 }
 
 .upgrade-page__primary-button i {
-  font-size: 11px;
+  font-size: $font-size-xs;
 }
 
 
-// ========================================
-// SECONDARY
-// ========================================
+// ----------------------------------------
+// Secondary Button
+// ----------------------------------------
 
 .upgrade-page__secondary-button {
-  border: 1px solid $color-700;
+  border:
+    1px solid
+    $color-700;
 
   background: transparent;
 
@@ -550,129 +752,162 @@
 
 .upgrade-page__secondary-button:hover {
   border-color: $color-500;
+
   background: $color-800;
+
+  color: $color-white;
+
+  transform: translateY(-1px);
 }
 
 .upgrade-page__secondary-button i {
-  font-size: 11px;
+  font-size: $font-size-xs;
 }
 
 
-// ========================================
-// LOADING
-// ========================================
+// ----------------------------------------
+// Loading
+// ----------------------------------------
 
 .upgrade-page__loading {
+  display: flex;
+
   min-height: 420px;
 
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
 
-  gap: 14px;
+  flex-direction: column;
+
+  gap: $space-3;
 
   color: $color-300;
 }
 
 .upgrade-page__loading-icon {
-  font-size: 22px;
-  color: $color-white;
+  color: $color-red;
+
+  font-size: $font-size-2xl;
 }
 
 .upgrade-page__loading p {
   margin: 0;
 
-  font-size: 13px;
+  font-size: $font-size-sm;
 }
 
 
-// ========================================
-// ERROR
-// ========================================
+// ----------------------------------------
+// Error
+// ----------------------------------------
 
 .upgrade-page__error {
+  display: flex;
+
   min-height: 420px;
 
-  display: flex;
-  flex-direction: column;
   align-items: flex-start;
   justify-content: center;
 
+  flex-direction: column;
+
   max-width: 620px;
+
   margin: 0 auto;
 }
 
 .upgrade-page__error-icon {
   display: flex;
+
   align-items: center;
   justify-content: center;
 
   width: 44px;
   height: 44px;
 
-  margin-bottom: 20px;
+  margin-bottom: $space-5;
 
-  border: 1px solid $color-700;
-  border-radius: 12px;
+  border:
+    1px solid
+    rgba(239, 68, 68, 0.35);
 
-  color: $color-100;
+  border-radius: $radius-md;
+
+  background: rgba(239, 68, 68, 0.08);
+
+  color: $color-error;
+
+  font-size: $font-size-lg;
 }
 
 .upgrade-page__error h1 {
   margin: 0;
 
-  font-size: 28px;
-  line-height: 1.1;
-
   color: $color-white;
+
+  font-size: $font-size-2xl;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .upgrade-page__error p {
-  margin: 12px 0 24px;
+  max-width: 620px;
 
-  font-size: 13px;
-  line-height: 1.65;
+  margin:
+    $space-3
+    0
+    $space-6;
 
   color: $color-300;
+
+  font-size: $font-size-sm;
+  line-height: 1.65;
 }
 
 
-// ========================================
-// TABLET
-// ========================================
+// ----------------------------------------
+// Responsive — Tablet
+// ----------------------------------------
 
 @media (min-width: 640px) {
 
   .upgrade-page__container {
-    padding: 44px 28px 64px;
+    padding:
+      $space-10
+      $space-8
+      $space-20;
   }
-
 
   .upgrade-page__comparison {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
   }
-
 
   .upgrade-page__value-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
   }
-
 
   .upgrade-page__cta {
     align-items: center;
     justify-content: space-between;
+
     flex-direction: row;
 
-    padding: 28px;
+    padding: $space-8;
   }
-
 
   .upgrade-page__cta-actions {
     flex-direction: row;
+
     flex: 0 0 auto;
   }
-
 
   .upgrade-page__primary-button,
   .upgrade-page__secondary-button {
@@ -682,44 +917,57 @@
 }
 
 
-// ========================================
-// DESKTOP
-// ========================================
+// ----------------------------------------
+// Responsive — Desktop
+// ----------------------------------------
 
 @media (min-width: 1024px) {
 
   .upgrade-page__container {
-    padding: 56px 36px 80px;
+    padding:
+      $space-12
+      $space-8
+      $space-24;
   }
-
 
   .upgrade-page__header {
-    margin-bottom: 48px;
+    margin-bottom: $space-16;
   }
 
+  .upgrade-page__header h1 {
+    font-size: $font-size-4xl;
+  }
 
   .upgrade-page__section {
-    margin-top: 48px;
+    margin-top: $space-16;
   }
-
 
   .upgrade-page__plan-card {
-    padding: 30px;
+    padding: $space-8;
   }
-
-
-  .upgrade-page__plan-card:hover {
-    transform: translateY(-2px);
-  }
-
 
   .upgrade-page__value-card {
-    padding: 24px;
+    padding: $space-6;
   }
 
-
   .upgrade-page__cta {
-    padding: 32px;
+    padding: $space-8;
+  }
+
+}
+
+
+// ----------------------------------------
+// Accessibility
+// ----------------------------------------
+
+@media (prefers-reduced-motion: reduce) {
+
+  .upgrade-page__plan-card,
+  .upgrade-page__value-card,
+  .upgrade-page__primary-button,
+  .upgrade-page__secondary-button {
+    transition: none;
   }
 
 }
