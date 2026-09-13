@@ -133,29 +133,42 @@ const ROLE_PERMISSIONS = {
 // ========================================
 
 function successResponse(
-  res,
   data = {},
   status = 200
 ) {
 
-  return res.status(status).json({
-    success: true,
-    ...data
-  });
+  return Response.json(
+    {
+      success:
+        true,
+
+      ...data
+    },
+    {
+      status
+    }
+  );
 
 }
 
 
 function errorResponse(
-  res,
   message,
   status = 400
 ) {
 
-  return res.status(status).json({
-    success: false,
-    error: message
-  });
+  return Response.json(
+    {
+      success:
+        false,
+
+      error:
+        message
+    },
+    {
+      status
+    }
+  );
 
 }
 
@@ -165,12 +178,13 @@ function errorResponse(
 // ========================================
 
 function getBearerToken(
-  req
+  request
 ) {
 
   const authorization =
-    req.headers?.authorization ||
-    "";
+    request.headers.get(
+      "authorization"
+    );
 
 
   if (
@@ -201,12 +215,12 @@ function getBearerToken(
 // ========================================
 
 async function getAuthenticatedAdmin(
-  req
+  request
 ) {
 
   const idToken =
     getBearerToken(
-      req
+      request
     );
 
 
@@ -490,13 +504,12 @@ function normalizeStaffUser(
 // ========================================
 
 async function handleGet(
-  req,
-  res
+  request
 ) {
 
   const access =
     await getAuthenticatedAdmin(
-      req
+      request
     );
 
 
@@ -561,9 +574,7 @@ async function handleGet(
   );
 
 
-  return successResponse(
-      res,
-      {
+  return successResponse({
 
     users
 
@@ -577,13 +588,12 @@ async function handleGet(
 // ========================================
 
 async function handlePatch(
-  req,
-  res
+  request
 ) {
 
   const access =
     await getAuthenticatedAdmin(
-      req
+      request
     );
 
 
@@ -599,12 +609,11 @@ async function handlePatch(
   try {
 
     body =
-      req.body || {};
+      await request.json();
 
   } catch {
 
     return errorResponse(
-      res,
       "El cuerpo de la solicitud no contiene JSON válido.",
       400
     );
@@ -625,7 +634,6 @@ async function handlePatch(
   if (!uid) {
 
     return errorResponse(
-      res,
       "El UID del usuario administrativo es obligatorio.",
       400
     );
@@ -636,7 +644,6 @@ async function handlePatch(
   if (!action) {
 
     return errorResponse(
-      res,
       "La acción administrativa es obligatoria.",
       400
     );
@@ -657,7 +664,6 @@ async function handlePatch(
   ) {
 
     return errorResponse(
-      res,
       "No puedes modificar tu propio acceso administrativo.",
       403
     );
@@ -668,8 +674,11 @@ async function handlePatch(
   // ----------------------------------------
   // TARGET USER
   // ----------------------------------------
+  // Preferimos el document ID cuando coincide con el UID.
+  // Si el documento fue creado con otro ID, buscamos por el
+  // campo uid para mantener compatibilidad con registros existentes.
 
-  const adminRef =
+  let adminRef =
     access.firestore
       .collection(
         ADMIN_USERS_COLLECTION
@@ -677,19 +686,38 @@ async function handlePatch(
       .doc(uid);
 
 
-  const adminSnapshot =
+  let adminSnapshot =
     await adminRef.get();
 
 
-  if (
-    !adminSnapshot.exists
-  ) {
+  if (!adminSnapshot.exists) {
 
-    return errorResponse(
-      res,
-      "El usuario administrativo no existe.",
-      404
-    );
+    const querySnapshot =
+      await access.firestore
+        .collection(
+          ADMIN_USERS_COLLECTION
+        )
+        .where("uid", "==", uid)
+        .limit(1)
+        .get();
+
+
+    if (querySnapshot.empty) {
+
+      return errorResponse(
+        "El usuario administrativo no existe.",
+        404
+      );
+
+    }
+
+
+    adminSnapshot =
+      querySnapshot.docs[0];
+
+
+    adminRef =
+      adminSnapshot.ref;
 
   }
 
@@ -717,8 +745,7 @@ async function handlePatch(
     ) {
 
       return errorResponse(
-      res,
-      "El rol administrativo no es válido.",
+        "El rol administrativo no es válido.",
         400
       );
 
@@ -753,9 +780,7 @@ async function handlePatch(
     );
 
 
-    return successResponse(
-      res,
-      {
+    return successResponse({
 
       user:
         normalizeStaffUser(
@@ -790,8 +815,7 @@ async function handlePatch(
     ) {
 
       return errorResponse(
-      res,
-      "El estado administrativo no es válido.",
+        "El estado administrativo no es válido.",
         400
       );
 
@@ -826,9 +850,7 @@ async function handlePatch(
     );
 
 
-    return successResponse(
-      res,
-      {
+    return successResponse({
 
       user:
         normalizeStaffUser(
@@ -845,8 +867,7 @@ async function handlePatch(
   // ----------------------------------------
 
   return errorResponse(
-      res,
-      "La acción administrativa no es válida.",
+    "La acción administrativa no es válida.",
     400
   );
 
@@ -865,37 +886,32 @@ async function handlePatch(
 // ========================================
 
 export default async function handler(
-  req,
-  res
+  request
 ) {
 
   try {
 
     switch (
-      req.method
+      request.method
     ) {
 
       case "GET":
 
         return await handleGet(
-          req,
-          res
+          request
         );
 
 
       case "PATCH":
 
         return await handlePatch(
-          req,
-          res
+          request
         );
 
 
       default:
 
-        res.setHeader("Allow", "GET, PATCH");
         return errorResponse(
-          res,
           "Método HTTP no permitido.",
           405
         );
@@ -911,7 +927,6 @@ export default async function handler(
 
 
     return errorResponse(
-      res,
       error.message ||
         "No fue posible procesar la solicitud administrativa.",
       error.status ||
