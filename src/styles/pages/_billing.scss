@@ -1,0 +1,682 @@
+// ========================================
+// NEXUS — Billing
+// ========================================
+
+
+// ----------------------------------------
+// Page
+// ----------------------------------------
+@use "../abstracts/variables" as *;
+.billing-page-root {
+  width: 100%;
+}
+
+.billing-page {
+  width: 100%;
+  min-height: 100%;
+  background: $color-950;
+  color: $color-white;
+}
+
+
+// ----------------------------------------
+// Container
+// ----------------------------------------
+
+.billing-page__container {
+  width: 100%;
+  max-width: $container-max-width;
+  margin: 0 auto;
+  padding:
+    $space-8
+    $container-padding
+    $space-16;
+}
+
+
+// ----------------------------------------
+// Header
+// ----------------------------------------
+
+.billing-page__header {
+  margin-bottom: $space-12;
+}
+
+.billing-page__eyebrow {
+  display: block;
+  margin-bottom: $space-2;
+
+  color: $color-500;
+
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.billing-page__header h1 {
+  margin: 0;
+
+  color: $color-white;
+
+  font-size: $font-size-3xl;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.billing-page__header p {
+  max-width: 620px;
+  margin:
+    $space-3
+    0
+    0;
+
+  color: $color-300;
+
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+
+// ----------------------------------------
+// Sections
+// ----------------------------------------
+
+.billing-page__section {
+  margin-top: $space-12;
+}
+
+.billing-page__section-heading {
+  margin-bottom: $space-3;
+}
+
+.billing-page__section-heading span {
+  color: $color-500;
+
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+
+// ----------------------------------------
+// Plan Card
+// ----------------------------------------
+
+.billing-page__plan-card {
+  overflow: hidden;
+
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-xl;
+
+  background: $color-900;
+
+  box-shadow: $shadow-sm;
+}
+
+.billing-page__plan-main {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: $space-5;
+
+  padding: $space-6;
+}
+
+.billing-page__plan-info {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: $space-4;
+}
+
+.billing-page__plan-icon {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-md;
+
+  background: $color-800;
+
+  color: $color-white;
+}
+
+.billing-page__plan-label {
+  display: block;
+
+  margin-bottom: $space-1;
+
+  color: $color-500;
+
+  font-size: $font-size-xs;
+}
+
+.billing-page__plan-info h2 {
+  margin: 0;
+
+  color: $color-white;
+
+  font-size: $font-size-2xl;
+  font-weight: 700;
+}
+
+.billing-page__plan-info p {
+  margin:
+    $space-2
+    0
+    0;
+
+  color: $color-300;
+
+  font-size: $font-size-sm;
+  line-height: 1.5;
+}
+
+
+// ----------------------------------------
+// Status
+// ----------------------------------------
+
+.billing-page__status {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  padding:
+    $space-2
+    $space-3;
+
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-full;
+
+  font-size: $font-size-xs;
+  font-weight: 600;
+}
+
+.billing-page__status--active {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+  color: $color-success;
+}
+
+.billing-page__status--pending,
+.billing-page__status--review {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+  color: $color-warning;
+}
+
+.billing-page__status--past-due,
+.billing-page__status--grace {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+  color: $color-warning;
+}
+
+.billing-page__status--expired,
+.billing-page__status--suspended,
+.billing-page__status--cancelled {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: $color-error;
+}
+
+
+// ----------------------------------------
+// Divider
+// ----------------------------------------
+
+.billing-page__divider {
+  width: 100%;
+  height: 1px;
+
+  background: $color-700;
+}
+
+
+// ----------------------------------------
+// Plan Footer
+// ----------------------------------------
+
+.billing-page__plan-footer {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: $space-6;
+
+  padding:
+    $space-5
+    $space-6;
+}
+
+.billing-page__plan-footer > div {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: $space-1;
+}
+
+.billing-page__plan-footer strong {
+  color: $color-white;
+
+  font-size: $font-size-sm;
+}
+
+.billing-page__plan-footer span {
+  color: $color-300;
+
+  font-size: $font-size-xs;
+  line-height: 1.5;
+}
+
+
+// ----------------------------------------
+// Buttons
+// ----------------------------------------
+
+.billing-page__upgrade-button,
+.billing-page__pro-button,
+.billing-page__retry {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: $space-2;
+
+  min-height: 42px;
+
+  border: 0;
+
+  border-radius: $radius-md;
+
+  background: $color-red;
+
+  color: $color-white;
+
+  font-family: $font-family-base;
+
+  font-size: $font-size-xs;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform $transition-fast $ease-standard,
+    background $transition-fast $ease-standard,
+    opacity $transition-fast $ease-standard;
+}
+
+.billing-page__upgrade-button {
+  padding:
+    0
+    $space-4;
+}
+
+.billing-page__upgrade-button:hover,
+.billing-page__pro-button:hover,
+.billing-page__retry:hover {
+  background: $color-red-light;
+
+  transform: translateY(-1px);
+}
+
+.billing-page__upgrade-button:active,
+.billing-page__pro-button:active,
+.billing-page__retry:active {
+  transform: translateY(0);
+}
+
+
+// ----------------------------------------
+// Pro Card
+// ----------------------------------------
+
+.billing-page__pro-card {
+  position: relative;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-xl;
+
+  background: $color-800;
+
+  box-shadow: $shadow-md;
+}
+
+.billing-page__pro-content {
+  padding:
+    $space-8
+    $space-6;
+}
+
+.billing-page__pro-eyebrow {
+  display: block;
+
+  margin-bottom: $space-3;
+
+  color: $color-red;
+
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.billing-page__pro-content h2 {
+  max-width: 520px;
+
+  margin: 0;
+
+  color: $color-white;
+
+  font-size: $font-size-2xl;
+  line-height: 1.2;
+}
+
+.billing-page__pro-content p {
+  max-width: 600px;
+
+  margin:
+    $space-3
+    0
+    $space-5;
+
+  color: $color-300;
+
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+.billing-page__pro-button {
+  padding:
+    0
+    $space-4;
+}
+
+
+// ----------------------------------------
+// Information Grid
+// ----------------------------------------
+
+.billing-page__info-grid {
+  display: grid;
+
+  grid-template-columns: 1fr;
+
+  gap: $space-3;
+}
+
+.billing-page__info-card {
+  display: flex;
+
+  align-items: center;
+
+  gap: $space-4;
+
+  min-height: 76px;
+
+  padding: $space-4;
+
+  border:
+    1px solid
+    $color-700;
+
+  border-radius: $radius-lg;
+
+  background: $color-900;
+}
+
+.billing-page__info-icon {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+
+  border-radius: $radius-md;
+
+  background: $color-800;
+
+  color: $color-300;
+}
+
+.billing-page__info-card div:last-child {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: $space-1;
+}
+
+.billing-page__info-card strong {
+  color: $color-white;
+
+  font-size: $font-size-xs;
+}
+
+.billing-page__info-card span {
+  color: $color-300;
+
+  font-size: $font-size-xs;
+}
+
+
+// ----------------------------------------
+// Subscription Grid
+// ----------------------------------------
+
+.billing-page__subscription-grid {
+  display: grid;
+
+  grid-template-columns: 1fr;
+
+  gap: $space-5;
+
+  padding:
+    $space-5
+    $space-6;
+}
+
+.billing-page__subscription-grid div {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: $space-1;
+}
+
+.billing-page__subscription-grid span {
+  color: $color-500;
+
+  font-size: $font-size-xs;
+  font-weight: 600;
+
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.billing-page__subscription-grid strong {
+  color: $color-white;
+
+  font-size: $font-size-sm;
+}
+
+
+// ----------------------------------------
+// Loading
+// ----------------------------------------
+
+.billing-page__loading {
+  display: flex;
+
+  min-height: 300px;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-direction: column;
+
+  gap: $space-3;
+
+  color: $color-300;
+}
+
+.billing-page__loading-icon {
+  color: $color-white;
+
+  font-size: $font-size-lg;
+}
+
+.billing-page__loading p {
+  margin: 0;
+
+  font-size: $font-size-sm;
+}
+
+
+// ----------------------------------------
+// Error
+// ----------------------------------------
+
+.billing-page__error {
+  display: flex;
+
+  min-height: 300px;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-direction: column;
+
+  padding:
+    $space-10
+    $space-5;
+
+  text-align: center;
+}
+
+.billing-page__error-icon {
+  margin-bottom: $space-4;
+
+  color: $color-error;
+
+  font-size: $font-size-2xl;
+}
+
+.billing-page__error h1 {
+  margin: 0;
+
+  color: $color-white;
+
+  font-size: $font-size-xl;
+}
+
+.billing-page__error p {
+  max-width: 500px;
+
+  margin:
+    $space-3
+    0
+    $space-5;
+
+  color: $color-300;
+
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+.billing-page__retry {
+  padding:
+    0
+    $space-4;
+}
+
+
+// ----------------------------------------
+// Responsive — Tablet
+// ----------------------------------------
+
+@media (min-width: 768px) {
+
+  .billing-page__container {
+    padding:
+      $space-10
+      $space-8
+      $space-20;
+  }
+
+  .billing-page__header h1 {
+    font-size: $font-size-4xl;
+  }
+
+  .billing-page__info-grid {
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+  }
+
+  .billing-page__subscription-grid {
+    grid-template-columns:
+      repeat(
+        4,
+        minmax(0, 1fr)
+      );
+  }
+
+}
+
+
+// ----------------------------------------
+// Responsive — Mobile
+// ----------------------------------------
+
+@media (max-width: 640px) {
+
+  .billing-page__plan-main {
+    flex-direction: column;
+  }
+
+  .billing-page__plan-footer {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+  .billing-page__upgrade-button {
+    width: 100%;
+  }
+
+}

@@ -59,16 +59,23 @@ export const BILLING_STATUS = {
 // GET BILLING STATUS
 // ========================================
 //
-// Determina el estado efectivo del billing
-// a partir de la suscripción y, cuando existe,
-// del pago pendiente.
+// Determina el estado efectivo de Billing
+// utilizando la suscripción y, cuando existe,
+// el pago asociado.
 //
+// Este servicio NO modifica datos.
+//
+
 
 export function getBillingStatus(
   subscription,
   payment = null,
   now = new Date()
 ) {
+
+  // ----------------------------------------
+  // NO SUBSCRIPTION
+  // ----------------------------------------
 
   if (!subscription) {
 
@@ -77,9 +84,9 @@ export function getBillingStatus(
   }
 
 
-  // ========================================
+  // ----------------------------------------
   // CANCELLED
-  // ========================================
+  // ----------------------------------------
 
   if (
     subscription.status ===
@@ -91,9 +98,9 @@ export function getBillingStatus(
   }
 
 
-  // ========================================
+  // ----------------------------------------
   // SUSPENDED
-  // ========================================
+  // ----------------------------------------
 
   if (
     subscription.status ===
@@ -105,9 +112,9 @@ export function getBillingStatus(
   }
 
 
-  // ========================================
+  // ----------------------------------------
   // PAYMENT UNDER REVIEW
-  // ========================================
+  // ----------------------------------------
 
   if (
     payment &&
@@ -120,9 +127,9 @@ export function getBillingStatus(
   }
 
 
-  // ========================================
+  // ----------------------------------------
   // PAYMENT PENDING
-  // ========================================
+  // ----------------------------------------
 
   if (
     payment &&
@@ -135,13 +142,14 @@ export function getBillingStatus(
   }
 
 
-  // ========================================
+  // ----------------------------------------
   // ACTIVE SUBSCRIPTION
-  // ========================================
+  // ----------------------------------------
 
   if (
     isSubscriptionActive(
-      subscription
+      subscription,
+      now
     )
   ) {
 
@@ -150,9 +158,9 @@ export function getBillingStatus(
   }
 
 
-  // ========================================
+  // ----------------------------------------
   // PAST DUE
-  // ========================================
+  // ----------------------------------------
 
   if (
     subscription.status ===
@@ -170,20 +178,18 @@ export function getBillingStatus(
 
     }
 
-
     return BILLING_STATUS.PAST_DUE;
 
   }
 
 
-  // ========================================
+  // ----------------------------------------
   // EXPIRED
-  // ========================================
+  // ----------------------------------------
 
   if (
     subscription.status ===
       SUBSCRIPTION_STATUS.EXPIRED ||
-
     isSubscriptionExpired(
       subscription,
       now
@@ -195,6 +201,10 @@ export function getBillingStatus(
   }
 
 
+  // ----------------------------------------
+  // DEFAULT
+  // ----------------------------------------
+
   return BILLING_STATUS.EXPIRED;
 
 }
@@ -203,11 +213,22 @@ export function getBillingStatus(
 // ========================================
 // CHECK BILLING ACCESS
 // ========================================
+//
+// Determina si la suscripción tiene acceso
+// efectivo según su estado y fechas.
+//
+
 
 export function hasBillingAccess(
   subscription,
   now = new Date()
 ) {
+
+  if (!subscription) {
+
+    return false;
+
+  }
 
   return hasEffectiveSubscriptionAccess(
     subscription,
@@ -267,8 +288,19 @@ export function isPaymentBeingProcessed(
   payment
 ) {
 
-  return isPaymentPending(
-    payment
+  if (!payment) {
+
+    return false;
+
+  }
+
+  return (
+    isPaymentPending(
+      payment
+    ) ||
+
+    payment.status ===
+      PAYMENT_STATUS.UNDER_REVIEW
   );
 
 }
@@ -287,7 +319,6 @@ export function canPaymentActivateSubscription(
     return false;
 
   }
-
 
   return isPaymentApproved(
     payment
@@ -310,7 +341,6 @@ export function hasPaymentFailed(
 
   }
 
-
   return (
     isPaymentRejected(
       payment
@@ -332,6 +362,12 @@ export function getBillingPlanId(
   subscription
 ) {
 
+  if (!subscription) {
+
+    return null;
+
+  }
+
   return getSubscriptionPlanId(
     subscription
   );
@@ -352,7 +388,6 @@ export function getBillingPeriod(
     return null;
 
   }
-
 
   return (
     subscription.period ||
@@ -376,7 +411,6 @@ export function getNextBillingDate(
 
   }
 
-
   return (
     subscription.nextBillingAt ||
     subscription.currentPeriodEnd ||
@@ -393,6 +427,12 @@ export function getNextBillingDate(
 export function getBillingPaymentAmount(
   payment
 ) {
+
+  if (!payment) {
+
+    return null;
+
+  }
 
   return getPaymentAmount(
     payment
@@ -417,6 +457,10 @@ export function isRenewalNeeded(
   }
 
 
+  // ----------------------------------------
+  // CANCELLED
+  // ----------------------------------------
+
   if (
     subscription.status ===
     SUBSCRIPTION_STATUS.CANCELLED
@@ -426,6 +470,10 @@ export function isRenewalNeeded(
 
   }
 
+
+  // ----------------------------------------
+  // SUSPENDED
+  // ----------------------------------------
 
   if (
     subscription.status ===
@@ -437,6 +485,10 @@ export function isRenewalNeeded(
   }
 
 
+  // ----------------------------------------
+  // EXPIRED
+  // ----------------------------------------
+
   if (
     subscription.status ===
     SUBSCRIPTION_STATUS.EXPIRED
@@ -447,6 +499,10 @@ export function isRenewalNeeded(
   }
 
 
+  // ----------------------------------------
+  // PAST DUE
+  // ----------------------------------------
+
   if (
     subscription.status ===
     SUBSCRIPTION_STATUS.PAST_DUE
@@ -456,6 +512,10 @@ export function isRenewalNeeded(
 
   }
 
+
+  // ----------------------------------------
+  // NO PERIOD END
+  // ----------------------------------------
 
   if (
     !subscription.currentPeriodEnd
@@ -480,7 +540,7 @@ export function isRenewalNeeded(
 
 
   return (
-    now.getTime() >
+    now.getTime() >=
     periodEnd.getTime()
   );
 
@@ -491,11 +551,12 @@ export function isRenewalNeeded(
 // GET BILLING SUMMARY
 // ========================================
 //
-// Esta función será especialmente útil
-// para Dashboard / Billing UI.
+// Devuelve un objeto normalizado para que
+// Dashboard / Billing UI puedan consumirlo.
 //
-// NO modifica datos.
+// NO modifica Firestore.
 //
+
 
 export function getBillingSummary(
   subscription,
@@ -589,6 +650,10 @@ function toDate(
   }
 
 
+  // ----------------------------------------
+  // DATE
+  // ----------------------------------------
+
   if (
     value instanceof Date
   ) {
@@ -598,15 +663,33 @@ function toDate(
   }
 
 
+  // ----------------------------------------
+  // FIRESTORE TIMESTAMP
+  // ----------------------------------------
+
   if (
     typeof value.toDate ===
     "function"
   ) {
 
-    return value.toDate();
+    const date =
+      value.toDate();
+
+    return (
+      date instanceof Date &&
+      !Number.isNaN(
+        date.getTime()
+      )
+    )
+      ? date
+      : null;
 
   }
 
+
+  // ----------------------------------------
+  // NUMBER
+  // ----------------------------------------
 
   if (
     typeof value ===
@@ -616,7 +699,7 @@ function toDate(
     const date =
       new Date(value);
 
-    return isNaN(
+    return Number.isNaN(
       date.getTime()
     )
       ? null
@@ -624,6 +707,10 @@ function toDate(
 
   }
 
+
+  // ----------------------------------------
+  // STRING
+  // ----------------------------------------
 
   if (
     typeof value ===
@@ -633,7 +720,7 @@ function toDate(
     const date =
       new Date(value);
 
-    return isNaN(
+    return Number.isNaN(
       date.getTime()
     )
       ? null

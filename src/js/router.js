@@ -16,7 +16,7 @@ import { TournamentBuilder } from "./pages/tournamentBuilder.js";
 import { CompetitionLanding } from "./pages/competitionLanding.js";
 import { CompetitionDetail } from "./pages/competitionDetail.js";
 import { Calendar } from "./pages/calendar.js";
-
+import { Billing } from "./pages/billing.js";
 
 // ========================================
 // SESSION
@@ -27,7 +27,6 @@ import {
   initializeSession
 } from "./services/session.js";
 
-
 // ========================================
 // ADMIN ACCESS
 // ========================================
@@ -35,7 +34,6 @@ import {
 import {
   getCurrentAdminAccess
 } from "./services/adminAccess.js";
-
 
 // ========================================
 // ADMIN
@@ -90,9 +88,11 @@ const routes = {
   "/dashboard/tournaments/edit":
     TournamentBuilder,
 
+  "/dashboard/billing":
+    Billing,
+
   "/calendar":
     Calendar,
-
 
   // ======================================
   // ADMIN
@@ -127,7 +127,8 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
 
   "/dashboard",
   "/dashboard/tournaments/new",
-  "/dashboard/tournaments/edit"
+  "/dashboard/tournaments/edit",
+  "/dashboard/billing"
 
 ]);
 
@@ -167,7 +168,6 @@ function resolveRoute(path) {
       .split("/")
       .filter(Boolean);
 
-
   if (
     segments.length === 2 &&
     segments[0] === "competitions"
@@ -201,10 +201,10 @@ function isAdministrativeAccess(
 
   }
 
-
   return (
     adminAccess.roleId ===
       "administrator" ||
+
     adminAccess.roleId ===
       "agent"
   );
@@ -247,7 +247,6 @@ async function resolveProtectedPath(
         "NEXUS — Ruta administrativa sin sesión."
       );
 
-
       return "/login";
 
     }
@@ -274,7 +273,6 @@ async function resolveProtectedPath(
       console.warn(
         "NEXUS — Acceso administrativo rechazado."
       );
-
 
       return "/dashboard";
 
@@ -309,7 +307,6 @@ async function resolveProtectedPath(
         "NEXUS — Dashboard cliente sin sesión."
       );
 
-
       return "/login";
 
     }
@@ -333,7 +330,6 @@ async function resolveProtectedPath(
       console.log(
         "NEXUS — Cuenta administrativa detectada. Redirigiendo al Admin Dashboard."
       );
-
 
       return "/dashboard/admin";
 
@@ -368,6 +364,10 @@ export function Router(app) {
     false;
 
 
+  // ========================================
+  // RENDER ROUTE
+  // ========================================
+
   async function renderRoute() {
 
     /*
@@ -380,7 +380,6 @@ export function Router(app) {
       return;
 
     }
-
 
     isRendering =
       true;
@@ -457,7 +456,6 @@ export function Router(app) {
       app.appendChild(
         page
       );
-
 
     } catch (error) {
 
@@ -553,7 +551,6 @@ export function Router(app) {
           "NEXUS — Error inicializando sesión:",
           error
         );
-
 
         renderRoute();
 

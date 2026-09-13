@@ -7,10 +7,6 @@ import {
 } from "../services/session.js";
 
 import {
-  logout
-} from "../services/auth.js";
-
-import {
   getCurrentAccountContext
 } from "../services/account.js";
 
@@ -140,29 +136,6 @@ export function Dashboard() {
                 class="fa-solid fa-bell"
                 aria-hidden="true"
               ></i>
-
-            </button>
-
-
-            <!-- ================================= -->
-            <!-- LOGOUT -->
-            <!-- ================================= -->
-
-            <button
-              type="button"
-              class="dashboard-header__logout"
-              data-dashboard-logout
-              aria-label="Cerrar sesión"
-            >
-
-              <i
-                class="fa-solid fa-arrow-right-from-bracket"
-                aria-hidden="true"
-              ></i>
-
-              <span>
-                Cerrar sesión
-              </span>
 
             </button>
 
@@ -1274,86 +1247,6 @@ export function Dashboard() {
           "popstate"
         )
       );
-
-    }
-  );
-
-
-  // ========================================
-  // LOGOUT
-  // ========================================
-
-  page.addEventListener(
-    "click",
-    async event => {
-
-      const button =
-        event.target.closest(
-          "[data-dashboard-logout]"
-        );
-
-
-      if (!button) {
-
-        return;
-
-      }
-
-
-      try {
-
-        button.disabled =
-          true;
-
-
-        button.innerHTML = `
-
-          <i
-            class="fa-solid fa-spinner fa-spin"
-            aria-hidden="true"
-          ></i>
-
-          <span>
-            Cerrando sesión...
-          </span>
-
-        `;
-
-
-        await logout();
-
-
-        console.log(
-          "NEXUS — Sesión cerrada correctamente"
-        );
-
-
-      } catch (error) {
-
-        console.error(
-          "NEXUS — Error cerrando sesión:",
-          error
-        );
-
-
-        button.disabled =
-          false;
-
-
-        button.innerHTML = `
-
-          <i
-            class="fa-solid fa-arrow-right-from-bracket"
-            aria-hidden="true"
-          ></i>
-
-          <span>
-            Cerrar sesión
-          </span>
-
-        `;
-
-      }
 
     }
   );
