@@ -133,42 +133,29 @@ const ROLE_PERMISSIONS = {
 // ========================================
 
 function successResponse(
+  res,
   data = {},
   status = 200
 ) {
 
-  return Response.json(
-    {
-      success:
-        true,
-
-      ...data
-    },
-    {
-      status
-    }
-  );
+  return res.status(status).json({
+    success: true,
+    ...data
+  });
 
 }
 
 
 function errorResponse(
+  res,
   message,
   status = 400
 ) {
 
-  return Response.json(
-    {
-      success:
-        false,
-
-      error:
-        message
-    },
-    {
-      status
-    }
-  );
+  return res.status(status).json({
+    success: false,
+    error: message
+  });
 
 }
 
@@ -178,13 +165,12 @@ function errorResponse(
 // ========================================
 
 function getBearerToken(
-  request
+  req
 ) {
 
   const authorization =
-    request.headers.get(
-      "authorization"
-    );
+    req.headers?.authorization ||
+    "";
 
 
   if (
@@ -215,12 +201,12 @@ function getBearerToken(
 // ========================================
 
 async function getAuthenticatedAdmin(
-  request
+  req
 ) {
 
   const idToken =
     getBearerToken(
-      request
+      req
     );
 
 
@@ -504,12 +490,13 @@ function normalizeStaffUser(
 // ========================================
 
 async function handleGet(
-  request
+  req,
+  res
 ) {
 
   const access =
     await getAuthenticatedAdmin(
-      request
+      req
     );
 
 
@@ -574,7 +561,9 @@ async function handleGet(
   );
 
 
-  return successResponse({
+  return successResponse(
+      res,
+      {
 
     users
 
@@ -588,12 +577,13 @@ async function handleGet(
 // ========================================
 
 async function handlePatch(
-  request
+  req,
+  res
 ) {
 
   const access =
     await getAuthenticatedAdmin(
-      request
+      req
     );
 
 
@@ -609,11 +599,12 @@ async function handlePatch(
   try {
 
     body =
-      await request.json();
+      req.body || {};
 
   } catch {
 
     return errorResponse(
+      res,
       "El cuerpo de la solicitud no contiene JSON válido.",
       400
     );
@@ -634,6 +625,7 @@ async function handlePatch(
   if (!uid) {
 
     return errorResponse(
+      res,
       "El UID del usuario administrativo es obligatorio.",
       400
     );
@@ -644,6 +636,7 @@ async function handlePatch(
   if (!action) {
 
     return errorResponse(
+      res,
       "La acción administrativa es obligatoria.",
       400
     );
@@ -664,6 +657,7 @@ async function handlePatch(
   ) {
 
     return errorResponse(
+      res,
       "No puedes modificar tu propio acceso administrativo.",
       403
     );
@@ -692,6 +686,7 @@ async function handlePatch(
   ) {
 
     return errorResponse(
+      res,
       "El usuario administrativo no existe.",
       404
     );
@@ -722,7 +717,8 @@ async function handlePatch(
     ) {
 
       return errorResponse(
-        "El rol administrativo no es válido.",
+      res,
+      "El rol administrativo no es válido.",
         400
       );
 
@@ -757,7 +753,9 @@ async function handlePatch(
     );
 
 
-    return successResponse({
+    return successResponse(
+      res,
+      {
 
       user:
         normalizeStaffUser(
@@ -792,7 +790,8 @@ async function handlePatch(
     ) {
 
       return errorResponse(
-        "El estado administrativo no es válido.",
+      res,
+      "El estado administrativo no es válido.",
         400
       );
 
@@ -827,7 +826,9 @@ async function handlePatch(
     );
 
 
-    return successResponse({
+    return successResponse(
+      res,
+      {
 
       user:
         normalizeStaffUser(
@@ -844,7 +845,8 @@ async function handlePatch(
   // ----------------------------------------
 
   return errorResponse(
-    "La acción administrativa no es válida.",
+      res,
+      "La acción administrativa no es válida.",
     400
   );
 
@@ -863,32 +865,37 @@ async function handlePatch(
 // ========================================
 
 export default async function handler(
-  request
+  req,
+  res
 ) {
 
   try {
 
     switch (
-      request.method
+      req.method
     ) {
 
       case "GET":
 
         return await handleGet(
-          request
+          req,
+          res
         );
 
 
       case "PATCH":
 
         return await handlePatch(
-          request
+          req,
+          res
         );
 
 
       default:
 
+        res.setHeader("Allow", "GET, PATCH");
         return errorResponse(
+          res,
           "Método HTTP no permitido.",
           405
         );
@@ -904,6 +911,7 @@ export default async function handler(
 
 
     return errorResponse(
+      res,
       error.message ||
         "No fue posible procesar la solicitud administrativa.",
       error.status ||
