@@ -18,19 +18,30 @@ import { CompetitionDetail } from "./pages/competitionDetail.js";
 import { Calendar } from "./pages/calendar.js";
 
 // ========================================
+// ADMIN
+// ========================================
+
+import { Admin } from "./pages/admin.js";
+import { AdminStaff } from "./pages/adminStaff.js";
+
+
+// ========================================
 // STATIC ROUTES
 // ========================================
 
 const routes = {
 
-  "/": Home,
+  "/":
+    Home,
 
-  "/competitions": Competitions,
+  "/competitions":
+    Competitions,
 
   "/competitions/event":
     CompetitionLanding,
 
-  "/register": Register,
+  "/register":
+    Register,
 
   "/register/league":
     CreateLeague,
@@ -38,9 +49,11 @@ const routes = {
   "/register/tournament":
     CreateTournament,
 
-  "/dashboard": Dashboard,
+  "/dashboard":
+    Dashboard,
 
-  "/login": Login,
+  "/login":
+    Login,
 
   "/register/team":
     CreateTeam,
@@ -48,14 +61,27 @@ const routes = {
   "/register/player":
     CreatePlayer,
 
-  "/teams": Teams,
+  "/teams":
+    Teams,
 
   "/dashboard/tournaments/new":
     TournamentBuilder,
 
   "/dashboard/tournaments/edit":
     TournamentBuilder,
-    "/calendar": Calendar,
+
+  "/calendar":
+    Calendar,
+
+  // ======================================
+  // ADMIN
+  // ======================================
+
+  "/dashboard/admin":
+    Admin,
+
+  "/dashboard/admin/staff":
+    AdminStaff
 
 };
 
@@ -105,6 +131,10 @@ function resolveRoute(path) {
 
   }
 
+
+  // ========================================
+  // FALLBACK
+  // ========================================
 
   return Home;
 
