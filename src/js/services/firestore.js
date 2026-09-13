@@ -9,6 +9,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  deleteField,
   serverTimestamp
 } from "firebase/firestore";
 
@@ -167,3 +168,337 @@ export async function updateEntity(
   );
 
 }
+
+
+// ========================================
+// CREATE MAP ENTITY
+// ========================================
+//
+// Ejemplo:
+//
+// tournaments/{tournamentId}
+//
+// events: {
+//   {eventId}: {
+//     game: "...",
+//     format: "..."
+//   }
+// }
+//
+// El evento NO es un documento/subcolección.
+// Es una entrada dentro del campo "events".
+//
+// ========================================
+
+export async function createMapEntity(
+  collectionName,
+  parentId,
+  mapField,
+  entityData,
+  entityId = null
+) {
+
+  const parentRef =
+    doc(
+      db,
+      collectionName,
+      parentId
+    );
+
+
+  const generatedEntityId =
+    entityId ||
+    doc(
+      collection(
+        db,
+        collectionName
+      )
+    ).id;
+
+
+  await updateDoc(
+    parentRef,
+    {
+      [`${mapField}.${generatedEntityId}`]: {
+        ...entityData,
+
+        createdAt:
+          serverTimestamp(),
+
+        updatedAt:
+          serverTimestamp()
+      },
+
+      updatedAt:
+        serverTimestamp()
+    }
+  );
+
+
+  return generatedEntityId;
+
+}
+
+
+// ========================================
+// GET MAP ENTITY
+// ========================================
+//
+// Ejemplo:
+//
+// getMapEntity(
+//   "tournaments",
+//   tournamentId,
+//   "events",
+//   eventId
+// );
+//
+// ========================================
+
+export async function getMapEntity(
+  collectionName,
+  parentId,
+  mapField,
+  entityId
+) {
+
+  const parentRef =
+    doc(
+      db,
+      collectionName,
+      parentId
+    );
+
+
+  const parentSnapshot =
+    await getDoc(
+      parentRef
+    );
+
+
+  if (!parentSnapshot.exists()) {
+
+    return null;
+
+  }
+
+
+  const data =
+    parentSnapshot.data();
+
+
+  const map =
+    data[mapField];
+
+
+  if (
+    !map ||
+    typeof map !== "object" ||
+    Array.isArray(map)
+  ) {
+
+    return null;
+
+  }
+
+
+  const entity =
+    map[entityId];
+
+
+  if (!entity) {
+
+    return null;
+
+  }
+
+
+  return {
+    id:
+      entityId,
+
+    ...entity
+
+  };
+
+}
+
+
+// ========================================
+// GET MAP ENTITIES
+// ========================================
+//
+// Devuelve todas las entradas de un mapa.
+//
+// Ejemplo:
+//
+// tournaments/{tournamentId}
+//     events: {
+//       event1: {...},
+//       event2: {...}
+//     }
+//
+// ========================================
+
+export async function getMapEntities(
+  collectionName,
+  parentId,
+  mapField
+) {
+
+  const parentRef =
+    doc(
+      db,
+      collectionName,
+      parentId
+    );
+
+
+  const parentSnapshot =
+    await getDoc(
+      parentRef
+    );
+
+
+  if (!parentSnapshot.exists()) {
+
+    return [];
+
+  }
+
+
+  const data =
+    parentSnapshot.data();
+
+
+  const map =
+    data[mapField];
+
+
+  if (
+    !map ||
+    typeof map !== "object" ||
+    Array.isArray(map)
+  ) {
+
+    return [];
+
+  }
+
+
+  return Object.entries(
+    map
+  ).map(
+    ([id, entity]) => {
+
+      return {
+        id,
+        ...entity
+      };
+
+    }
+  );
+
+}
+
+
+// ========================================
+// UPDATE MAP ENTITY
+// ========================================
+//
+// Actualiza únicamente una entrada
+// dentro del mapa.
+//
+// No sobrescribe los demás eventos.
+//
+// ========================================
+
+export async function updateMapEntity(
+  collectionName,
+  parentId,
+  mapField,
+  entityId,
+  entityData
+) {
+
+  const parentRef =
+    doc(
+      db,
+      collectionName,
+      parentId
+    );
+
+
+  const updates = {};
+
+
+  Object.entries(
+    entityData
+  ).forEach(
+    ([field, value]) => {
+
+      updates[
+        `${mapField}.${entityId}.${field}`
+      ] = value;
+
+    }
+  );
+
+
+  updates[
+    `${mapField}.${entityId}.updatedAt`
+  ] =
+    serverTimestamp();
+
+
+  updates.updatedAt =
+    serverTimestamp();
+
+
+  await updateDoc(
+    parentRef,
+    updates
+  );
+
+}
+
+// ========================================
+// DELETE MAP ENTITY
+// ========================================
+//
+// Elimina únicamente una entrada dentro
+// de un mapa, sin borrar el documento padre.
+//
+// Ejemplo:
+// tournaments/{tournamentId}.events.{eventId}
+//
+// ========================================
+
+export async function deleteMapEntity(
+  collectionName,
+  parentId,
+  mapField,
+  entityId
+) {
+
+  const parentRef =
+    doc(
+      db,
+      collectionName,
+      parentId
+    );
+
+
+  await updateDoc(
+    parentRef,
+    {
+      [`${mapField}.${entityId}`]:
+        deleteField(),
+
+      updatedAt:
+        serverTimestamp()
+    }
+  );
+
+}
+

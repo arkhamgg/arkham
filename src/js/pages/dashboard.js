@@ -2,12 +2,34 @@
 // NEXUS — Dashboard
 // ========================================
 
-import { getCurrentSession } from "../services/session.js";
-import { logout } from "../services/auth.js";
+import {
+  getCurrentSession
+} from "../services/session.js";
+
+import {
+  logout
+} from "../services/auth.js";
 
 import {
   getCurrentAccountContext
 } from "../services/account.js";
+
+import {
+  getCurrentEntityContext
+} from "../services/entityContext.js";
+
+import {
+  createSubscriptionAccess
+} from "../services/planService.js";
+
+import {
+  DashboardSidebar
+} from "../components/dashboardSidebar.js";
+
+import {
+  getEntity,
+  deleteMapEntity
+} from "../services/firestore.js";
 
 
 // ========================================
@@ -37,29 +59,28 @@ export function Dashboard() {
 
   if (!session) {
 
-    console.log(
-      "NEXUS — No hay sesión activa"
-    );
-
-
     page.innerHTML = `
+      <div class="dashboard-page__empty">
 
-      <div class="dashboard-page__container">
+        <span
+          class="dashboard-page__eyebrow"
+        >
+          NEXUS
+        </span>
 
         <h1>
           SIN SESIÓN
         </h1>
 
         <p>
-          No hay una sesión activa en NEXUS.
+          No hay una sesión activa
+          en NEXUS.
         </p>
 
       </div>
-
     `;
 
     return page;
-
   }
 
 
@@ -68,117 +89,214 @@ export function Dashboard() {
   // ========================================
 
   page.innerHTML = `
+    <div class="dashboard-layout">
 
-    <div class="dashboard-page__container">
+      <section class="dashboard-main">
 
-      <header class="dashboard-page__header">
+        <!-- ================================= -->
+        <!-- HEADER -->
+        <!-- ================================= -->
 
-        <span class="dashboard-page__status">
-          ● SESIÓN ACTIVA
-        </span>
+        <header class="dashboard-header">
 
-        <h1>
-          MI NEXUS
-        </h1>
+          <div>
 
-        <p>
-          Cargando información de tu cuenta...
-        </p>
+            <span
+              class="dashboard-header__eyebrow"
+            >
+              MI NEXUS
+            </span>
 
-      </header>
+            <h1>
+              Overview
+            </h1>
 
+            <p
+              data-dashboard-description
+            >
+              Cargando tu espacio NEXUS...
+            </p>
 
-      <section class="dashboard-page__session">
-
-        <div class="dashboard-page__item">
-
-          <span>
-            EMAIL
-          </span>
-
-          <strong>
-            ${session.user.email}
-          </strong>
-
-        </div>
+          </div>
 
 
-        <div class="dashboard-page__item">
+          <div
+            class="dashboard-header__actions"
+          >
 
-          <span>
-            UID
-          </span>
+            <button
+              type="button"
+              class="dashboard-header__notification"
+              aria-label="Notificaciones"
+            >
 
-          <strong>
-            ${session.user.uid}
-          </strong>
+              <i
+                class="fa-solid fa-bell"
+                aria-hidden="true"
+              ></i>
 
-        </div>
-
-
-        <div class="dashboard-page__item">
-
-          <span>
-            CUENTA
-          </span>
-
-          <strong>
-            CARGANDO...
-          </strong>
-
-        </div>
+            </button>
 
 
-        <div class="dashboard-page__item">
+            <div
+              class="dashboard-header__account"
+            >
 
-          <span>
-            PLAN
-          </span>
+              <span>
+                CUENTA
+              </span>
 
-          <strong>
-            CARGANDO...
-          </strong>
+              <strong>
+                ${
+                  session.user?.email ||
+                  "Cuenta NEXUS"
+                }
+              </strong>
 
-        </div>
+            </div>
 
+          </div>
 
-        <div class="dashboard-page__item">
-
-          <span>
-            SUSCRIPCIÓN
-          </span>
-
-          <strong>
-            CARGANDO...
-          </strong>
-
-        </div>
+        </header>
 
 
-        <div class="dashboard-page__item">
+        <!-- ================================= -->
+        <!-- WORKSPACE -->
+        <!-- ================================= -->
 
-          <span>
-            ESTADO
-          </span>
+        <div class="dashboard-workspace">
 
-          <strong>
-            CARGANDO...
-          </strong>
+          <!-- ================================= -->
+          <!-- CREATE -->
+          <!-- ================================= -->
+
+          <section
+            class="dashboard-create"
+          >
+
+            <div
+              class="dashboard-create__content"
+            >
+
+              <span
+                class="dashboard-section__eyebrow"
+              >
+                NEXUS COMPETITIONS
+              </span>
+
+              <h2>
+                Crea tu próxima competencia.
+              </h2>
+
+              <p>
+                Configura, publica y administra
+                tus competencias desde un solo
+                lugar.
+              </p>
+
+            </div>
+
+
+            <button
+              type="button"
+              class="dashboard-create__button"
+              data-create-tournament
+            >
+
+              <i
+                class="fa-solid fa-plus"
+                aria-hidden="true"
+              ></i>
+
+              <span>
+                Crear torneo
+              </span>
+
+            </button>
+
+          </section>
+
+
+          <!-- ================================= -->
+          <!-- COMPETITIONS -->
+          <!-- ================================= -->
+
+          <section
+            class="dashboard-section"
+          >
+
+            <header
+              class="dashboard-section__header"
+            >
+
+              <div>
+
+                <span
+                  class="dashboard-section__eyebrow"
+                >
+                  COMPETENCIAS
+                </span>
+
+                <h2>
+                  Mis competencias
+                </h2>
+
+              </div>
+
+
+              <span
+                class="dashboard-section__count"
+                data-competition-count
+              >
+                0
+              </span>
+
+            </header>
+
+
+            <div
+              class="dashboard-competitions"
+              data-competitions
+            >
+
+              <div
+                class="dashboard-empty"
+              >
+
+                <div
+                  class="dashboard-empty__icon"
+                >
+
+                  <i
+                    class="fa-solid fa-trophy"
+                    aria-hidden="true"
+                  ></i>
+
+                </div>
+
+
+                <h3>
+                  Todavía no tienes competencias.
+                </h3>
+
+
+                <p>
+                  Crea tu primer torneo para
+                  comenzar a construir tu
+                  competencia en NEXUS.
+                </p>
+
+              </div>
+
+            </div>
+
+          </section>
 
         </div>
 
       </section>
 
-
-      <button
-        type="button"
-        class="dashboard-page__logout"
-      >
-        CERRAR SESIÓN
-      </button>
-
     </div>
-
   `;
 
 
@@ -186,153 +304,448 @@ export function Dashboard() {
   // ELEMENTS
   // ========================================
 
-  const container =
+  let currentTournamentId = null;
+
+  const main =
     page.querySelector(
-      ".dashboard-page__container"
+      ".dashboard-main"
     );
 
   const headerDescription =
     page.querySelector(
-      ".dashboard-page__header p"
+      "[data-dashboard-description]"
     );
 
-  const items =
-    page.querySelectorAll(
-      ".dashboard-page__item strong"
-    );
-
-
-  const logoutButton =
+  const createTournamentButton =
     page.querySelector(
-      ".dashboard-page__logout"
+      "[data-create-tournament]"
+    );
+
+  const competitionsContainer =
+    page.querySelector(
+      "[data-competitions]"
+    );
+
+  const competitionCount =
+    page.querySelector(
+      "[data-competition-count]"
     );
 
 
   // ========================================
-  // LOAD ACCOUNT CONTEXT
+  // SIDEBAR
   // ========================================
 
-  async function loadAccountContext() {
+  const sidebar =
+    DashboardSidebar({
+      onNavigate: view => {
+
+        console.log(
+          "NEXUS — Dashboard view:",
+          view
+        );
+
+      }
+    });
+
+
+  main.parentElement.prepend(
+    sidebar.element
+  );
+
+
+  // ========================================
+  // COMPETITIONS
+  // ========================================
+
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  }
+
+
+  function formatDate(dateValue) {
+
+    if (!dateValue) {
+      return "";
+    }
+
+    const date =
+      new Date(`${dateValue}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+      return dateValue;
+    }
+
+    return new Intl.DateTimeFormat(
+      "es-GT",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }
+    ).format(date);
+
+  }
+
+
+  function getGameLabel(gameId) {
+
+    const labels = {
+      "call-of-duty": "CALL OF DUTY"
+    };
+
+    return (
+      labels[gameId] ||
+      String(gameId || "COMPETENCIA")
+        .replace(/-/g, " ")
+        .toUpperCase()
+    );
+
+  }
+
+
+  function renderCompetitions(events) {
+
+    if (!competitionsContainer || !competitionCount) {
+      return;
+    }
+
+    const entries =
+      Object.entries(events || {});
+
+    competitionCount.textContent =
+      entries.length;
+
+    if (!entries.length) {
+
+      competitionsContainer.innerHTML = `
+        <div class="dashboard-empty">
+
+          <div class="dashboard-empty__icon">
+
+            <i
+              class="fa-solid fa-trophy"
+              aria-hidden="true"
+            ></i>
+
+          </div>
+
+          <h3>
+            Todavía no tienes competencias.
+          </h3>
+
+          <p>
+            Crea tu primer torneo para comenzar
+            a construir tu competencia en NEXUS.
+          </p>
+
+        </div>
+      `;
+
+      return;
+    }
+
+
+    competitionsContainer.innerHTML =
+      entries.map(
+        ([eventId, event]) => {
+
+          const game =
+            getGameLabel(event?.gameId);
+
+          const participation =
+            event?.participationType ||
+            "—";
+
+          const format =
+            event?.format ||
+            "—";
+
+          const matchSystem =
+            event?.matchSystem ||
+            "—";
+
+          const capacity =
+            event?.capacity ??
+            "—";
+
+          const startDate =
+            formatDate(
+              event?.dateTime?.startDate
+            );
+
+          const location =
+            event?.location?.type === "presencial"
+              ? event?.location?.venue || "Presencial"
+              : event?.location?.platform || "Online";
+
+
+          return `
+            <article
+              class="dashboard-competition-card"
+              data-competition-card
+              data-event-id="${escapeHtml(eventId)}"
+            >
+
+              <div class="dashboard-competition-card__top">
+
+                <span
+                  class="dashboard-competition-card__eyebrow"
+                >
+                  ${escapeHtml(game)}
+                </span>
+
+                <span
+                  class="dashboard-competition-card__id"
+                >
+                  EVENTO
+                </span>
+
+              </div>
+
+
+              <div class="dashboard-competition-card__body">
+
+                <h3>
+                  ${escapeHtml(
+                    `${game} · ${participation}`
+                  )}
+                </h3>
+
+
+                <div
+                  class="dashboard-competition-card__meta"
+                >
+
+                  <span>
+
+                    <i
+                      class="fa-solid fa-sitemap"
+                      aria-hidden="true"
+                    ></i>
+
+                    ${escapeHtml(format)}
+
+                  </span>
+
+
+                  <span>
+
+                    <i
+                      class="fa-solid fa-gamepad"
+                      aria-hidden="true"
+                    ></i>
+
+                    ${escapeHtml(matchSystem)}
+
+                  </span>
+
+
+                  <span>
+
+                    <i
+                      class="fa-solid fa-users"
+                      aria-hidden="true"
+                    ></i>
+
+                    ${escapeHtml(capacity)}
+
+                  </span>
+
+
+                  ${
+                    startDate
+                      ? `
+                        <span>
+
+                          <i
+                            class="fa-regular fa-calendar"
+                            aria-hidden="true"
+                          ></i>
+
+                          ${escapeHtml(startDate)}
+
+                        </span>
+                      `
+                      : ""
+                  }
+
+
+                  ${
+                    location
+                      ? `
+                        <span>
+
+                          <i
+                            class="fa-solid fa-location-dot"
+                            aria-hidden="true"
+                          ></i>
+
+                          ${escapeHtml(location)}
+
+                        </span>
+                      `
+                      : ""
+                  }
+
+                </div>
+
+              </div>
+
+
+              <footer
+                class="dashboard-competition-card__actions"
+              >
+
+                <button
+                  type="button"
+                  class="dashboard-competition-card__button dashboard-competition-card__button--primary"
+                  data-manage-event
+                  data-event-id="${escapeHtml(eventId)}"
+                >
+
+                  <i
+                    class="fa-solid fa-sliders"
+                    aria-hidden="true"
+                  ></i>
+
+                  Administrar evento
+
+                </button>
+
+
+                <button
+                  type="button"
+                  class="dashboard-competition-card__button dashboard-competition-card__button--danger"
+                  data-delete-event
+                  data-event-id="${escapeHtml(eventId)}"
+                >
+
+                  <i
+                    class="fa-solid fa-trash"
+                    aria-hidden="true"
+                  ></i>
+
+                  Eliminar
+
+                </button>
+
+
+                <button
+                  type="button"
+                  class="dashboard-competition-card__button"
+                  data-view-event
+                  data-event-id="${escapeHtml(eventId)}"
+                >
+
+                  <i
+                    class="fa-solid fa-arrow-up-right-from-square"
+                    aria-hidden="true"
+                  ></i>
+
+                  Ver evento
+
+                </button>
+
+              </footer>
+
+            </article>
+          `;
+
+        }
+      ).join("");
+
+  }
+
+
+  async function loadCompetitions(tournamentId) {
+
+    if (
+      !tournamentId ||
+      !competitionsContainer
+    ) {
+      return;
+    }
 
     try {
 
-      const context =
-        await getCurrentAccountContext();
+      competitionsContainer.innerHTML = `
+        <div class="dashboard-empty">
+
+          <div class="dashboard-empty__icon">
+
+            <i
+              class="fa-solid fa-spinner fa-spin"
+              aria-hidden="true"
+            ></i>
+
+          </div>
+
+          <h3>
+            Cargando competencias...
+          </h3>
+
+        </div>
+      `;
 
 
-      // ====================================
-      // ACCOUNT NOT FOUND
-      // ====================================
-
-      if (!context) {
-
-        console.error(
-          "NEXUS — No fue posible cargar la cuenta."
+      const tournament =
+        await getEntity(
+          "tournaments",
+          tournamentId
         );
 
 
-        headerDescription.textContent =
-          "No fue posible cargar la información de tu cuenta.";
+      renderCompetitions(
+        tournament?.events || {}
+      );
 
-        items[2].textContent =
-          "NO DISPONIBLE";
-
-        items[3].textContent =
-          "—";
-
-        items[4].textContent =
-          "—";
-
-        items[5].textContent =
-          "—";
-
-        return;
-
-      }
-
-
-      const {
-        account,
-        subscription
-      } = context;
-
-
-      // ====================================
-      // ACCOUNT
-      // ====================================
-
-      items[2].textContent =
-        account.accountStatus ||
-        "—";
-
-
-      // ====================================
-      // PLAN
-      // ====================================
-
-      items[3].textContent =
-        account.planId ||
-        "—";
-
-
-      // ====================================
-      // SUBSCRIPTION
-      // ====================================
-
-      items[4].textContent =
-        subscription?.status ||
-        "—";
-
-
-      // ====================================
-      // ACCOUNT STATUS
-      // ====================================
-
-      items[5].textContent =
-        account.accountStatus ||
-        "—";
-
-
-      // ====================================
-      // DESCRIPTION
-      // ====================================
-
-      headerDescription.textContent =
-        "Cuenta NEXUS cargada correctamente.";
-
-
-      // ====================================
-      // DEBUG
-      // ====================================
 
       console.log(
-        "NEXUS — Account Context:",
-        context
+        "NEXUS — Competencias cargadas:",
+        tournament?.events || {}
       );
 
     } catch (error) {
 
       console.error(
-        "NEXUS — Error cargando Account Context:",
+        "NEXUS — Error cargando competencias:",
         error
       );
 
 
-      headerDescription.textContent =
-        "Ocurrió un error cargando la información de tu cuenta.";
+      competitionCount.textContent = "0";
 
 
-      items[2].textContent =
-        "ERROR";
+      competitionsContainer.innerHTML = `
+        <div class="dashboard-empty">
 
-      items[3].textContent =
-        "—";
+          <div class="dashboard-empty__icon">
 
-      items[4].textContent =
-        "—";
+            <i
+              class="fa-solid fa-triangle-exclamation"
+              aria-hidden="true"
+            ></i>
 
-      items[5].textContent =
-        "—";
+          </div>
+
+          <h3>
+            No pudimos cargar tus competencias.
+          </h3>
+
+          <p>
+            Intenta actualizar el Dashboard.
+          </p>
+
+        </div>
+      `;
 
     }
 
@@ -340,27 +753,411 @@ export function Dashboard() {
 
 
   // ========================================
-  // LOAD
+  // EVENT ACTIONS
   // ========================================
 
-  loadAccountContext();
+  competitionsContainer.addEventListener(
+    "click",
+    async event => {
+
+      const manageButton =
+        event.target.closest(
+          "[data-manage-event]"
+        );
+
+
+      if (manageButton) {
+
+        const eventId =
+          manageButton.dataset.eventId;
+
+        const tournamentId =
+          currentTournamentId;
+
+
+        if (!tournamentId || !eventId) {
+
+          console.error(
+            "NEXUS — No se pudo abrir el evento para administrar.",
+            { tournamentId, eventId }
+          );
+
+          return;
+        }
+
+
+        window.history.pushState(
+          {},
+          "",
+          `/dashboard/tournaments/edit?tournamentId=${encodeURIComponent(tournamentId)}&eventId=${encodeURIComponent(eventId)}`
+        );
+
+
+        window.dispatchEvent(
+          new PopStateEvent("popstate")
+        );
+
+
+        return;
+      }
+
+
+      const deleteButton =
+        event.target.closest(
+          "[data-delete-event]"
+        );
+
+
+      if (deleteButton) {
+
+        const eventId =
+          deleteButton.dataset.eventId;
+
+        const tournamentId =
+          currentTournamentId;
+
+
+        if (!tournamentId || !eventId) {
+
+          console.error(
+            "NEXUS — No se pudo eliminar la competencia.",
+            { tournamentId, eventId }
+          );
+
+          return;
+        }
+
+
+        const confirmed =
+          window.confirm(
+            "¿Estás seguro de eliminar esta competencia?\n\nSe eliminará del torneo actual y esta acción no se puede deshacer."
+          );
+
+
+        if (!confirmed) {
+          return;
+        }
+
+
+        deleteButton.disabled =
+          true;
+
+
+        try {
+
+          await deleteMapEntity(
+            "tournaments",
+            tournamentId,
+            "events",
+            eventId
+          );
+
+
+          console.log(
+            "NEXUS — Competencia eliminada correctamente:",
+            { tournamentId, eventId }
+          );
+
+
+          await loadCompetitions(
+            tournamentId
+          );
+
+        } catch (error) {
+
+          console.error(
+            "NEXUS — Error eliminando la competencia:",
+            error
+          );
+
+
+          deleteButton.disabled =
+            false;
+
+
+          window.alert(
+            "No pudimos eliminar la competencia. Intenta nuevamente."
+          );
+
+        }
+
+
+        return;
+      }
+
+
+      const viewButton =
+        event.target.closest(
+          "[data-view-event]"
+        );
+
+
+      if (viewButton) {
+
+        const eventId =
+          viewButton.dataset.eventId;
+
+        const tournamentId =
+          currentTournamentId;
+
+
+        if (!tournamentId || !eventId) {
+
+          console.error(
+            "NEXUS — No se pudo abrir la competencia pública.",
+            { tournamentId, eventId }
+          );
+
+          return;
+        }
+
+
+        window.history.pushState(
+          {},
+          "",
+          `/competitions/event?tournamentId=${encodeURIComponent(tournamentId)}&eventId=${encodeURIComponent(eventId)}`
+        );
+
+
+        window.dispatchEvent(
+          new PopStateEvent("popstate")
+        );
+
+      }
+
+    }
+  );
+
+
+  // ========================================
+  // LOAD NEXUS CONTEXT
+  // ========================================
+
+  async function loadNexusContext() {
+
+    try {
+
+      const accountContext =
+        await getCurrentAccountContext();
+
+      const entityContext =
+        await getCurrentEntityContext();
+
+
+      currentTournamentId =
+        entityContext?.id || null;
+
+
+      // ====================================
+      // ACCOUNT
+      // ====================================
+
+      let access = null;
+
+
+      if (
+        accountContext &&
+        accountContext.subscription &&
+        accountContext.subscription.status ===
+          "active" &&
+        entityContext?.productId
+      ) {
+
+        access =
+          createSubscriptionAccess(
+            accountContext.subscription,
+            entityContext.productId
+          );
+
+
+        console.log(
+          "NEXUS — Access Context:",
+          access
+        );
+
+
+        console.log(
+          "NEXUS — Plan:",
+          accountContext.subscription.planId
+        );
+
+
+        console.log(
+          "NEXUS — Product:",
+          entityContext.productId
+        );
+
+
+        console.log(
+          "NEXUS — Capabilities:",
+          access.getCapabilities()
+        );
+
+      }
+
+
+      // ====================================
+      // ENTITY
+      // ====================================
+
+      if (entityContext) {
+
+        if (
+          entityContext.type === "tournament" &&
+          entityContext.id
+        ) {
+
+          await loadCompetitions(
+            entityContext.id
+          );
+
+        }
+
+
+        const entityName =
+          entityContext.entity?.name ||
+          entityContext.type ||
+          "Mi NEXUS";
+
+
+        sidebar.setContext({
+
+          type:
+            entityContext.type,
+
+          name:
+            entityName,
+
+          accessContext:
+            access
+
+        });
+
+
+        headerDescription.textContent =
+          `Gestionando ${entityName}.`;
+
+
+        console.log(
+          "NEXUS — Entity Context:",
+          entityContext
+        );
+
+      } else {
+
+        sidebar.setContext({
+
+          type: null,
+
+          name: "Mi NEXUS",
+
+          accessContext:
+            access
+
+        });
+
+
+        headerDescription.textContent =
+          "Bienvenido a tu espacio NEXUS.";
+
+      }
+
+
+      // ====================================
+      // ACCOUNT LOG
+      // ====================================
+
+      console.log(
+        "NEXUS — Account Context:",
+        accountContext
+      );
+
+    } catch (error) {
+
+      console.error(
+        "NEXUS — Error cargando contexto NEXUS:",
+        error
+      );
+
+
+      headerDescription.textContent =
+        "Ocurrió un error cargando el contexto de NEXUS.";
+
+    }
+
+  }
+
+
+  // ========================================
+  // CREATE TOURNAMENT
+  // ========================================
+
+  createTournamentButton.addEventListener(
+    "click",
+    () => {
+
+      console.log(
+        "NEXUS — Crear torneo"
+      );
+
+
+      window.history.pushState(
+        {},
+        "",
+        "/dashboard/tournaments/new"
+      );
+
+
+      window.dispatchEvent(
+        new PopStateEvent("popstate")
+      );
+
+    }
+  );
 
 
   // ========================================
   // LOGOUT
   // ========================================
 
-  logoutButton.addEventListener(
+  const logoutButton =
+    () =>
+      page.querySelector(
+        "[data-dashboard-logout]"
+      );
+
+
+  page.addEventListener(
     "click",
-    async () => {
+    async event => {
+
+      const button =
+        event.target.closest(
+          "[data-dashboard-logout]"
+        );
+
+
+      if (!button) {
+        return;
+      }
+
 
       try {
 
-        logoutButton.disabled =
+        button.disabled =
           true;
 
-        logoutButton.textContent =
-          "CERRANDO SESIÓN...";
+
+        button.innerHTML = `
+          <i
+            class="fa-solid fa-spinner fa-spin"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Cerrando sesión...
+          </span>
+        `;
 
 
         await logout();
@@ -378,17 +1175,37 @@ export function Dashboard() {
         );
 
 
-        logoutButton.disabled =
+        button.disabled =
           false;
 
-        logoutButton.textContent =
-          "CERRAR SESIÓN";
+
+        button.innerHTML = `
+          <i
+            class="fa-solid fa-arrow-right-from-bracket"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Cerrar sesión
+          </span>
+        `;
 
       }
 
     }
   );
 
+
+  // ========================================
+  // LOAD
+  // ========================================
+
+  loadNexusContext();
+
+
+  // ========================================
+  // RETURN
+  // ========================================
 
   return page;
 

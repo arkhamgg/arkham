@@ -1,0 +1,222 @@
+.prize-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.prize-editor__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.prize-editor__group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.prize-editor__group-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.prize-editor__group-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.prize-editor__group-number {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.prize-editor__title-input,
+.prize-editor__input,
+.prize-editor__select,
+.prize-editor__textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font: inherit;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.prize-editor__title-input,
+.prize-editor__input,
+.prize-editor__select {
+  min-height: 50px;
+  padding: 0 1rem;
+}
+
+.prize-editor__textarea {
+  min-height: 90px;
+  padding: 0.9rem 1rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.prize-editor__title-input:hover,
+.prize-editor__input:hover,
+.prize-editor__select:hover,
+.prize-editor__textarea:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.prize-editor__title-input:focus,
+.prize-editor__input:focus,
+.prize-editor__select:focus,
+.prize-editor__textarea:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.prize-editor__title-input::placeholder,
+.prize-editor__input::placeholder,
+.prize-editor__textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.prize-editor__select option {
+  background: #111;
+  color: #fff;
+}
+
+.prize-editor__rewards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.prize-editor__reward {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.prize-editor__reward-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.prize-editor__reward-type {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.prize-editor__reward-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.prize-editor__reward-fields
+  .prize-editor__field:last-child {
+  grid-column: 1 / -1;
+}
+
+.prize-editor__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.prize-editor__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.prize-editor__remove-group,
+.prize-editor__remove-reward,
+.prize-editor__add-group,
+.prize-editor__add-reward {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.prize-editor__remove-group,
+.prize-editor__remove-reward {
+  padding: 0.6rem 0.75rem;
+}
+
+.prize-editor__add-group,
+.prize-editor__add-reward {
+  padding: 0.8rem 1rem;
+}
+
+.prize-editor__add-group {
+  width: 100%;
+}
+
+.prize-editor__add-reward {
+  align-self: flex-start;
+}
+
+.prize-editor__remove-group:hover,
+.prize-editor__remove-reward:hover,
+.prize-editor__add-group:hover,
+.prize-editor__add-reward:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+@media (max-width: 700px) {
+  .prize-editor__group-header {
+    flex-direction: column;
+  }
+
+  .prize-editor__remove-group {
+    align-self: flex-start;
+  }
+
+  .prize-editor__reward-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .prize-editor__reward-fields
+    .prize-editor__field:last-child {
+    grid-column: auto;
+  }
+
+  .prize-editor__add-reward {
+    width: 100%;
+  }
+}

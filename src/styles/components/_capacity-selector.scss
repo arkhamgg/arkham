@@ -1,0 +1,63 @@
+.capacity-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.capacity-selector__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.capacity-selector__select {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 1rem;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+
+  font: inherit;
+
+  cursor: pointer;
+
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    opacity 180ms ease;
+}
+
+.capacity-selector__select:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.capacity-selector__select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.capacity-selector__select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.capacity-selector__select option {
+  background: #111;
+  color: #fff;
+}
+
+.capacity-selector__message {
+  margin: 0;
+
+  font-size: 0.8rem;
+  line-height: 1.4;
+
+  color: rgba(255, 255, 255, 0.45);
+}

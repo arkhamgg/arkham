@@ -1,0 +1,186 @@
+// ========================================
+// NEXUS — Product × Capability Matrix
+// ========================================
+//
+// Define qué capacidades pueden utilizarse
+// dentro de cada producto.
+//
+// IMPORTANTE:
+//
+// - No define planes.
+// - No define usuarios.
+// - No define permisos.
+// - No ejecuta lógica de acceso.
+//
+// Su única responsabilidad es establecer:
+//
+// CAPABILITY → PRODUCT
+//
+// La disponibilidad por plan se resolverá
+// posteriormente.
+//
+// ========================================
+
+import {
+  CAPABILITIES
+} from "./capabilities.js";
+
+import {
+  PRODUCT_IDS
+} from "./products.js";
+
+
+// ========================================
+// PRODUCT CAPABILITIES
+// ========================================
+
+export const PRODUCT_CAPABILITIES = {
+
+
+  // ======================================
+  // TOURNAMENT
+  // ======================================
+
+  [PRODUCT_IDS.TOURNAMENT]: [
+
+    // CONFIGURATION
+
+    CAPABILITIES.GAME_SELECTION,
+    CAPABILITIES.COMPETITIVE_MODES,
+    CAPABILITIES.PARTICIPATION_SELECTION,
+    CAPABILITIES.FORMAT_SELECTION,
+    CAPABILITIES.MATCH_SELECTION,
+    CAPABILITIES.CAPACITY_SELECTION,
+    CAPABILITIES.RULES,
+    CAPABILITIES.LOCATION,
+    CAPABILITIES.DATE_TIME,
+    CAPABILITIES.PRIZE,
+    CAPABILITIES.REGISTRATION_COST,
+
+
+    // PUBLICATION
+
+    CAPABILITIES.PUBLIC_LANDING,
+    CAPABILITIES.GLOBAL_CALENDAR,
+    CAPABILITIES.PUBLIC_REGISTRATION,
+
+
+    // PARTICIPANTS
+
+    CAPABILITIES.PARTICIPANT_MANAGEMENT,
+    CAPABILITIES.NEXUS_PLAYER_SEARCH,
+    CAPABILITIES.NEXUS_TEAM_SEARCH,
+    CAPABILITIES.PARTICIPATION_REQUESTS,
+
+
+    // OPERATION
+
+    CAPABILITIES.DYNAMIC_BRACKET,
+    CAPABILITIES.CHECK_IN,
+    CAPABILITIES.MATCH_MANAGEMENT,
+    CAPABILITIES.RESULT_MANAGEMENT,
+
+
+    // COMPETITIVE DATA
+
+    CAPABILITIES.STATISTICS,
+    CAPABILITIES.ADVANCED_STATISTICS,
+    CAPABILITIES.VERIFIED_TITLES,
+
+
+    // EXTENSIONS
+
+    CAPABILITIES.INTEGRATIONS
+
+  ],
+
+
+  // ======================================
+  // LEAGUE
+  // ======================================
+
+  [PRODUCT_IDS.LEAGUE]: [
+
+    // CONFIGURATION
+
+    CAPABILITIES.GAME_SELECTION,
+    CAPABILITIES.COMPETITIVE_MODES,
+    CAPABILITIES.PARTICIPATION_SELECTION,
+    CAPABILITIES.FORMAT_SELECTION,
+    CAPABILITIES.MATCH_SELECTION,
+    CAPABILITIES.CAPACITY_SELECTION,
+    CAPABILITIES.RULES,
+    CAPABILITIES.LOCATION,
+    CAPABILITIES.DATE_TIME,
+    CAPABILITIES.PRIZE,
+    CAPABILITIES.REGISTRATION_COST,
+
+
+    // PUBLICATION
+
+    CAPABILITIES.PUBLIC_LANDING,
+    CAPABILITIES.GLOBAL_CALENDAR,
+    CAPABILITIES.PUBLIC_REGISTRATION,
+
+
+    // PARTICIPANTS
+
+    CAPABILITIES.PARTICIPANT_MANAGEMENT,
+    CAPABILITIES.NEXUS_PLAYER_SEARCH,
+    CAPABILITIES.NEXUS_TEAM_SEARCH,
+    CAPABILITIES.PARTICIPATION_REQUESTS,
+
+
+    // OPERATION
+
+    CAPABILITIES.DYNAMIC_BRACKET,
+    CAPABILITIES.CHECK_IN,
+    CAPABILITIES.MATCH_MANAGEMENT,
+    CAPABILITIES.RESULT_MANAGEMENT,
+
+
+    // COMPETITIVE DATA
+
+    CAPABILITIES.STATISTICS,
+    CAPABILITIES.ADVANCED_STATISTICS,
+    CAPABILITIES.VERIFIED_TITLES,
+
+
+    // LEAGUE
+
+    CAPABILITIES.SEASON_MANAGEMENT,
+    CAPABILITIES.DIVISION_MANAGEMENT,
+    CAPABILITIES.MATCHDAY_MANAGEMENT,
+    CAPABILITIES.STANDINGS,
+    CAPABILITIES.PLAYOFFS,
+
+
+    // EXTENSIONS
+
+    CAPABILITIES.INTEGRATIONS
+
+  ],
+
+
+  // ======================================
+  // PLAYER
+  // ======================================
+
+  [PRODUCT_IDS.PLAYER]: [
+
+    CAPABILITIES.INTEGRATIONS
+
+  ],
+
+
+  // ======================================
+  // TEAM
+  // ======================================
+
+  [PRODUCT_IDS.TEAM]: [
+
+    CAPABILITIES.INTEGRATIONS
+
+  ]
+
+};

@@ -1,10 +1,28 @@
 // ========================================
-// NEXUS — Plans Catalog
+// NEXUS — Plans
+// ========================================
+//
+// Este archivo define únicamente la identidad
+// y metadata comercial de los planes.
+//
+// Las capacidades NO se definen aquí.
+//
+// La relación:
+//
+// PLAN × PRODUCTO × CAPACIDAD
+//
+// vive en:
+//
+// services/planCapabilities.js
+//
 // ========================================
 
-import {
-  CAPABILITIES
-} from "./capabilities.js";
+export const PLAN_IDS = {
+  FREE: "free",
+  PRO: "pro",
+  CIRCUIT: "circuit",
+  ENTERPRISE: "enterprise"
+};
 
 
 // ========================================
@@ -12,31 +30,8 @@ import {
 // ========================================
 
 export const PLAN_STATUS = {
-
-  ACTIVE:
-    "active",
-
-  INACTIVE:
-    "inactive"
-
-};
-
-
-// ========================================
-// PLAN IDS
-// ========================================
-
-export const PLAN_IDS = {
-
-  FREE:
-    "free",
-
-  PRO:
-    "pro",
-
-  PREMIUM:
-    "premium"
-
+  ACTIVE: "active",
+  INACTIVE: "inactive"
 };
 
 
@@ -48,271 +43,60 @@ export const PLANS = {
 
   [PLAN_IDS.FREE]: {
 
-    id:
-      PLAN_IDS.FREE,
+    id: PLAN_IDS.FREE,
 
-    name:
-      "Free",
+    name: "Free",
 
     description:
-      "Acceso básico a NEXUS.",
+      "Publica y da visibilidad a tus competencias.",
 
     status:
-      PLAN_STATUS.ACTIVE,
-
-    capabilities: [
-
-      CAPABILITIES.ACCOUNT_PROFILE_VIEW,
-      CAPABILITIES.ACCOUNT_PROFILE_EDIT,
-
-      CAPABILITIES.ACCOUNT_SECURITY_MANAGE,
-
-      CAPABILITIES.ACCOUNT_NOTIFICATIONS_VIEW,
-
-      CAPABILITIES.ACCOUNT_SETTINGS_MANAGE,
-
-      CAPABILITIES.ACCOUNT_ENTITIES_MANAGE,
-
-      CAPABILITIES.ENTITY_VIEW,
-
-      CAPABILITIES.TEAM_VIEW,
-      CAPABILITIES.PLAYER_VIEW,
-
-      CAPABILITIES.TOURNAMENT_VIEW,
-      CAPABILITIES.LEAGUE_VIEW,
-
-      CAPABILITIES.MATCH_VIEW,
-
-      CAPABILITIES.STATISTICS_VIEW
-
-    ]
+      PLAN_STATUS.ACTIVE
 
   },
 
 
   [PLAN_IDS.PRO]: {
 
-    id:
-      PLAN_IDS.PRO,
+    id: PLAN_IDS.PRO,
 
-    name:
-      "Pro",
+    name: "Pro",
 
     description:
-      "Herramientas avanzadas para gestionar una entidad competitiva.",
+      "Opera tus competencias y gestiona la experiencia competitiva.",
 
     status:
-      PLAN_STATUS.ACTIVE,
-
-    capabilities: [
-
-      // ACCOUNT
-
-      CAPABILITIES.ACCOUNT_PROFILE_VIEW,
-      CAPABILITIES.ACCOUNT_PROFILE_EDIT,
-
-      CAPABILITIES.ACCOUNT_SECURITY_MANAGE,
-
-      CAPABILITIES.ACCOUNT_NOTIFICATIONS_VIEW,
-
-      CAPABILITIES.ACCOUNT_SETTINGS_MANAGE,
-
-      CAPABILITIES.ACCOUNT_ENTITIES_MANAGE,
-
-
-      // ENTITY
-
-      CAPABILITIES.ENTITY_VIEW,
-      CAPABILITIES.ENTITY_EDIT,
-
-
-      // TEAM
-
-      CAPABILITIES.TEAM_VIEW,
-      CAPABILITIES.TEAM_EDIT,
-
-      CAPABILITIES.TEAM_ROSTER_VIEW,
-      CAPABILITIES.TEAM_ROSTER_MANAGE,
-
-
-      // PLAYER
-
-      CAPABILITIES.PLAYER_VIEW,
-      CAPABILITIES.PLAYER_EDIT,
-
-
-      // TOURNAMENT
-
-      CAPABILITIES.TOURNAMENT_VIEW,
-      CAPABILITIES.TOURNAMENT_CREATE,
-      CAPABILITIES.TOURNAMENT_EDIT,
-      CAPABILITIES.TOURNAMENT_MANAGE,
-
-      CAPABILITIES.TOURNAMENT_PARTICIPANTS_MANAGE,
-      CAPABILITIES.TOURNAMENT_ROSTER_MANAGE,
-
-      CAPABILITIES.TOURNAMENT_SEEDING_MANAGE,
-      CAPABILITIES.TOURNAMENT_BRACKET_MANAGE,
-
-      CAPABILITIES.TOURNAMENT_CHECKIN_MANAGE,
-
-
-      // LEAGUE
-
-      CAPABILITIES.LEAGUE_VIEW,
-      CAPABILITIES.LEAGUE_CREATE,
-      CAPABILITIES.LEAGUE_EDIT,
-      CAPABILITIES.LEAGUE_MANAGE,
-
-      CAPABILITIES.LEAGUE_SEASON_MANAGE,
-      CAPABILITIES.LEAGUE_DIVISION_MANAGE,
-      CAPABILITIES.LEAGUE_MATCHDAY_MANAGE,
-
-      CAPABILITIES.LEAGUE_STANDINGS_MANAGE,
-      CAPABILITIES.LEAGUE_PLAYOFFS_MANAGE,
-
-
-      // MATCHES
-
-      CAPABILITIES.MATCH_VIEW,
-      CAPABILITIES.MATCH_MANAGE,
-
-      CAPABILITIES.MATCH_RESULT_MANAGE,
-      CAPABILITIES.MATCH_EVIDENCE_MANAGE,
-
-
-      // STATISTICS
-
-      CAPABILITIES.STATISTICS_VIEW,
-      CAPABILITIES.STATISTICS_ADVANCED_VIEW,
-
-      CAPABILITIES.ANALYTICS_VIEW,
-
-
-      // CUSTOMIZATION
-
-      CAPABILITIES.CUSTOM_BRANDING,
-
-
-      // INTEGRATIONS
-
-      CAPABILITIES.INTEGRATIONS_VIEW
-
-    ]
+      PLAN_STATUS.ACTIVE
 
   },
 
 
-  [PLAN_IDS.PREMIUM]: {
+  [PLAN_IDS.CIRCUIT]: {
 
-    id:
-      PLAN_IDS.PREMIUM,
+    id: PLAN_IDS.CIRCUIT,
 
-    name:
-      "Premium",
+    name: "Circuit",
 
     description:
-      "Acceso completo a las herramientas avanzadas de NEXUS.",
+      "Gestiona competencias y estructuras competitivas a mayor escala.",
 
     status:
-      PLAN_STATUS.ACTIVE,
+      PLAN_STATUS.ACTIVE
 
-    capabilities: [
-
-      // ACCOUNT
-
-      CAPABILITIES.ACCOUNT_PROFILE_VIEW,
-      CAPABILITIES.ACCOUNT_PROFILE_EDIT,
-
-      CAPABILITIES.ACCOUNT_SECURITY_MANAGE,
-
-      CAPABILITIES.ACCOUNT_NOTIFICATIONS_VIEW,
-
-      CAPABILITIES.ACCOUNT_SETTINGS_MANAGE,
-
-      CAPABILITIES.ACCOUNT_ENTITIES_MANAGE,
+  },
 
 
-      // ENTITY
+  [PLAN_IDS.ENTERPRISE]: {
 
-      CAPABILITIES.ENTITY_VIEW,
-      CAPABILITIES.ENTITY_EDIT,
+    id: PLAN_IDS.ENTERPRISE,
 
+    name: "Enterprise",
 
-      // TEAM
+    description:
+      "Infraestructura avanzada para organizaciones y operaciones a gran escala.",
 
-      CAPABILITIES.TEAM_VIEW,
-      CAPABILITIES.TEAM_EDIT,
-
-      CAPABILITIES.TEAM_ROSTER_VIEW,
-      CAPABILITIES.TEAM_ROSTER_MANAGE,
-
-
-      // PLAYER
-
-      CAPABILITIES.PLAYER_VIEW,
-      CAPABILITIES.PLAYER_EDIT,
-
-
-      // TOURNAMENT
-
-      CAPABILITIES.TOURNAMENT_VIEW,
-      CAPABILITIES.TOURNAMENT_CREATE,
-      CAPABILITIES.TOURNAMENT_EDIT,
-      CAPABILITIES.TOURNAMENT_MANAGE,
-
-      CAPABILITIES.TOURNAMENT_PARTICIPANTS_MANAGE,
-      CAPABILITIES.TOURNAMENT_ROSTER_MANAGE,
-
-      CAPABILITIES.TOURNAMENT_SEEDING_MANAGE,
-      CAPABILITIES.TOURNAMENT_BRACKET_MANAGE,
-
-      CAPABILITIES.TOURNAMENT_CHECKIN_MANAGE,
-
-
-      // LEAGUE
-
-      CAPABILITIES.LEAGUE_VIEW,
-      CAPABILITIES.LEAGUE_CREATE,
-      CAPABILITIES.LEAGUE_EDIT,
-      CAPABILITIES.LEAGUE_MANAGE,
-
-      CAPABILITIES.LEAGUE_SEASON_MANAGE,
-      CAPABILITIES.LEAGUE_DIVISION_MANAGE,
-      CAPABILITIES.LEAGUE_MATCHDAY_MANAGE,
-
-      CAPABILITIES.LEAGUE_STANDINGS_MANAGE,
-      CAPABILITIES.LEAGUE_PLAYOFFS_MANAGE,
-
-
-      // MATCHES
-
-      CAPABILITIES.MATCH_VIEW,
-      CAPABILITIES.MATCH_MANAGE,
-
-      CAPABILITIES.MATCH_RESULT_MANAGE,
-      CAPABILITIES.MATCH_EVIDENCE_MANAGE,
-
-
-      // STATISTICS
-
-      CAPABILITIES.STATISTICS_VIEW,
-      CAPABILITIES.STATISTICS_ADVANCED_VIEW,
-
-      CAPABILITIES.ANALYTICS_VIEW,
-
-
-      // CUSTOMIZATION
-
-      CAPABILITIES.CUSTOM_BRANDING,
-
-
-      // INTEGRATIONS
-
-      CAPABILITIES.INTEGRATIONS_VIEW,
-      CAPABILITIES.INTEGRATIONS_MANAGE
-
-    ]
+    status:
+      PLAN_STATUS.ACTIVE
 
   }
 

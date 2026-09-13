@@ -12,22 +12,103 @@ import { Login } from "./pages/login.js";
 import { CreateTeam } from "./pages/createTeam.js";
 import { CreatePlayer } from "./pages/createPlayer.js";
 import { Teams } from "./pages/teams.js";
+import { TournamentBuilder } from "./pages/tournamentBuilder.js";
+import { CompetitionLanding } from "./pages/competitionLanding.js";
+import { CompetitionDetail } from "./pages/competitionDetail.js";
+import { Calendar } from "./pages/calendar.js";
+
 // ========================================
-// ROUTES
+// STATIC ROUTES
 // ========================================
 
 const routes = {
+
   "/": Home,
+
   "/competitions": Competitions,
+
+  "/competitions/event":
+    CompetitionLanding,
+
   "/register": Register,
-  "/register/league": CreateLeague,
-  "/register/tournament": CreateTournament,
+
+  "/register/league":
+    CreateLeague,
+
+  "/register/tournament":
+    CreateTournament,
+
   "/dashboard": Dashboard,
+
   "/login": Login,
-  "/register/team": CreateTeam,
-  "/register/player": CreatePlayer,
+
+  "/register/team":
+    CreateTeam,
+
+  "/register/player":
+    CreatePlayer,
+
   "/teams": Teams,
+
+  "/dashboard/tournaments/new":
+    TournamentBuilder,
+
+  "/dashboard/tournaments/edit":
+    TournamentBuilder,
+    "/calendar": Calendar,
+
 };
+
+
+// ========================================
+// ROUTE RESOLUTION
+// ========================================
+
+function resolveRoute(path) {
+
+  /*
+   * Primero intentamos una ruta exacta.
+   *
+   * Esto es importante porque:
+   *
+   * /competitions/event
+   *
+   * debe seguir entrando a CompetitionLanding
+   * y no ser interpretada como:
+   *
+   * /competitions/{id}
+   */
+
+  if (routes[path]) {
+
+    return routes[path];
+
+  }
+
+
+  // ========================================
+  // COMPETITION DETAIL
+  // ========================================
+
+  const segments =
+    path
+      .split("/")
+      .filter(Boolean);
+
+
+  if (
+    segments.length === 2 &&
+    segments[0] === "competitions"
+  ) {
+
+    return CompetitionDetail;
+
+  }
+
+
+  return Home;
+
+}
 
 
 // ========================================
@@ -38,15 +119,25 @@ export function Router(app) {
 
   function renderRoute() {
 
-    const path = window.location.pathname;
+    const path =
+      window.location.pathname;
 
-    const Page = routes[path] || Home;
+
+    const Page =
+      resolveRoute(path);
+
 
     app.innerHTML = "";
 
-    const page = Page();
 
-    app.appendChild(page);
+    const page =
+      Page();
+
+
+    app.appendChild(
+      page
+    );
+
   }
 
 
@@ -62,7 +153,9 @@ export function Router(app) {
       path
     );
 
+
     renderRoute();
+
   }
 
 
@@ -86,4 +179,5 @@ export function Router(app) {
   return {
     navigate
   };
+
 }

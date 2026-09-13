@@ -1,0 +1,75 @@
+.registration-cost-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.registration-cost-selector__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.registration-cost-selector__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.registration-cost-selector__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.registration-cost-selector__input,
+.registration-cost-selector__select {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font: inherit;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.registration-cost-selector__input:hover,
+.registration-cost-selector__select:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.registration-cost-selector__input:focus,
+.registration-cost-selector__select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.registration-cost-selector__input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.registration-cost-selector__select option {
+  background: #111;
+  color: #fff;
+}
+
+.registration-cost-selector__message {
+  margin: 0;
+  min-height: 1.2rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@media (max-width: 700px) {
+  .registration-cost-selector__fields {
+    grid-template-columns: 1fr;
+  }
+}

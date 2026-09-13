@@ -1,0 +1,74 @@
+// ========================================
+// NEXUS — Game Selector
+// ========================================
+
+.game-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+
+// ========================================
+// LABEL
+// ========================================
+
+.game-selector__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+
+// ========================================
+// SELECT
+// ========================================
+
+.game-selector__select {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+
+  background: #111;
+  color: #fff;
+
+  font: inherit;
+  font-size: 0.9rem;
+
+  cursor: pointer;
+
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+
+// ========================================
+// MESSAGE
+// ========================================
+
+.game-selector__message {
+  margin: 0;
+
+  font-size: 0.75rem;
+  opacity: 0.65;
+}

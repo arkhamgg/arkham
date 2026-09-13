@@ -1,0 +1,515 @@
+// ========================================
+// NEXUS — Competition Detail
+// ========================================
+
+
+// ========================================
+// VISIBILITY
+// ========================================
+
+.competition-detail-page [hidden] {
+  display: none !important;
+}
+
+
+// ========================================
+// PAGE
+// ========================================
+
+.competition-detail-page {
+  min-height: 100vh;
+  padding: 7rem 1.25rem 4rem;
+  background: #080808;
+  color: #f5f5f5;
+  font-family: inherit;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+
+  &--visible {
+    opacity: 1;
+  }
+
+  &__container {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+  }
+
+  &__loading,
+  &__error {
+    min-height: 60vh;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  &__loading span,
+  &__error > span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  &__content {
+    animation: competition-detail-enter 0.45s ease both;
+  }
+}
+
+
+// ========================================
+// HEADER
+// ========================================
+
+.competition-detail__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.competition-detail__identity {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.competition-detail__logo {
+  width: 92px;
+  height: 92px;
+  flex: 0 0 92px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.competition-detail__logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.competition-detail__logo-text {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.competition-detail__heading {
+  min-width: 0;
+}
+
+.competition-detail__type {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #8b8b8b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.competition-detail__name {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+  font-weight: 800;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.competition-detail__short-name {
+  display: block;
+  margin-top: 0.65rem;
+  color: #777;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.competition-detail__status {
+  flex: 0 0 auto;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #d0d0d0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+
+// ========================================
+// INFORMATION
+// ========================================
+
+.competition-detail__information {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.5fr);
+  gap: 4rem;
+  padding: 3.5rem 0 5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.competition-detail__description > span,
+.competition-detail__meta-item > span {
+  display: block;
+  margin-bottom: 0.9rem;
+  color: #777;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.competition-detail__description-text {
+  max-width: 760px;
+  margin: 0;
+  color: #c5c5c5;
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  line-height: 1.7;
+}
+
+.competition-detail__meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.competition-detail__meta-item strong {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+
+// ========================================
+// EVENTS SECTION
+// ========================================
+
+.competition-detail__structure {
+  padding: 5rem 0;
+}
+
+.competition-detail__section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+
+  > span {
+    color: #555;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+  }
+
+  > div > span {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: #777;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 4rem);
+    line-height: 0.9;
+    letter-spacing: -0.055em;
+    text-transform: uppercase;
+  }
+}
+
+.competition-detail__events {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+
+// ========================================
+// EVENT CARD
+// ========================================
+
+.competition-detail__event {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+  padding: 1.35rem;
+  background: #101010;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    background 0.25s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    background: #141414;
+    border-color: rgba(255, 255, 255, 0.25);
+
+    .competition-detail__event-action {
+      gap: 1rem;
+    }
+  }
+}
+
+.competition-detail__event-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.competition-detail__event-game,
+.competition-detail__event-status {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.competition-detail__event-game {
+  color: #f5f5f5;
+}
+
+.competition-detail__event-status {
+  color: #666;
+}
+
+.competition-detail__event-content {
+  flex: 1;
+  padding: 4rem 0 2rem;
+
+  h3 {
+    margin: 0 0 2rem;
+    font-size: clamp(1.5rem, 3vw, 2.4rem);
+    line-height: 0.95;
+    letter-spacing: -0.045em;
+    text-transform: uppercase;
+  }
+}
+
+.competition-detail__event-data {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem 2rem;
+
+  > div {
+    min-width: 0;
+  }
+
+  span {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #666;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+  }
+
+  strong {
+    display: block;
+    color: #d0d0d0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+}
+
+.competition-detail__event-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f5f5f5;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  transition: gap 0.25s ease;
+
+  i {
+    font-size: 0.7rem;
+  }
+}
+
+
+// ========================================
+// EMPTY STATE
+// ========================================
+
+.competition-detail__events-empty {
+  padding: 4rem 2rem;
+  text-align: center;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+
+  > span {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  p {
+    max-width: 480px;
+    margin: 0 auto;
+    color: #777;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+}
+
+
+// ========================================
+// FOOTER / NAVIGATION
+// ========================================
+
+.competition-detail__footer {
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.competition-detail__back,
+.competition-detail__back-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: #aaa;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #fff;
+  }
+}
+
+
+// ========================================
+// ERROR
+// ========================================
+
+.competition-detail-page__error {
+  min-height: 60vh;
+  text-align: center;
+
+  p {
+    max-width: 420px;
+    margin: 0 auto 2rem;
+    color: #777;
+    line-height: 1.6;
+  }
+}
+
+
+// ========================================
+// RESPONSIVE
+// ========================================
+
+@media (max-width: 800px) {
+  .competition-detail-page {
+    padding-top: 5.5rem;
+  }
+
+  .competition-detail__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .competition-detail__status {
+    align-self: flex-start;
+  }
+
+  .competition-detail__information {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .competition-detail__meta {
+    justify-content: flex-start;
+  }
+
+  .competition-detail__events {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .competition-detail-page {
+    padding: 5rem 1rem 3rem;
+  }
+
+  .competition-detail__identity {
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .competition-detail__logo {
+    width: 68px;
+    height: 68px;
+    flex-basis: 68px;
+  }
+
+  .competition-detail__name {
+    font-size: 2.1rem;
+  }
+
+  .competition-detail__information,
+  .competition-detail__structure {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  .competition-detail__event {
+    min-height: 0;
+    padding: 1rem;
+  }
+
+  .competition-detail__event-content {
+    padding: 3rem 0 2rem;
+  }
+
+  .competition-detail__event-data {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+
+// ========================================
+// ANIMATION
+// ========================================
+
+@keyframes competition-detail-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

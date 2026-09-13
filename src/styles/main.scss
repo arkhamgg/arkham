@@ -1,25 +1,79 @@
 @use "./abstracts/variables";
+
 @use "./base/reset";
+
 @use "./base/base";
+
 @use "./components/navbar";
+
 @use "./components/hero";
+
 @use "./components/hero-effects";
+
 @use "./components/competitions";
+
 @use "./components/teams";
+
 @use "./components/players";
+
 @use "./components/infrastructure";
+
 @use "./components/footer";
+
 @use "./components/competition-card";
+
 @use "./pages/competitions" as competitions-page;
+
 @use "./pages/register" as register-page;
+
 @use "./components/entity-basic-info";
+
 @use "./pages/create-league" as create-league-page;
+
 @use "./components/account-credentials";
+
 @use "./pages/create-tournament" as create-tournament-page;
+
 @use "./pages/dashboard";
+
 @use "./pages/login" as login;
+
 @use "./pages/create-team" as create-team;
+
 @use "./components/playerBasicInfo";
+
 @use "./pages/create-player";
+
 @use "./pages/teams" as teams-page;
+
 @use "./components/teamCard";
+
+@use "./components/game-selector";
+
+@use "./pages/dash-nav";
+
+@use "./components/format-selector";
+
+@use "./components/match-system-selector";
+
+@use "./components/capacity-selector";
+
+@use "./components/capacity-availability-selector";
+
+@use "./components/rules-editor";
+
+@use "./components/prize-editor";
+
+@use "./components/registration-cost-selector";
+
+@use "./components/contact-support-selector";
+
+@use "./components/builder-step";
+
+@use "./pages/tournament-builder";
+@use "./components/date-time-selector";
+@use "./components/location-selector";
+
+@use "./pages/competition-landing";
+@use "./pages/competition-detail";
+@use "./pages/calendar";

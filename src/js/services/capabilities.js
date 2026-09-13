@@ -1,6 +1,32 @@
 // ========================================
 // NEXUS — Capabilities Catalog
 // ========================================
+//
+// Las capacidades representan funcionalidades
+// que existen dentro de la plataforma.
+//
+// IMPORTANTE:
+//
+// - Las capacidades NO conocen los planes.
+// - Las capacidades NO deciden permisos.
+// - Los productos determinan dónde pueden utilizarse.
+// - Los planes determinan qué capacidades recibe
+//   cada nivel.
+// - El Access Engine determina el acceso efectivo.
+//
+// Arquitectura:
+//
+// COMPONENTE
+//      ↓
+// CAPACIDAD
+//      ↓
+// PRODUCTO
+//      ↓
+// PLAN
+//      ↓
+// CUENTA / USUARIO
+//
+// ========================================
 
 
 // ========================================
@@ -9,179 +35,224 @@
 
 export const CAPABILITIES = {
 
+
   // ======================================
   // ACCOUNT
   // ======================================
+  //
+  // Capacidades relacionadas con la cuenta
+  // y el espacio "Mi NEXUS".
+  //
+  // Estas capacidades permanecen separadas
+  // de las capacidades competitivas.
+  //
 
   ACCOUNT_PROFILE_VIEW:
+
     "account.profile.view",
 
   ACCOUNT_PROFILE_EDIT:
+
     "account.profile.edit",
 
   ACCOUNT_SECURITY_MANAGE:
+
     "account.security.manage",
 
   ACCOUNT_NOTIFICATIONS_VIEW:
+
     "account.notifications.view",
 
   ACCOUNT_SETTINGS_MANAGE:
+
     "account.settings.manage",
 
   ACCOUNT_ENTITIES_MANAGE:
+
     "account.entities.manage",
 
 
   // ======================================
-  // ENTITY
+  // COMPETITION CONFIGURATION
   // ======================================
+  //
+  // Capacidades utilizadas para configurar
+  // una competencia.
+  //
 
-  ENTITY_VIEW:
-    "entity.view",
+  GAME_SELECTION:
 
-  ENTITY_EDIT:
-    "entity.edit",
+    "game_selection",
+
+  COMPETITIVE_MODES:
+
+    "competitive_modes",
+
+  PARTICIPATION_SELECTION:
+
+    "participation_selection",
+
+  FORMAT_SELECTION:
+
+    "format_selection",
+
+  MATCH_SELECTION:
+
+    "match_selection",
+
+  CAPACITY_SELECTION:
+
+    "capacity_selection",
+
+  RULES:
+
+    "rules",
+
+  LOCATION:
+
+    "location",
+
+  DATE_TIME:
+
+    "date_time",
+
+  PRIZE:
+
+    "prize",
+
+  REGISTRATION_COST:
+
+    "registration_cost",
 
 
   // ======================================
-  // TEAM
+  // PUBLICATION
   // ======================================
+  //
+  // Capacidades relacionadas con la
+  // publicación y visibilidad pública.
+  //
 
-  TEAM_VIEW:
-    "team.view",
+  PUBLIC_LANDING:
 
-  TEAM_EDIT:
-    "team.edit",
+    "public_landing",
 
-  TEAM_ROSTER_VIEW:
-    "team.roster.view",
+  GLOBAL_CALENDAR:
 
-  TEAM_ROSTER_MANAGE:
-    "team.roster.manage",
+    "global_calendar",
 
+  PUBLIC_REGISTRATION:
 
-  // ======================================
-  // PLAYER
-  // ======================================
-
-  PLAYER_VIEW:
-    "player.view",
-
-  PLAYER_EDIT:
-    "player.edit",
+    "public_registration",
 
 
   // ======================================
-  // TOURNAMENT
+  // PARTICIPANTS
   // ======================================
+  //
+  // Gestión y descubrimiento de participantes.
+  //
 
-  TOURNAMENT_VIEW:
-    "tournament.view",
+  PARTICIPANT_MANAGEMENT:
 
-  TOURNAMENT_CREATE:
-    "tournament.create",
+    "participant_management",
 
-  TOURNAMENT_EDIT:
-    "tournament.edit",
+  NEXUS_PLAYER_SEARCH:
 
-  TOURNAMENT_MANAGE:
-    "tournament.manage",
+    "nexus_player_search",
 
-  TOURNAMENT_PARTICIPANTS_MANAGE:
-    "tournament.participants.manage",
+  NEXUS_TEAM_SEARCH:
 
-  TOURNAMENT_ROSTER_MANAGE:
-    "tournament.roster.manage",
+    "nexus_team_search",
 
-  TOURNAMENT_SEEDING_MANAGE:
-    "tournament.seeding.manage",
+  PARTICIPATION_REQUESTS:
 
-  TOURNAMENT_BRACKET_MANAGE:
-    "tournament.bracket.manage",
+    "participation_requests",
 
-  TOURNAMENT_CHECKIN_MANAGE:
-    "tournament.checkin.manage",
+
+  // ======================================
+  // COMPETITION OPERATION
+  // ======================================
+  //
+  // Capacidades necesarias para operar
+  // una competencia.
+  //
+
+  DYNAMIC_BRACKET:
+
+    "dynamic_bracket",
+
+  CHECK_IN:
+
+    "check_in",
+
+  MATCH_MANAGEMENT:
+
+    "match_management",
+
+  RESULT_MANAGEMENT:
+
+    "result_management",
+
+
+  // ======================================
+  // COMPETITIVE DATA
+  // ======================================
+  //
+  // Resultados, estadísticas y reconocimiento.
+  //
+
+  STATISTICS:
+
+    "statistics",
+
+  ADVANCED_STATISTICS:
+
+    "advanced_statistics",
+
+  VERIFIED_TITLES:
+
+    "verified_titles",
+
+
+  // ======================================
+  // EXTENSIONS
+  // ======================================
+  //
+  // Integraciones y extensiones de plataforma.
+  //
+
+  INTEGRATIONS:
+
+    "integrations",
 
 
   // ======================================
   // LEAGUE
   // ======================================
+  //
+  // Capacidades específicas de la estructura
+  // competitiva de una Liga.
+  //
 
-  LEAGUE_VIEW:
-    "league.view",
+  SEASON_MANAGEMENT:
 
-  LEAGUE_CREATE:
-    "league.create",
+    "season_management",
 
-  LEAGUE_EDIT:
-    "league.edit",
+  DIVISION_MANAGEMENT:
 
-  LEAGUE_MANAGE:
-    "league.manage",
+    "division_management",
 
-  LEAGUE_SEASON_MANAGE:
-    "league.season.manage",
+  MATCHDAY_MANAGEMENT:
 
-  LEAGUE_DIVISION_MANAGE:
-    "league.division.manage",
+    "matchday_management",
 
-  LEAGUE_MATCHDAY_MANAGE:
-    "league.matchday.manage",
+  STANDINGS:
 
-  LEAGUE_STANDINGS_MANAGE:
-    "league.standings.manage",
+    "standings",
 
-  LEAGUE_PLAYOFFS_MANAGE:
-    "league.playoffs.manage",
+  PLAYOFFS:
 
-
-  // ======================================
-  // MATCHES
-  // ======================================
-
-  MATCH_VIEW:
-    "match.view",
-
-  MATCH_MANAGE:
-    "match.manage",
-
-  MATCH_RESULT_MANAGE:
-    "match.result.manage",
-
-  MATCH_EVIDENCE_MANAGE:
-    "match.evidence.manage",
-
-
-  // ======================================
-  // STATISTICS
-  // ======================================
-
-  STATISTICS_VIEW:
-    "statistics.view",
-
-  STATISTICS_ADVANCED_VIEW:
-    "statistics.advanced.view",
-
-  ANALYTICS_VIEW:
-    "analytics.view",
-
-
-  // ======================================
-  // CUSTOMIZATION
-  // ======================================
-
-  CUSTOM_BRANDING:
-    "custom.branding",
-
-
-  // ======================================
-  // INTEGRATIONS
-  // ======================================
-
-  INTEGRATIONS_VIEW:
-    "integrations.view",
-
-  INTEGRATIONS_MANAGE:
-    "integrations.manage"
+    "playoffs"
 
 };

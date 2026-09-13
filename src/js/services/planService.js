@@ -1,10 +1,38 @@
 // ========================================
 // NEXUS — Plan Service
 // ========================================
+//
+// Gestiona la relación entre:
+//
+// SUBSCRIPTION
+//      ↓
+// PLAN
+//      ↓
+// PRODUCT
+//      ↓
+// CAPABILITY RESOLVER
+//      ↓
+// ACCESS CONTEXT
+//
+// IMPORTANTE:
+//
+// El Plan Service NO resuelve directamente
+// las capacidades.
+//
+// Esa responsabilidad pertenece a:
+//
+// capabilityResolver.js
+//
+// ========================================
+
 
 import {
   PLANS
 } from "./plans.js";
+
+import {
+  resolveCapabilities
+} from "./capabilityResolver.js";
 
 import {
   createAccessContext
@@ -13,6 +41,14 @@ import {
 
 // ========================================
 // GET PLAN
+// ========================================
+//
+// Devuelve la información del plan.
+//
+// Ejemplo:
+//
+// getPlan("pro");
+//
 // ========================================
 
 export function getPlan(
@@ -34,25 +70,49 @@ export function getPlan(
 // ========================================
 // GET PLAN CAPABILITIES
 // ========================================
+//
+// Devuelve las capacidades efectivamente
+// disponibles para un PLAN dentro de un
+// PRODUCTO.
+//
+// La resolución pertenece al
+// Capability Resolver.
+//
+// ========================================
 
 export function getPlanCapabilities(
-  planId
+  planId,
+  productId
 ) {
 
-  const plan =
-    getPlan(planId);
+  return resolveCapabilities(
+    planId,
+    productId
+  );
+
+}
 
 
-  if (!plan) {
+// ========================================
+// CHECK PRODUCT AVAILABILITY
+// ========================================
+//
+// Comprueba si un PLAN tiene capacidades
+// disponibles dentro de un PRODUCTO.
+//
+// ========================================
 
-    return [];
+export function hasProductAccess(
+  planId,
+  productId
+) {
 
-  }
-
-
-  return [
-    ...plan.capabilities
-  ];
+  return (
+    getPlanCapabilities(
+      planId,
+      productId
+    ).length > 0
+  );
 
 }
 
@@ -60,14 +120,24 @@ export function getPlanCapabilities(
 // ========================================
 // CREATE PLAN ACCESS
 // ========================================
+//
+// Crea un Access Context utilizando:
+//
+// PLAN
+// +
+// PRODUCT
+//
+// ========================================
 
 export function createPlanAccess(
-  planId
+  planId,
+  productId
 ) {
 
   const capabilities =
     getPlanCapabilities(
-      planId
+      planId,
+      productId
     );
 
 
@@ -79,11 +149,23 @@ export function createPlanAccess(
 
 
 // ========================================
-// GET SUBSCRIPTION ACCESS
+// CREATE SUBSCRIPTION ACCESS
+// ========================================
+//
+// Crea un Access Context utilizando:
+//
+// SUBSCRIPTION
+// +
+// PRODUCT
+//
+// Solo una suscripción activa puede
+// conceder capacidades.
+//
 // ========================================
 
 export function createSubscriptionAccess(
-  subscription
+  subscription,
+  productId
 ) {
 
   if (
@@ -97,7 +179,8 @@ export function createSubscriptionAccess(
 
 
   return createPlanAccess(
-    subscription.planId
+    subscription.planId,
+    productId
   );
 
 }

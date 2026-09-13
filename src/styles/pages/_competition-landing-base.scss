@@ -1,0 +1,249 @@
+// ========================================
+// NEXUS — Public Competition Landing
+// Template 1 — Cinematic
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+.competition-landing-page {
+  min-height: calc(100vh - #{$header-height});
+  background: $color-black;
+}
+
+.competition-landing-page__state {
+  min-height: calc(100vh - #{$header-height});
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: $space-4;
+  padding: $space-8;
+  text-align: center;
+  color: $color-100;
+
+  &-icon {
+    font-size: 2rem;
+    color: $color-red;
+  }
+
+  p,
+  h1 {
+    margin: 0;
+  }
+
+  h1 {
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    letter-spacing: -0.04em;
+  }
+
+  p {
+    max-width: 520px;
+    color: $color-300;
+  }
+
+  &--error {
+    .competition-landing-page__state-icon {
+      color: $color-error;
+    }
+  }
+}
+
+.competition-landing-page__state-button {
+  min-height: 48px;
+  padding: 0 $space-6;
+  border: 1px solid $color-500;
+  background: $color-900;
+  color: $color-white;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: transform $transition-fast $ease-standard,
+    border-color $transition-fast $ease-standard,
+    background $transition-fast $ease-standard;
+
+  &:hover {
+    border-color: $color-red;
+    background: $color-800;
+    transform: translateY(-2px);
+  }
+}
+
+.competition-landing {
+  --competition-primary: #{$color-red};
+  --competition-accent: #{$color-red};
+  --competition-bg-image: none;
+  --competition-hero-image: none;
+
+  position: relative;
+  overflow: hidden;
+  background: $color-black;
+  color: $color-white;
+
+  &::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--competition-bg-image);
+    background-position: center;
+    background-size: cover;
+    opacity: 0.08;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.competition-landing__container {
+  width: min(100% - 2rem, $container-max-width);
+  margin: 0 auto;
+}
+
+
+// ========================================
+// SUPPORT CONTACT
+// ========================================
+
+.competition-landing__support {
+  width: min(100%, 760px);
+  margin: 2rem auto 0;
+  text-align: center;
+}
+
+.competition-landing__support-label {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.competition-landing__support-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  justify-items: stretch;
+}
+
+.competition-landing__support-item {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, auto);
+  column-gap: 0.8rem;
+  row-gap: 0.18rem;
+  align-items: center;
+
+  width: 100%;
+  padding: 1rem;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.24);
+
+  color: inherit;
+  text-decoration: none;
+
+  text-align: left;
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.competition-landing__support-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--competition-accent);
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.competition-landing__support-item > i {
+  grid-row: 1 / span 2;
+
+  display: grid;
+  place-items: center;
+
+  width: 2.2rem;
+  height: 2.2rem;
+
+  border: 1px solid rgba(255, 255, 255, 0.16);
+
+  color: var(--competition-accent);
+}
+
+.competition-landing__support-item span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.64;
+}
+
+.competition-landing__support-item strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.competition-landing__support-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+
+  width: min(100%, 640px);
+  margin: 1.5rem auto 0;
+  padding: 1rem 1.2rem;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.24);
+
+  color: rgba(255, 255, 255, 0.78);
+
+  text-align: left;
+}
+
+.competition-landing__support-empty i {
+  color: var(--competition-accent);
+}
+
+.competition-landing__support-empty p {
+  margin: 0;
+}
+
+
+// ========================================
+// SUPPORT — SINGLE CONTACT
+// ========================================
+
+.competition-landing__support-list
+  .competition-landing__support-item:only-child {
+  grid-column: 1 / -1;
+
+  width: min(100%, 470px);
+  justify-self: center;
+}
+
+
+// ========================================
+// RESPONSIVE
+// ========================================
+
+@media (max-width: 640px) {
+  .competition-landing__support {
+    width: min(100%, 100%);
+  }
+
+  .competition-landing__support-list {
+    grid-template-columns: 1fr;
+  }
+
+  .competition-landing__support-list
+    .competition-landing__support-item:only-child {
+    width: 100%;
+  }
+}

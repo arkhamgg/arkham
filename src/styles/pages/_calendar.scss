@@ -1,0 +1,395 @@
+@use "../abstracts/variables" as *;
+
+/* ========================================
+   HIDDEN STATE FIX
+======================================== */
+
+.calendar-page [hidden] {
+  display: none !important;
+}
+
+
+/* ========================================
+   PAGE
+======================================== */
+
+.calendar-page {
+  min-height: calc(100vh - #{$header-height});
+  background: $color-black;
+  color: $color-white;
+}
+
+
+/* ========================================
+   CONTAINER
+======================================== */
+
+.calendar-page__container {
+  width: min(100% - 2rem, $container-max-width);
+  margin: 0 auto;
+}
+
+
+/* ========================================
+   HEADER
+======================================== */
+
+.calendar-page__header {
+  padding: 3rem 0 1.5rem;
+  border-bottom: 1px solid $color-800;
+  background: $color-950;
+}
+
+.calendar-page__eyebrow {
+  margin-bottom: 0.75rem;
+  color: $color-300;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.calendar-page__heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.calendar-page__heading h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 6vw, 4.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+}
+
+.calendar-page__heading p {
+  margin: 0.9rem 0 0;
+  color: $color-300;
+}
+
+
+/* ========================================
+   MONTH CONTROLS
+======================================== */
+
+.calendar-page__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  white-space: nowrap;
+}
+
+.calendar-page__controls strong {
+  min-width: 190px;
+  text-align: center;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+}
+
+.calendar-page__nav {
+  width: 42px;
+  height: 42px;
+  border: 1px solid $color-700;
+  background: $color-900;
+  color: $color-white;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.calendar-page__nav:hover {
+  border-color: $color-white;
+  transform: translateY(-2px);
+}
+
+
+/* ========================================
+   FILTERS
+======================================== */
+
+.calendar-page__filters {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  overflow-x: auto;
+}
+
+.calendar-page__filter {
+  padding: 0.7rem 1rem;
+  border: 1px solid $color-800;
+  background: transparent;
+  color: $color-300;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.calendar-page__filter.is-active {
+  border-color: $color-white;
+  background: $color-white;
+  color: $color-black;
+}
+
+
+/* ========================================
+   BODY
+======================================== */
+
+.calendar-page__body {
+  padding: 2rem 0 4rem;
+}
+
+
+/* ========================================
+   CALENDAR GRID
+======================================== */
+
+.calendar-page__grid {
+  overflow: hidden;
+  border: 1px solid $color-800;
+  background: $color-950;
+}
+
+.calendar-page__weekdays,
+.calendar-page__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-page__weekdays {
+  border-bottom: 1px solid $color-800;
+  background: $color-900;
+}
+
+.calendar-page__weekdays span {
+  padding: 0.8rem;
+  color: $color-500;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+
+/* ========================================
+   DAY
+======================================== */
+
+.calendar-page__day {
+  min-height: 150px;
+  padding: 0.7rem;
+  border-right: 1px solid $color-800;
+  border-bottom: 1px solid $color-800;
+  background: $color-950;
+}
+
+.calendar-page__day:nth-child(7n) {
+  border-right: 0;
+}
+
+.calendar-page__day--empty {
+  background: $color-950;
+  opacity: 0.45;
+}
+
+.calendar-page__day--today {
+  box-shadow: inset 0 2px 0 $color-red;
+}
+
+.calendar-page__day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 0.55rem;
+  color: $color-300;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.calendar-page__day--today .calendar-page__day-number {
+  background: $color-red;
+  color: $color-white;
+}
+
+
+/* ========================================
+   EVENTS
+======================================== */
+
+.calendar-page__events {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.calendar-page__event {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid $color-800;
+  border-left: 3px solid $color-red;
+  background: $color-900;
+  color: $color-white;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.calendar-page__event:hover {
+  border-color: $color-500;
+  transform: translateY(-1px);
+}
+
+.calendar-page__event-game {
+  color: $color-500;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.calendar-page__event strong {
+  overflow: hidden;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-page__event-meta {
+  overflow: hidden;
+  color: $color-300;
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ========================================
+   LEGEND
+======================================== */
+
+.calendar-page__legend {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  color: $color-500;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.calendar-page__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  background: $color-red;
+}
+
+
+/* ========================================
+   STATES
+======================================== */
+
+.calendar-page__state {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.7rem;
+  padding: 2rem;
+  border: 1px solid $color-800;
+  color: $color-300;
+  text-align: center;
+}
+
+.calendar-page__state i {
+  margin-bottom: 0.4rem;
+  color: $color-red;
+  font-size: 1.6rem;
+}
+
+.calendar-page__state strong {
+  color: $color-white;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+
+.calendar-page__state span {
+  max-width: 420px;
+  font-size: 0.8rem;
+}
+
+
+/* ========================================
+   TABLET
+======================================== */
+
+@media (max-width: 900px) {
+
+  .calendar-page__heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .calendar-page__controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .calendar-page__controls strong {
+    flex: 1;
+  }
+
+  .calendar-page__day {
+    min-height: 120px;
+  }
+
+}
+
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 640px) {
+
+  .calendar-page__header {
+    padding-top: 2rem;
+  }
+
+  .calendar-page__weekdays span {
+    padding: 0.6rem 0.2rem;
+    font-size: 0.58rem;
+  }
+
+  .calendar-page__day {
+    min-height: 90px;
+    padding: 0.35rem;
+  }
+
+  .calendar-page__day-number {
+    width: 26px;
+    height: 26px;
+    margin-bottom: 0.35rem;
+  }
+
+  .calendar-page__event {
+    padding: 0.45rem;
+  }
+
+  .calendar-page__event-game,
+  .calendar-page__event-meta {
+    display: none;
+  }
+
+  .calendar-page__event strong {
+    white-space: normal;
+    font-size: 0.62rem;
+  }
+
+}

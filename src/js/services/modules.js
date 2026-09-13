@@ -1,6 +1,33 @@
 // ========================================
 // NEXUS — Modules Catalog
 // ========================================
+//
+// Los módulos representan áreas funcionales
+// de la plataforma.
+//
+// IMPORTANTE:
+// - Un módulo NO representa un producto.
+// - Un módulo NO representa un plan.
+// - Un módulo NO decide permisos.
+// - Las capacidades determinan qué funcionalidad
+//   está disponible.
+//
+// Arquitectura:
+//
+// COMPONENTE
+//      ↓
+// CAPACIDAD
+//      ↓
+// PRODUCTO
+//      ↓
+// PLAN
+//      ↓
+// ACCESS ENGINE
+//
+// MODULES solamente agrupa capacidades para
+// facilitar la organización de la interfaz.
+//
+// ========================================
 
 import {
   CAPABILITIES
@@ -13,9 +40,14 @@ import {
 
 export const MODULES = {
 
+
   // ======================================
   // ACCOUNT
   // ======================================
+  //
+  // Funciones relacionadas con la cuenta
+  // y Mi NEXUS.
+  //
 
   ACCOUNT: {
 
@@ -44,21 +76,46 @@ export const MODULES = {
 
 
   // ======================================
-  // ENTITY
+  // CONFIGURATION
   // ======================================
+  //
+  // Configuración base de competencias.
+  //
+  // Estas capacidades pueden ser reutilizadas
+  // por Tournament y League.
+  //
 
-  ENTITY: {
+  CONFIGURATION: {
 
     id:
-      "entity",
+      "configuration",
 
     name:
-      "Entidad",
+      "Configuración",
 
     capabilities: [
 
-      CAPABILITIES.ENTITY_VIEW,
-      CAPABILITIES.ENTITY_EDIT
+      CAPABILITIES.GAME_SELECTION,
+
+      CAPABILITIES.COMPETITIVE_MODES,
+
+      CAPABILITIES.PARTICIPATION_SELECTION,
+
+      CAPABILITIES.FORMAT_SELECTION,
+
+      CAPABILITIES.MATCH_SELECTION,
+
+      CAPABILITIES.CAPACITY_SELECTION,
+
+      CAPABILITIES.RULES,
+
+      CAPABILITIES.LOCATION,
+
+      CAPABILITIES.DATE_TIME,
+
+      CAPABILITIES.PRIZE,
+
+      CAPABILITIES.REGISTRATION_COST
 
     ]
 
@@ -66,24 +123,25 @@ export const MODULES = {
 
 
   // ======================================
-  // TEAM
+  // PUBLICATION
   // ======================================
+  //
+  // Visibilidad pública de las competencias.
+  //
 
-  TEAM: {
+  PUBLICATION: {
 
     id:
-      "team",
+      "publication",
 
     name:
-      "Equipo",
+      "Publicación",
 
     capabilities: [
 
-      CAPABILITIES.TEAM_VIEW,
-      CAPABILITIES.TEAM_EDIT,
+      CAPABILITIES.PUBLIC_LANDING,
 
-      CAPABILITIES.TEAM_ROSTER_VIEW,
-      CAPABILITIES.TEAM_ROSTER_MANAGE
+      CAPABILITIES.GLOBAL_CALENDAR
 
     ]
 
@@ -91,21 +149,30 @@ export const MODULES = {
 
 
   // ======================================
-  // PLAYER
+  // PARTICIPANTS
   // ======================================
+  //
+  // Descubrimiento, registro y gestión
+  // de participantes.
+  //
 
-  PLAYER: {
+  PARTICIPANTS: {
 
     id:
-      "player",
+      "participants",
 
     name:
-      "Jugador",
+      "Participantes",
 
     capabilities: [
 
-      CAPABILITIES.PLAYER_VIEW,
-      CAPABILITIES.PLAYER_EDIT
+      CAPABILITIES.PARTICIPANT_MANAGEMENT,
+
+      CAPABILITIES.NEXUS_PLAYER_SEARCH,
+
+      CAPABILITIES.NEXUS_TEAM_SEARCH,
+
+      CAPABILITIES.PARTICIPATION_REQUESTS
 
     ]
 
@@ -113,31 +180,58 @@ export const MODULES = {
 
 
   // ======================================
-  // TOURNAMENT
+  // OPERATION
   // ======================================
+  //
+  // Operación competitiva.
+  //
 
-  TOURNAMENT: {
+  OPERATION: {
 
     id:
-      "tournament",
+      "operation",
 
     name:
-      "Torneo",
+      "Operación",
 
     capabilities: [
 
-      CAPABILITIES.TOURNAMENT_VIEW,
-      CAPABILITIES.TOURNAMENT_CREATE,
-      CAPABILITIES.TOURNAMENT_EDIT,
-      CAPABILITIES.TOURNAMENT_MANAGE,
+      CAPABILITIES.DYNAMIC_BRACKET,
 
-      CAPABILITIES.TOURNAMENT_PARTICIPANTS_MANAGE,
-      CAPABILITIES.TOURNAMENT_ROSTER_MANAGE,
+      CAPABILITIES.CHECK_IN,
 
-      CAPABILITIES.TOURNAMENT_SEEDING_MANAGE,
-      CAPABILITIES.TOURNAMENT_BRACKET_MANAGE,
+      CAPABILITIES.MATCH_MANAGEMENT,
 
-      CAPABILITIES.TOURNAMENT_CHECKIN_MANAGE
+      CAPABILITIES.RESULT_MANAGEMENT
+
+    ]
+
+  },
+
+
+  // ======================================
+  // COMPETITIVE DATA
+  // ======================================
+  //
+  // Información generada a partir de la
+  // actividad competitiva.
+  //
+
+  COMPETITIVE_DATA: {
+
+    id:
+      "competitive-data",
+
+    name:
+      "Datos competitivos",
+
+    capabilities: [
+
+      CAPABILITIES.STATISTICS,
+
+      CAPABILITIES.ADVANCED_STATISTICS,
+
+      CAPABILITIES.VERIFIED_TITLES
 
     ]
 
@@ -147,6 +241,10 @@ export const MODULES = {
   // ======================================
   // LEAGUE
   // ======================================
+  //
+  // Funciones específicas de la estructura
+  // competitiva de una Liga.
+  //
 
   LEAGUE: {
 
@@ -158,17 +256,15 @@ export const MODULES = {
 
     capabilities: [
 
-      CAPABILITIES.LEAGUE_VIEW,
-      CAPABILITIES.LEAGUE_CREATE,
-      CAPABILITIES.LEAGUE_EDIT,
-      CAPABILITIES.LEAGUE_MANAGE,
+      CAPABILITIES.SEASON_MANAGEMENT,
 
-      CAPABILITIES.LEAGUE_SEASON_MANAGE,
-      CAPABILITIES.LEAGUE_DIVISION_MANAGE,
-      CAPABILITIES.LEAGUE_MATCHDAY_MANAGE,
+      CAPABILITIES.DIVISION_MANAGEMENT,
 
-      CAPABILITIES.LEAGUE_STANDINGS_MANAGE,
-      CAPABILITIES.LEAGUE_PLAYOFFS_MANAGE
+      CAPABILITIES.MATCHDAY_MANAGEMENT,
+
+      CAPABILITIES.STANDINGS,
+
+      CAPABILITIES.PLAYOFFS
 
     ]
 
@@ -176,90 +272,23 @@ export const MODULES = {
 
 
   // ======================================
-  // MATCHES
+  // EXTENSIONS
   // ======================================
+  //
+  // Capacidades de extensión de la plataforma.
+  //
 
-  MATCHES: {
+  EXTENSIONS: {
 
     id:
-      "matches",
+      "extensions",
 
     name:
-      "Partidas",
+      "Extensiones",
 
     capabilities: [
 
-      CAPABILITIES.MATCH_VIEW,
-      CAPABILITIES.MATCH_MANAGE,
-
-      CAPABILITIES.MATCH_RESULT_MANAGE,
-      CAPABILITIES.MATCH_EVIDENCE_MANAGE
-
-    ]
-
-  },
-
-
-  // ======================================
-  // STATISTICS
-  // ======================================
-
-  STATISTICS: {
-
-    id:
-      "statistics",
-
-    name:
-      "Estadísticas",
-
-    capabilities: [
-
-      CAPABILITIES.STATISTICS_VIEW,
-      CAPABILITIES.STATISTICS_ADVANCED_VIEW,
-      CAPABILITIES.ANALYTICS_VIEW
-
-    ]
-
-  },
-
-
-  // ======================================
-  // CUSTOMIZATION
-  // ======================================
-
-  CUSTOMIZATION: {
-
-    id:
-      "customization",
-
-    name:
-      "Personalización",
-
-    capabilities: [
-
-      CAPABILITIES.CUSTOM_BRANDING
-
-    ]
-
-  },
-
-
-  // ======================================
-  // INTEGRATIONS
-  // ======================================
-
-  INTEGRATIONS: {
-
-    id:
-      "integrations",
-
-    name:
-      "Integraciones",
-
-    capabilities: [
-
-      CAPABILITIES.INTEGRATIONS_VIEW,
-      CAPABILITIES.INTEGRATIONS_MANAGE
+      CAPABILITIES.INTEGRATIONS
 
     ]
 

@@ -1,0 +1,207 @@
+.date-time-selector {
+  width: 100%;
+}
+
+/* =====================================================
+   FIELDS
+   ===================================================== */
+
+.date-time-selector__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+
+/* =====================================================
+   FIELD
+   ===================================================== */
+
+.date-time-selector__field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.date-time-selector__field--timezone {
+  grid-column: 1 / -1;
+}
+
+
+/* =====================================================
+   LABEL
+   ===================================================== */
+
+.date-time-selector__label {
+  display: block;
+
+  color: rgba(255, 255, 255, 0.42);
+
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+
+/* =====================================================
+   INPUTS / SELECT
+   ===================================================== */
+
+.date-time-selector__input,
+.date-time-selector__select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+
+  padding: 0 12px;
+
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+
+  background: rgba(255, 255, 255, 0.035);
+
+  color: rgba(255, 255, 255, 0.9);
+
+  font-family: inherit;
+  font-size: 0.78rem;
+  line-height: 1;
+
+  outline: none;
+
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.date-time-selector__input:hover,
+.date-time-selector__select:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.date-time-selector__input:focus,
+.date-time-selector__select:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.055);
+
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.045);
+}
+
+
+/* =====================================================
+   DATE / TIME NATIVE CONTROLS
+   ===================================================== */
+
+.date-time-selector__input[type="date"],
+.date-time-selector__input[type="time"] {
+  color-scheme: dark;
+}
+
+.date-time-selector__input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.55;
+
+  cursor: pointer;
+
+  transition: opacity 180ms ease;
+}
+
+.date-time-selector__input:hover::-webkit-calendar-picker-indicator {
+  opacity: 0.85;
+}
+
+
+/* =====================================================
+   SELECT
+   ===================================================== */
+
+.date-time-selector__select {
+  appearance: none;
+  -webkit-appearance: none;
+
+  padding-right: 38px;
+
+  cursor: pointer;
+
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent 50%,
+      rgba(255, 255, 255, 0.55) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.55) 50%,
+      transparent 50%
+    );
+
+  background-position:
+    calc(100% - 17px) 17px,
+    calc(100% - 12px) 17px;
+
+  background-size:
+    5px 5px,
+    5px 5px;
+
+  background-repeat: no-repeat;
+}
+
+.date-time-selector__select option {
+  background: #111;
+  color: #fff;
+}
+
+
+/* =====================================================
+   VALIDATION MESSAGE
+   ===================================================== */
+
+.date-time-selector__message {
+  min-height: 18px;
+
+  margin: 9px 0 0;
+
+  color: rgba(255, 255, 255, 0.42);
+
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.date-time-selector__message:not(:empty) {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 560px) {
+  .date-time-selector__fields {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+
+  .date-time-selector__field--timezone {
+    grid-column: auto;
+  }
+}
+
+
+/* =====================================================
+   REDUCED MOTION
+   ===================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .date-time-selector__input,
+  .date-time-selector__select,
+  .date-time-selector__input::-webkit-calendar-picker-indicator {
+    transition: none;
+  }
+}

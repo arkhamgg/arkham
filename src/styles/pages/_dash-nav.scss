@@ -1,0 +1,877 @@
+// ========================================
+// NEXUS — Dashboard Navigation
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+
+// ========================================
+// SIDEBAR
+// ========================================
+
+.dashboard-sidebar {
+  position:
+    sticky;
+
+  top:
+    0;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  width:
+    250px;
+
+  min-width:
+    250px;
+
+  height:
+    100vh;
+
+  padding:
+    $space-8
+    $space-5;
+
+  border-right:
+    1px solid $color-800;
+
+  background:
+    $color-black;
+
+  z-index:
+    30;
+}
+
+
+// ========================================
+// TOPBAR
+// ========================================
+
+.dashboard-sidebar__topbar {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  width:
+    100%;
+}
+
+
+// ========================================
+// BRAND
+// ========================================
+
+.dashboard-sidebar__brand {
+  margin-bottom:
+    $space-10;
+
+  color:
+    $color-white;
+
+  font-size:
+    $font-size-lg;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    -0.04em;
+}
+
+
+// ========================================
+// MOBILE TOGGLE
+// ========================================
+//
+// Hidden on desktop.
+//
+
+.dashboard-sidebar__mobile-toggle {
+  display:
+    none;
+}
+
+
+// ========================================
+// ACTIVE CONTEXT
+// ========================================
+
+.dashboard-sidebar__context {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    $space-2;
+
+  margin-bottom:
+    $space-8;
+
+  padding-bottom:
+    $space-6;
+
+  border-bottom:
+    1px solid $color-800;
+}
+
+
+.dashboard-sidebar__context span {
+  color:
+    $color-500;
+
+  font-size:
+    $font-size-xs;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.1em;
+}
+
+
+.dashboard-sidebar__context strong {
+  overflow:
+    hidden;
+
+  color:
+    $color-white;
+
+  font-size:
+    $font-size-sm;
+
+  font-weight:
+    600;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+
+// ========================================
+// DESKTOP NAV
+// ========================================
+
+.dashboard-sidebar__nav {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    $space-8;
+}
+
+
+.dashboard-sidebar__group {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    $space-1;
+}
+
+
+.dashboard-sidebar__label {
+  margin-bottom:
+    $space-2;
+
+  color:
+    $color-500;
+
+  font-size:
+    0.65rem;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.12em;
+
+  text-transform:
+    uppercase;
+}
+
+
+// ========================================
+// DESKTOP LINKS
+// ========================================
+
+.dashboard-sidebar__link {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    $space-3;
+
+  width:
+    100%;
+
+  min-height:
+    42px;
+
+  padding:
+    0
+    $space-3;
+
+  border:
+    1px solid transparent;
+
+  background:
+    transparent;
+
+  color:
+    $color-300;
+
+  font-family:
+    $font-family-base;
+
+  font-size:
+    $font-size-sm;
+
+  text-align:
+    left;
+
+  cursor:
+    pointer;
+
+  transition:
+    color $transition-base $ease-standard,
+    background $transition-base $ease-standard,
+    border-color $transition-base $ease-standard;
+}
+
+
+.dashboard-sidebar__link i {
+  width:
+    18px;
+
+  color:
+    inherit;
+
+  font-size:
+    $font-size-xs;
+
+  text-align:
+    center;
+}
+
+
+.dashboard-sidebar__link:hover {
+  background:
+    $color-900;
+
+  color:
+    $color-white;
+}
+
+
+.dashboard-sidebar__link.is-active {
+  border-color:
+    $color-800;
+
+  background:
+    $color-900;
+
+  color:
+    $color-white;
+}
+
+
+.dashboard-sidebar__link.is-active i {
+  color:
+    $color-red;
+}
+
+
+// ========================================
+// LOGOUT
+// ========================================
+
+.dashboard-sidebar__link--logout {
+  margin-top:
+    $space-1;
+}
+
+
+.dashboard-sidebar__link--logout:hover {
+  border-color:
+    $color-800;
+
+  background:
+    $color-900;
+
+  color:
+    $color-white;
+}
+
+
+// ========================================
+// MOBILE MENU
+// ========================================
+//
+// Completely hidden on desktop.
+//
+
+.dashboard-sidebar__mobile-menu {
+  display:
+    none;
+}
+
+
+// ========================================
+// TABLET
+// ========================================
+
+@media (max-width: 900px) {
+
+  .dashboard-sidebar {
+    width:
+      220px;
+
+    min-width:
+      220px;
+  }
+
+}
+
+
+// ========================================
+// MOBILE
+// ========================================
+
+@media (max-width: 700px) {
+
+  // --------------------------------------
+  // SIDEBAR
+  // --------------------------------------
+
+  .dashboard-sidebar {
+    position:
+      relative;
+
+    width:
+      100%;
+
+    min-width:
+      0;
+
+    height:
+      auto;
+
+    padding:
+      0;
+
+    border-right:
+      none;
+
+    border-bottom:
+      1px solid $color-800;
+
+    background:
+      $color-black;
+
+    z-index:
+      50;
+  }
+
+
+  // --------------------------------------
+  // TOPBAR
+  // --------------------------------------
+
+  .dashboard-sidebar__topbar {
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      space-between;
+
+    width:
+      100%;
+
+    min-height:
+      64px;
+
+    padding:
+      0
+      $space-4;
+
+    border-bottom:
+      1px solid $color-900;
+  }
+
+
+  // --------------------------------------
+  // BRAND
+  // --------------------------------------
+
+  .dashboard-sidebar__brand {
+    margin:
+      0;
+
+    color:
+      $color-white;
+
+    font-size:
+      $font-size-lg;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      -0.04em;
+  }
+
+
+  // --------------------------------------
+  // HAMBURGER
+  // --------------------------------------
+
+  .dashboard-sidebar__mobile-toggle {
+    display:
+      grid;
+
+    place-items:
+      center;
+
+    width:
+      40px;
+
+    height:
+      40px;
+
+    padding:
+      0;
+
+    border:
+      1px solid $color-800;
+
+    background:
+      $color-900;
+
+    color:
+      $color-white;
+
+    font-family:
+      $font-family-base;
+
+    font-size:
+      $font-size-xs;
+
+    cursor:
+      pointer;
+
+    transition:
+      background $transition-base $ease-standard,
+      border-color $transition-base $ease-standard,
+      color $transition-base $ease-standard,
+      transform 120ms $ease-standard;
+  }
+
+
+  .dashboard-sidebar__mobile-toggle:hover {
+    border-color:
+      $color-700;
+
+    background:
+      $color-800;
+  }
+
+
+  .dashboard-sidebar__mobile-toggle:active {
+    transform:
+      scale(0.94);
+  }
+
+
+  // --------------------------------------
+  // ACTIVE CONTEXT
+  // --------------------------------------
+
+  .dashboard-sidebar__context {
+    display:
+      flex;
+
+    flex-direction:
+      row;
+
+    align-items:
+      center;
+
+    gap:
+      $space-2;
+
+    margin:
+      0;
+
+    padding:
+      $space-3
+      $space-4;
+
+    border-bottom:
+      1px solid $color-800;
+  }
+
+
+  .dashboard-sidebar__context span {
+    font-size:
+      0.6rem;
+  }
+
+
+  .dashboard-sidebar__context strong {
+    font-size:
+      $font-size-sm;
+  }
+
+
+  // --------------------------------------
+  // DESKTOP NAV
+  // --------------------------------------
+
+  .dashboard-sidebar__nav {
+    display:
+      none;
+  }
+
+
+  // --------------------------------------
+  // MOBILE MENU
+  // --------------------------------------
+
+  .dashboard-sidebar__mobile-menu {
+    position:
+      absolute;
+
+    top:
+      64px;
+
+    left:
+      0;
+
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    width:
+      100%;
+
+    max-height:
+      0;
+
+    padding:
+      0;
+
+    overflow:
+      hidden;
+
+    border:
+      1px solid transparent;
+
+    background:
+      $color-black;
+
+    opacity:
+      0;
+
+    transform:
+      translateY(-8px);
+
+    pointer-events:
+      none;
+
+    box-shadow:
+      0
+      20px
+      40px
+      rgba(0, 0, 0, 0.45);
+
+    z-index:
+      100;
+
+    transition:
+      max-height 300ms $ease-standard,
+      opacity 200ms $ease-standard,
+      transform 300ms $ease-standard,
+      padding 300ms $ease-standard,
+      border-color 300ms $ease-standard;
+  }
+
+
+  // --------------------------------------
+  // MOBILE MENU OPEN
+  // --------------------------------------
+
+  .dashboard-sidebar__mobile-menu.is-open {
+    max-height:
+      600px;
+
+    padding:
+      $space-2;
+
+    border-color:
+      $color-800;
+
+    opacity:
+      1;
+
+    transform:
+      translateY(0);
+
+    pointer-events:
+      auto;
+  }
+
+
+  // --------------------------------------
+  // MOBILE GROUP
+  // --------------------------------------
+
+  .dashboard-sidebar__mobile-group {
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    gap:
+      2px;
+
+    padding:
+      $space-2
+      0;
+  }
+
+
+  .dashboard-sidebar__mobile-group
+  + .dashboard-sidebar__mobile-group {
+    border-top:
+      1px solid $color-800;
+  }
+
+
+  // --------------------------------------
+  // GROUP LABEL
+  // --------------------------------------
+
+  .dashboard-sidebar__mobile-label {
+    padding:
+      $space-2
+      $space-3;
+
+    color:
+      $color-500;
+
+    font-size:
+      0.6rem;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.12em;
+
+    text-transform:
+      uppercase;
+  }
+
+
+  // --------------------------------------
+  // MOBILE LINK
+  // --------------------------------------
+
+  .dashboard-sidebar__mobile-link {
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    gap:
+      $space-3;
+
+    width:
+      100%;
+
+    min-height:
+      42px;
+
+    padding:
+      0
+      $space-3;
+
+    border:
+      1px solid transparent;
+
+    background:
+      transparent;
+
+    color:
+      $color-300;
+
+    font-family:
+      $font-family-base;
+
+    font-size:
+      $font-size-xs;
+
+    text-align:
+      left;
+
+    cursor:
+      pointer;
+
+    transition:
+      color $transition-base $ease-standard,
+      background $transition-base $ease-standard,
+      border-color $transition-base $ease-standard;
+  }
+
+
+  .dashboard-sidebar__mobile-link i {
+    width:
+      18px;
+
+    color:
+      inherit;
+
+    font-size:
+      $font-size-xs;
+
+    text-align:
+      center;
+  }
+
+
+  .dashboard-sidebar__mobile-link:hover {
+    background:
+      $color-900;
+
+    color:
+      $color-white;
+  }
+
+
+  .dashboard-sidebar__mobile-link.is-active {
+    border-color:
+      $color-800;
+
+    background:
+      $color-900;
+
+    color:
+      $color-white;
+  }
+
+
+  .dashboard-sidebar__mobile-link.is-active i {
+    color:
+      $color-red;
+  }
+
+
+  // --------------------------------------
+  // MOBILE LOGOUT
+  // --------------------------------------
+
+  .dashboard-sidebar__mobile-link--logout {
+    margin-top:
+      $space-1;
+  }
+
+}
+
+
+// ========================================
+// SMALL MOBILE
+// ========================================
+
+@media (max-width: 480px) {
+
+  .dashboard-sidebar__topbar {
+    min-height:
+      60px;
+
+    padding:
+      0
+      $space-3;
+  }
+
+
+  .dashboard-sidebar__mobile-menu {
+    top:
+      60px;
+  }
+
+
+  .dashboard-sidebar__mobile-toggle {
+    width:
+      38px;
+
+    height:
+      38px;
+  }
+
+
+  .dashboard-sidebar__context {
+    padding:
+      $space-3;
+  }
+
+
+  .dashboard-sidebar__mobile-menu.is-open {
+    padding:
+      $space-1;
+  }
+
+
+  .dashboard-sidebar__mobile-group {
+    padding:
+      $space-1
+      0;
+  }
+
+
+  .dashboard-sidebar__mobile-label {
+    padding:
+      $space-2
+      $space-3;
+  }
+
+
+  .dashboard-sidebar__mobile-link {
+    min-height:
+      40px;
+
+    padding:
+      0
+      $space-3;
+  }
+
+}

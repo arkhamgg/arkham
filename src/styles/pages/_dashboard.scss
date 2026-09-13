@@ -5,286 +5,1407 @@
 @use "../abstracts/variables" as *;
 
 
+// ========================================
+// PAGE
+// ========================================
+
 .dashboard-page {
 
   width: 100%;
   min-height: calc(100vh - $header-height);
 
+  background:
+    $color-black;
+
+  color:
+    $color-white;
+
+}
+
+
+// ========================================
+// LAYOUT
+// ========================================
+
+.dashboard-layout {
+
+  display: flex;
+
+  width: 100%;
+  min-height: calc(100vh - $header-height);
+
+}
+
+
+// ========================================
+// SIDEBAR
+// ========================================
+
+.dashboard-sidebar {
+
+  position: sticky;
+  top: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  width: 250px;
+  min-width: 250px;
+  height: calc(100vh - $header-height);
+
   padding:
-    $space-24
-    $container-padding
-    $space-32;
+    $space-8
+    $space-5;
+
+  border-right:
+    1px solid $color-800;
 
   background:
     $color-black;
 
+}
 
-  // ========================================
-  // CONTAINER
-  // ========================================
 
-  &__container {
+// ========================================
+// SIDEBAR BRAND
+// ========================================
 
+.dashboard-sidebar__brand {
+
+  margin-bottom:
+    $space-10;
+
+  color:
+    $color-white;
+
+  font-size:
+    $font-size-lg;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    -0.04em;
+
+}
+
+
+// ========================================
+// SIDEBAR CONTEXT
+// ========================================
+
+.dashboard-sidebar__context {
+
+  display: flex;
+  flex-direction: column;
+
+  gap:
+    $space-2;
+
+  margin-bottom:
+    $space-8;
+
+  padding-bottom:
+    $space-6;
+
+  border-bottom:
+    1px solid $color-800;
+
+}
+
+
+.dashboard-sidebar__context span {
+
+  color:
+    $color-500;
+
+  font-size:
+    $font-size-xs;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.1em;
+
+}
+
+
+.dashboard-sidebar__context strong {
+
+  color:
+    $color-white;
+
+  font-size:
+    $font-size-sm;
+
+}
+
+
+// ========================================
+// NAV
+// ========================================
+
+.dashboard-sidebar__nav {
+
+  display: flex;
+  flex-direction: column;
+
+  gap:
+    $space-8;
+
+}
+
+
+.dashboard-sidebar__group {
+
+  display: flex;
+  flex-direction: column;
+
+  gap:
+    $space-1;
+
+}
+
+
+.dashboard-sidebar__label {
+
+  margin-bottom:
+    $space-2;
+
+  color:
+    $color-500;
+
+  font-size:
+    0.65rem;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.12em;
+
+}
+
+
+// ========================================
+// NAV LINK
+// ========================================
+
+.dashboard-sidebar__link {
+
+  display: flex;
+  align-items: center;
+
+  gap:
+    $space-3;
+
+  width: 100%;
+  min-height: 42px;
+
+  padding:
+    0
+    $space-3;
+
+  border:
+    1px solid transparent;
+
+  background:
+    transparent;
+
+  color:
+    $color-300;
+
+  font-family:
+    $font-family-base;
+
+  font-size:
+    $font-size-sm;
+
+  text-align:
+    left;
+
+  cursor:
+    pointer;
+
+  transition:
+    color $transition-base $ease-standard,
+    background $transition-base $ease-standard,
+    border-color $transition-base $ease-standard;
+
+}
+
+
+.dashboard-sidebar__link i {
+
+  width: 18px;
+
+  font-size:
+    $font-size-xs;
+
+}
+
+
+.dashboard-sidebar__link:hover {
+
+  color:
+    $color-white;
+
+  background:
+    $color-900;
+
+}
+
+
+.dashboard-sidebar__link.is-active {
+
+  border-color:
+    $color-800;
+
+  background:
+    $color-900;
+
+  color:
+    $color-white;
+
+}
+
+
+// ========================================
+// LOGOUT
+// ========================================
+
+.dashboard-sidebar__logout {
+
+  display: flex;
+  align-items: center;
+
+  gap:
+    $space-3;
+
+  margin-top:
+    auto;
+
+  min-height: 44px;
+
+  padding:
+    0
+    $space-3;
+
+  border:
+    1px solid $color-800;
+
+  background:
+    transparent;
+
+  color:
+    $color-300;
+
+  font-family:
+    $font-family-base;
+
+  font-size:
+    $font-size-xs;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.06em;
+
+  text-transform:
+    uppercase;
+
+  cursor:
+    pointer;
+
+  transition:
+    color $transition-base $ease-standard,
+    border-color $transition-base $ease-standard,
+    background $transition-base $ease-standard;
+
+}
+
+
+.dashboard-sidebar__logout:hover {
+
+  border-color:
+    $color-red;
+
+  background:
+    rgba(255, 0, 0, 0.05);
+
+  color:
+    $color-white;
+
+}
+
+
+// ========================================
+// MAIN
+// ========================================
+
+.dashboard-main {
+
+  flex: 1;
+
+  min-width: 0;
+
+  padding:
+    $space-8
+    clamp($space-6, 4vw, $space-12)
+    $space-16;
+
+}
+
+
+// ========================================
+// HEADER
+// ========================================
+
+.dashboard-header {
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap:
+    $space-8;
+
+  padding-bottom:
+    $space-8;
+
+  border-bottom:
+    1px solid $color-800;
+
+}
+
+
+.dashboard-header__eyebrow,
+.dashboard-section__eyebrow {
+
+  display: block;
+
+  margin-bottom:
+    $space-2;
+
+  color:
+    $color-red;
+
+  font-size:
+    $font-size-xs;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.12em;
+
+  text-transform:
+    uppercase;
+
+}
+
+
+.dashboard-header h1 {
+
+  margin: 0;
+
+  color:
+    $color-white;
+
+  font-size:
+    clamp(2rem, 5vw, 3.5rem);
+
+  font-weight:
+    700;
+
+  line-height:
+    1;
+
+  letter-spacing:
+    -0.04em;
+
+}
+
+
+.dashboard-header p {
+
+  margin:
+    $space-3
+    0
+    0;
+
+  color:
+    $color-300;
+
+  font-size:
+    $font-size-sm;
+
+}
+
+
+// ========================================
+// HEADER ACTIONS
+// ========================================
+
+.dashboard-header__actions {
+
+  display: flex;
+  align-items: center;
+
+  gap:
+    $space-4;
+
+}
+
+
+.dashboard-header__notification {
+
+  display: grid;
+  place-items: center;
+
+  width: 42px;
+  height: 42px;
+
+  border:
+    1px solid $color-800;
+
+  background:
+    transparent;
+
+  color:
+    $color-300;
+
+  cursor:
+    pointer;
+
+}
+
+
+.dashboard-header__account {
+
+  display: flex;
+  flex-direction: column;
+
+  gap:
+    $space-1;
+
+  max-width: 220px;
+
+}
+
+
+.dashboard-header__account span {
+
+  color:
+    $color-500;
+
+  font-size:
+    0.65rem;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.1em;
+
+}
+
+
+.dashboard-header__account strong {
+
+  overflow: hidden;
+
+  color:
+    $color-white;
+
+  font-size:
+    $font-size-xs;
+
+  font-weight:
+    500;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+
+}
+
+
+// ========================================
+// WORKSPACE
+// ========================================
+
+.dashboard-workspace {
+
+  display: flex;
+  flex-direction: column;
+
+  gap:
+    $space-12;
+
+  padding-top:
+    $space-10;
+
+}
+
+
+// ========================================
+// CREATE
+// ========================================
+
+.dashboard-create {
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap:
+    $space-8;
+
+  min-height: 220px;
+
+  padding:
+    clamp($space-6, 5vw, $space-10);
+
+  border:
+    1px solid $color-800;
+
+  background:
+    linear-gradient(
+      135deg,
+      $color-900,
+      $color-black
+    );
+
+}
+
+
+.dashboard-create__content {
+
+  max-width: 620px;
+
+}
+
+
+.dashboard-create__content h2 {
+
+  margin: 0;
+
+  color:
+    $color-white;
+
+  font-size:
+    clamp(2rem, 5vw, 4rem);
+
+  font-weight:
+    700;
+
+  line-height:
+    0.95;
+
+  letter-spacing:
+    -0.045em;
+
+}
+
+
+.dashboard-create__content p {
+
+  max-width: 500px;
+
+  margin:
+    $space-5
+    0
+    0;
+
+  color:
+    $color-300;
+
+  font-size:
+    $font-size-md;
+
+  line-height:
+    1.6;
+
+}
+
+
+.dashboard-create__button {
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap:
+    $space-3;
+
+  min-height: 52px;
+
+  padding:
+    0
+    $space-6;
+
+  border:
+    1px solid $color-red;
+
+  background:
+    $color-red;
+
+  color:
+    $color-white;
+
+  font-family:
+    $font-family-base;
+
+  font-size:
+    $font-size-xs;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.08em;
+
+  text-transform:
+    uppercase;
+
+  white-space:
+    nowrap;
+
+  cursor:
+    pointer;
+
+  transition:
+    transform $transition-base $ease-standard,
+    background $transition-base $ease-standard;
+
+}
+
+
+.dashboard-create__button:hover {
+
+  transform:
+    translateY(-2px);
+
+}
+
+
+// ========================================
+// SECTION
+// ========================================
+
+.dashboard-section {
+
+  width: 100%;
+
+}
+
+
+.dashboard-section__header {
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  gap:
+    $space-6;
+
+  margin-bottom:
+    $space-6;
+
+}
+
+
+.dashboard-section__header h2 {
+
+  margin: 0;
+
+  color:
+    $color-white;
+
+  font-size:
+    clamp(1.5rem, 3vw, 2rem);
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    -0.03em;
+
+}
+
+
+.dashboard-section__count {
+
+  color:
+    $color-500;
+
+  font-size:
+    $font-size-xs;
+
+  font-weight:
+    700;
+
+}
+
+
+// ========================================
+// COMPETITIONS
+// ========================================
+
+.dashboard-competitions {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap:
+    1px;
+
+  border:
+    1px solid $color-800;
+
+  background:
+    $color-800;
+
+}
+
+
+// ========================================
+// COMPETITION CARD
+// ========================================
+
+.dashboard-competition-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  padding: $space-6;
+  background: $color-black;
+}
+
+.dashboard-competition-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  margin-bottom: $space-8;
+}
+
+.dashboard-competition-card__eyebrow {
+  color: $color-red;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.dashboard-competition-card__id {
+  color: $color-500;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.dashboard-competition-card__body {
+  flex: 1;
+}
+
+.dashboard-competition-card__body h3 {
+  margin: 0;
+  color: $color-white;
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.dashboard-competition-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-3 $space-5;
+  margin-top: $space-6;
+}
+
+.dashboard-competition-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  color: $color-300;
+  font-size: $font-size-xs;
+}
+
+.dashboard-competition-card__meta i {
+  color: $color-500;
+}
+
+.dashboard-competition-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-3;
+  padding-top: $space-6;
+  margin-top: $space-8;
+  border-top: 1px solid $color-800;
+}
+
+.dashboard-competition-card__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  min-height: 42px;
+  padding: 0 $space-4;
+  border: 1px solid $color-700;
+  background: transparent;
+  color: $color-white;
+  font-family: $font-family-base;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    transform $transition-base $ease-standard,
+    border-color $transition-base $ease-standard,
+    background $transition-base $ease-standard;
+}
+
+.dashboard-competition-card__button:hover {
+  transform: translateY(-2px);
+  border-color: $color-500;
+}
+
+.dashboard-competition-card__button--primary {
+  border-color: $color-red;
+  background: $color-red;
+}
+
+.dashboard-competition-card__button--primary:hover {
+  border-color: $color-red-light;
+  background: $color-red-light;
+}
+
+
+// ========================================
+// EMPTY
+// ========================================
+
+.dashboard-empty {
+
+  grid-column:
+    1 / -1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  padding:
+    $space-10;
+
+  background:
+    $color-black;
+
+}
+
+
+.dashboard-empty__icon {
+
+  display: grid;
+  place-items: center;
+
+  width: 48px;
+  height: 48px;
+
+  margin-bottom:
+    $space-5;
+
+  border:
+    1px solid $color-800;
+
+  color:
+    $color-red;
+
+}
+
+
+.dashboard-empty h3 {
+
+  margin: 0;
+
+  color:
+    $color-white;
+
+  font-size:
+    $font-size-lg;
+
+}
+
+
+.dashboard-empty p {
+
+  max-width: 500px;
+
+  margin:
+    $space-3
+    0
+    0;
+
+  color:
+    $color-300;
+
+  font-size:
+    $font-size-sm;
+
+  line-height:
+    1.6;
+
+}
+
+
+// ========================================
+// CONFIGURATION
+// ========================================
+
+.dashboard-configuration {
+
+  padding:
+    $space-6;
+
+  border:
+    1px solid $color-800;
+
+  background:
+    $color-900;
+
+}
+
+
+// ========================================
+// CONTEXT
+// ========================================
+
+.dashboard-section--context {
+
+  padding-top:
+    $space-8;
+
+  border-top:
+    1px solid $color-800;
+
+}
+
+
+.dashboard-context {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  border:
+    1px solid $color-800;
+
+}
+
+
+.dashboard-context__item {
+
+  display: flex;
+  flex-direction: column;
+
+  gap:
+    $space-2;
+
+  min-height: 100px;
+
+  padding:
+    $space-5;
+
+  border-right:
+    1px solid $color-800;
+
+}
+
+
+.dashboard-context__item:last-child {
+
+  border-right:
+    none;
+
+}
+
+
+.dashboard-context__item span {
+
+  color:
+    $color-500;
+
+  font-size:
+    0.65rem;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.1em;
+
+}
+
+
+.dashboard-context__item strong {
+
+  color:
+    $color-white;
+
+  font-size:
+    $font-size-sm;
+
+  font-weight:
+    500;
+
+  word-break:
+    break-word;
+
+}
+
+
+// ========================================
+// EMPTY PAGE
+// ========================================
+
+.dashboard-page__empty {
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  max-width: 700px;
+
+  margin: 0 auto;
+
+  padding:
+    $space-24
+    $container-padding;
+
+}
+
+
+.dashboard-page__empty h1 {
+
+  margin: 0;
+
+  color:
+    $color-white;
+
+  font-size:
+    clamp(3rem, 8vw, 6rem);
+
+  line-height:
+    0.95;
+
+}
+
+
+.dashboard-page__empty p {
+
+  color:
+    $color-300;
+
+}
+
+
+// ========================================
+// MOBILE
+// ========================================
+
+@media (max-width: 900px) {
+
+  .dashboard-competition-card__actions {
+    flex-direction: column;
+  }
+
+  .dashboard-competition-card__button {
     width: 100%;
-    max-width: 1000px;
+  }
 
-    margin: 0 auto;
+  .dashboard-sidebar {
+
+    width: 220px;
+    min-width: 220px;
 
   }
 
 
-  // ========================================
-  // HEADER
-  // ========================================
+  .dashboard-create {
 
-  &__header {
+    align-items:
+      flex-start;
 
-    margin-bottom:
-      $space-12;
-
-  }
-
-
-  &__status {
-
-    display: inline-block;
-
-    margin-bottom:
-      $space-4;
-
-    color:
-      $color-red;
-
-    font-size:
-      $font-size-xs;
-
-    font-weight: 700;
-
-    letter-spacing:
-      0.12em;
-
-    text-transform:
-      uppercase;
+    flex-direction:
+      column;
 
   }
 
 
-  &__header h1 {
+  .dashboard-create__button {
 
-    margin: 0;
-
-    color:
-      $color-white;
-
-    font-size:
-      clamp(3rem, 8vw, 6rem);
-
-    font-weight: 700;
-
-    line-height: 0.95;
-
-    letter-spacing:
-      -0.05em;
+    width:
+      100%;
 
   }
 
 
-  &__header p {
-
-    margin:
-      $space-6
-      0
-      0;
-
-    color:
-      $color-300;
-
-    font-size:
-      $font-size-md;
-
-  }
-
-
-  // ========================================
-  // SESSION
-  // ========================================
-
-  &__session {
-
-    display: grid;
+  .dashboard-context {
 
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
+
+  }
+
+
+  .dashboard-context__item:nth-child(2) {
+
+    border-right:
+      none;
+
+  }
+
+
+  .dashboard-context__item:nth-child(3),
+  .dashboard-context__item:nth-child(4) {
 
     border-top:
       1px solid $color-800;
 
   }
 
+}
 
-  // ========================================
-  // ITEM
-  // ========================================
 
-  &__item {
+@media (max-width: 700px) {
 
-    display: flex;
+  .dashboard-layout {
 
-    flex-direction: column;
+    display:
+      block;
 
-    gap:
-      $space-2;
+  }
 
-    min-height: 120px;
+
+  .dashboard-sidebar {
+
+    position:
+      relative;
+
+    width:
+      100%;
+
+    min-width:
+      0;
+
+    height:
+      auto;
 
     padding:
-      $space-6;
+      $space-4;
+
+    border-right:
+      none;
 
     border-bottom:
       1px solid $color-800;
 
+  }
+
+
+  .dashboard-sidebar__brand {
+
+    margin-bottom:
+      $space-4;
+
+  }
+
+
+  .dashboard-sidebar__context {
+
+    display:
+      none;
+
+  }
+
+
+  .dashboard-sidebar__nav {
+
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap:
+      $space-3;
+
+  }
+
+
+  .dashboard-sidebar__group {
+
+    gap:
+      0;
+
+  }
+
+
+  .dashboard-sidebar__label {
+
+    display:
+      none;
+
+  }
+
+
+  .dashboard-sidebar__link {
+
+    min-height:
+      40px;
+
+  }
+
+
+  .dashboard-sidebar__logout {
+
+    margin-top:
+      $space-4;
+
+  }
+
+
+  .dashboard-main {
+
+    padding:
+      $space-6
+      $space-4
+      $space-10;
+
+  }
+
+
+  .dashboard-header {
+
+    flex-direction:
+      column;
+
+  }
+
+
+  .dashboard-header__actions {
+
+    width:
+      100%;
+
+  }
+
+
+  .dashboard-header__account {
+
+    flex:
+      1;
+
+  }
+
+
+  .dashboard-competitions {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+}
+
+
+@media (max-width: 480px) {
+
+  .dashboard-sidebar__nav {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .dashboard-create {
+
+    min-height:
+      auto;
+
+    padding:
+      $space-6;
+
+  }
+
+
+  .dashboard-create__content h2 {
+
+    font-size:
+      2.5rem;
+
+  }
+
+
+  .dashboard-context {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .dashboard-context__item {
+
     border-right:
+      none;
+
+    border-bottom:
       1px solid $color-800;
 
   }
 
 
-  &__item span {
+  .dashboard-context__item:last-child {
 
-    color:
-      $color-500;
-
-    font-size:
-      $font-size-xs;
-
-    font-weight: 700;
-
-    letter-spacing:
-      0.1em;
+    border-bottom:
+      none;
 
   }
 
+}
 
-  &__item strong {
+// ========================================
+// COMPETITION DELETE ACTION
+// ========================================
 
-    color:
-      $color-white;
+.dashboard-competition-card__button--danger {
+  color: $color-error;
+  border-color: rgba(220, 38, 38, 0.25);
 
-    font-size:
-      $font-size-md;
-
-    font-weight: 500;
-
-    word-break:
-      break-word;
-
+  &:hover {
+    color: $color-white;
+    border-color: $color-error;
+    background: $color-error;
   }
+}
+// ========================================
+// PUBLIC NAVBAR
+// ========================================
+//
+// Mi NEXUS utiliza su propio sistema
+// de navegación interno.
+//
 
-
-  // ========================================
-  // LOGOUT
-  // ========================================
-
-  &__logout {
-
-    margin-top:
-      $space-8;
-
-    min-height:
-      52px;
-
-    padding:
-      0
-      $space-6;
-
-    border:
-      1px solid $color-red;
-
-    background:
-      transparent;
-
-    color:
-      $color-white;
-
-    font-family:
-      $font-family-base;
-
-    font-size:
-      $font-size-xs;
-
-    font-weight: 700;
-
-    letter-spacing:
-      0.08em;
-
-    text-transform:
-      uppercase;
-
-    cursor: pointer;
-
-    transition:
-      background $transition-base $ease-standard,
-      color $transition-base $ease-standard;
-
-  }
-
-
-  &__logout:hover {
-
-    background:
-      $color-red;
-
-    color:
-      $color-white;
-
-  }
-
-
-  // ========================================
-  // MOBILE
-  // ========================================
-
-  @media (max-width: 768px) {
-
-    padding:
-      $space-16
-      $container-padding
-      $space-24;
-
-
-    &__session {
-
-      grid-template-columns:
-        1fr;
-
-    }
-
-
-    &__item {
-
-      border-right:
-        none;
-
-    }
-
-  }
-
-
-  @media (max-width: 480px) {
-
-    padding:
-      $space-12
-      $space-4
-      $space-20;
-
-
-    &__header h1 {
-
-      font-size:
-        clamp(2.75rem, 16vw, 4rem);
-
-    }
-
-  }
-
+body:has(.dashboard-page) .navbar {
+  display: none !important;
 }

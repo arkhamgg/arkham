@@ -1,0 +1,241 @@
+.location-selector {
+  width: 100%;
+}
+
+
+/* =====================================================
+   TYPE
+   ===================================================== */
+
+.location-selector__type {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+
+  margin-bottom: 16px;
+}
+
+
+/* =====================================================
+   FIELDS
+   ===================================================== */
+
+.location-selector__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 16px;
+}
+
+
+/* =====================================================
+   FIELD
+   ===================================================== */
+
+.location-selector__field {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+
+/* =====================================================
+   LABEL
+   ===================================================== */
+
+.location-selector__label {
+  display: block;
+
+  color: rgba(255, 255, 255, 0.42);
+
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+
+/* =====================================================
+   INPUT / SELECT / TEXTAREA
+   ===================================================== */
+
+.location-selector__input,
+.location-selector__select,
+.location-selector__textarea {
+  width: 100%;
+  min-width: 0;
+
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+
+  background: rgba(255, 255, 255, 0.035);
+
+  color: rgba(255, 255, 255, 0.9);
+
+  font-family: inherit;
+  font-size: 0.78rem;
+
+  outline: none;
+
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+
+/* =====================================================
+   INPUT
+   ===================================================== */
+
+.location-selector__input {
+  height: 42px;
+
+  padding: 0 12px;
+}
+
+.location-selector__input::placeholder,
+.location-selector__textarea::placeholder {
+  color: rgba(255, 255, 255, 0.24);
+}
+
+
+/* =====================================================
+   SELECT
+   ===================================================== */
+
+.location-selector__select {
+  height: 42px;
+
+  padding: 0 38px 0 12px;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  cursor: pointer;
+
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent 50%,
+      rgba(255, 255, 255, 0.55) 50%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.55) 50%,
+      transparent 50%
+    );
+
+  background-position:
+    calc(100% - 17px) 17px,
+    calc(100% - 12px) 17px;
+
+  background-size:
+    5px 5px,
+    5px 5px;
+
+  background-repeat: no-repeat;
+}
+
+.location-selector__select option {
+  background: #111;
+  color: #fff;
+}
+
+
+/* =====================================================
+   TEXTAREA
+   ===================================================== */
+
+.location-selector__textarea {
+  min-height: 96px;
+
+  padding: 11px 12px;
+
+  resize: vertical;
+
+  line-height: 1.45;
+}
+
+
+/* =====================================================
+   HOVER
+   ===================================================== */
+
+.location-selector__input:hover,
+.location-selector__select:hover,
+.location-selector__textarea:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+
+  background: rgba(255, 255, 255, 0.05);
+}
+
+
+/* =====================================================
+   FOCUS
+   ===================================================== */
+
+.location-selector__input:focus,
+.location-selector__select:focus,
+.location-selector__textarea:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+
+  background: rgba(255, 255, 255, 0.055);
+
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.045);
+}
+
+
+/* =====================================================
+   ONLINE
+   ===================================================== */
+
+/*
+ * En modo ONLINE:
+ *
+ * PLATAFORMA | ENLACE
+ * INDICACIONES
+ *
+ * El textarea ocupa las dos columnas.
+ */
+
+.location-selector__fields
+  .location-selector__field:last-child {
+  grid-column: 1 / -1;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 560px) {
+  .location-selector__fields {
+    grid-template-columns: 1fr;
+
+    gap: 13px;
+  }
+
+  .location-selector__fields
+    .location-selector__field:last-child {
+    grid-column: auto;
+  }
+}
+
+
+/* =====================================================
+   REDUCED MOTION
+   ===================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .location-selector__input,
+  .location-selector__select,
+  .location-selector__textarea {
+    transition: none;
+  }
+}
