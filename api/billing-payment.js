@@ -69,8 +69,8 @@ const BILLING_PERIOD = {
 // Para el MVP solamente permitimos
 // pagos manuales destinados a Pro.
 //
-// Más adelante esto podrá salir de una
-// configuración central de Billing.
+// El precio continúa siendo controlado
+// exclusivamente por billingConfig.js.
 //
 
 const ALLOWED_TARGET_PLANS = [
@@ -224,8 +224,10 @@ function isValidDate(
 
   }
 
+
   const date =
     new Date(value);
+
 
   return (
     !Number.isNaN(
@@ -270,7 +272,7 @@ async function createPayment(
 
 
   const {
-    subscriptionId,
+    subscriptionId = null,
     planId,
     period = BILLING_PERIOD.MONTHLY,
     method,
@@ -283,19 +285,6 @@ async function createPayment(
   // ========================================
   // REQUIRED FIELDS
   // ========================================
-
-  if (
-    !subscriptionId
-  ) {
-
-    return errorResponse(
-      res,
-      "subscriptionId es obligatorio.",
-      400
-    );
-
-  }
-
 
   if (
     !planId
@@ -389,6 +378,7 @@ async function createPayment(
   // ========================================
   //
   // El frontend NO puede decidir:
+  //
   // - amount
   // - currency
   //
@@ -438,6 +428,7 @@ async function createPayment(
       }
     );
 
+
     return errorResponse(
       res,
       "La configuración de precio del plan no es válida.",
@@ -460,6 +451,7 @@ async function createPayment(
         currency
       }
     );
+
 
     return errorResponse(
       res,
@@ -502,116 +494,34 @@ async function createPayment(
 
 
   // ========================================
-  // SUBSCRIPTION
+  // ACCOUNT PLAN
   // ========================================
 
-  const subscriptionRef =
-    adminDb
-      .collection("subscriptions")
-      .doc(subscriptionId);
-
-
-  const subscriptionSnapshot =
-    await subscriptionRef.get();
-
-
-  if (
-    !subscriptionSnapshot.exists
-  ) {
-
-    return errorResponse(
-      res,
-      "La suscripción no existe.",
-      404
-    );
-
-  }
-
-
-  const subscription =
-    subscriptionSnapshot.data();
+  const accountPlanId =
+    account.planId ||
+    "free";
 
 
   // ========================================
-  // ACCOUNT OWNERSHIP
-  // ========================================
-
-  if (
-    subscription.accountId !==
-    uid
-  ) {
-
-    return errorResponse(
-      res,
-      "La suscripción no pertenece a esta cuenta.",
-      403
-    );
-
-  }
-
-
-  // ========================================
-  // CURRENT PLAN
-  // ========================================
-
-  const currentPlanId =
-    subscription.planId;
-
-
-  if (
-    !currentPlanId
-  ) {
-
-    return errorResponse(
-      res,
-      "La suscripción no tiene un plan actual.",
-      409
-    );
-
-  }
-
-
-  // ========================================
-  // SUBSCRIPTION STATUS
-  // ========================================
-
-  if (
-    subscription.status ===
-    "cancelled"
-  ) {
-
-    return errorResponse(
-      res,
-      "No se puede realizar un pago sobre una suscripción cancelada.",
-      409
-    );
-
-  }
-
-
-  // ========================================
-  // PLAN TRANSITION
+  // PAYMENT TRANSITION
   // ========================================
   //
-  // currentPlanId = plan actual
-  // planId        = plan objetivo
+  // Free → Pro
   //
-  // MVP:
+  // No existe todavía una subscription.
   //
-  // FREE → PRO
-  // PRO  → PRO
+  // Pro → Pro
   //
-  // No permitimos otras transiciones
-  // hasta que Billing las soporte.
+  // Existe una subscription y se renueva.
   //
 
   const isInitialUpgrade =
-    currentPlanId === "free" &&
+    accountPlanId === "free" &&
     planId === "pro";
 
 
   const isProRenewal =
-    currentPlanId === "pro" &&
+    accountPlanId === "pro" &&
     planId === "pro";
 
 
@@ -622,7 +532,7 @@ async function createPayment(
 
     return errorResponse(
       res,
-      `La transición ${currentPlanId} → ${planId} no está disponible.`,
+      `La transición ${accountPlanId} → ${planId} no está disponible.`,
       409
     );
 
@@ -630,12 +540,217 @@ async function createPayment(
 
 
   // ========================================
+  // FREE → PRO
+  // ========================================
+  //
+  // El usuario todavía NO tiene
+  // una subscription.
+  //
+  // La subscription será creada
+  // únicamente cuando el administrador
+  // apruebe el pago.
+  //
+
+  if (
+    isInitialUpgrade
+  ) {
+
+    if (
+      subscriptionId
+    ) {
+
+      return errorResponse(
+        res,
+        "El pago inicial Free → Pro no debe tener una suscripción asociada.",
+        409
+      );
+
+    }
+
+
+    if (
+      account.subscriptionId
+    ) {
+
+      return errorResponse(
+        res,
+        "La cuenta ya tiene una suscripción asociada. Debes utilizar el flujo de renovación correspondiente.",
+        409
+      );
+
+    }
+
+  }
+
+
+  // ========================================
+  // PRO → PRO
+  // ========================================
+  //
+  // Una renovación siempre necesita
+  // la subscription existente.
+  //
+
+  if (
+    isProRenewal
+  ) {
+
+    if (
+      !subscriptionId
+    ) {
+
+      return errorResponse(
+        res,
+        "La renovación Pro requiere una suscripción asociada.",
+        400
+      );
+
+    }
+
+
+    if (
+      account.subscriptionId !==
+      subscriptionId
+    ) {
+
+      return errorResponse(
+        res,
+        "La suscripción indicada no corresponde a la cuenta.",
+        403
+      );
+
+    }
+
+  }
+
+
+  // ========================================
+  // SUBSCRIPTION
+  // ========================================
+  //
+  // Solo consultamos una suscripción
+  // cuando el flujo realmente la necesita.
+  //
+
+  let subscription =
+    null;
+
+
+  if (
+    subscriptionId
+  ) {
+
+    const subscriptionRef =
+      adminDb
+        .collection("subscriptions")
+        .doc(subscriptionId);
+
+
+    const subscriptionSnapshot =
+      await subscriptionRef.get();
+
+
+    if (
+      !subscriptionSnapshot.exists
+    ) {
+
+      return errorResponse(
+        res,
+        "La suscripción no existe.",
+        404
+      );
+
+    }
+
+
+    subscription =
+      subscriptionSnapshot.data();
+
+
+    // ======================================
+    // SUBSCRIPTION OWNERSHIP
+    // ======================================
+
+    if (
+      subscription.accountId !==
+      uid
+    ) {
+
+      return errorResponse(
+        res,
+        "La suscripción no pertenece a esta cuenta.",
+        403
+      );
+
+    }
+
+
+    // ======================================
+    // CURRENT PLAN
+    // ======================================
+
+    if (
+      !subscription.planId
+    ) {
+
+      return errorResponse(
+        res,
+        "La suscripción no tiene un plan actual.",
+        409
+      );
+
+    }
+
+
+    if (
+      subscription.planId !==
+      accountPlanId
+    ) {
+
+      return errorResponse(
+        res,
+        "La suscripción no coincide con el plan actual de la cuenta.",
+        409
+      );
+
+    }
+
+
+    // ======================================
+    // SUBSCRIPTION STATUS
+    // ======================================
+
+    if (
+      subscription.status ===
+      "cancelled"
+    ) {
+
+      return errorResponse(
+        res,
+        "No se puede realizar un pago sobre una suscripción cancelada.",
+        409
+      );
+
+    }
+
+  }
+
+
+  // ========================================
+  // CURRENT PLAN
+  // ========================================
+
+  const currentPlanId =
+    accountPlanId;
+
+
+  // ========================================
   // PAYMENT PERIOD VALIDATION
   // ========================================
   //
-  // Para una renovación Pro → Pro:
-  // el pago debe corresponder al mismo
-  // período de la suscripción.
+  // Para Pro → Pro:
+  // el período debe coincidir con
+  // el de la suscripción.
   //
   // Para Free → Pro:
   // se trata de una activación inicial.
@@ -660,9 +775,10 @@ async function createPayment(
   // EXISTING PAYMENT CHECK
   // ========================================
   //
-  // Evita que el usuario genere varios
-  // pagos pendientes para la misma
-  // suscripción.
+  // Buscamos pagos activos de la cuenta.
+  //
+  // No dependemos de subscriptionId porque
+  // Free → Pro puede tener subscriptionId null.
   //
 
   const existingPaymentsSnapshot =
@@ -672,11 +788,6 @@ async function createPayment(
         "accountId",
         "==",
         uid
-      )
-      .where(
-        "subscriptionId",
-        "==",
-        subscriptionId
       )
       .get();
 
@@ -691,12 +802,65 @@ async function createPayment(
         })
       )
       .find(
-        payment =>
-          payment.status ===
-            PAYMENT_STATUS.PENDING ||
+        payment => {
 
-          payment.status ===
-            PAYMENT_STATUS.UNDER_REVIEW
+          const isActiveStatus =
+            payment.status ===
+              PAYMENT_STATUS.PENDING ||
+            payment.status ===
+              PAYMENT_STATUS.UNDER_REVIEW;
+
+
+          if (
+            !isActiveStatus
+          ) {
+
+            return false;
+
+          }
+
+
+          // ==================================
+          // MATCH INITIAL UPGRADE
+          // ==================================
+
+          if (
+            isInitialUpgrade
+          ) {
+
+            return (
+              payment.currentPlanId ===
+                "free" &&
+              payment.planId ===
+                "pro"
+            );
+
+          }
+
+
+          // ==================================
+          // MATCH PRO RENEWAL
+          // ==================================
+
+          if (
+            isProRenewal
+          ) {
+
+            return (
+              payment.subscriptionId ===
+                subscriptionId &&
+              payment.currentPlanId ===
+                "pro" &&
+              payment.planId ===
+                "pro"
+            );
+
+          }
+
+
+          return false;
+
+        }
       );
 
 
@@ -706,7 +870,9 @@ async function createPayment(
 
     return errorResponse(
       res,
-      "Ya existe un pago pendiente o en revisión para esta suscripción.",
+      isInitialUpgrade
+        ? "Ya existe un pago pendiente o en revisión para la activación de Pro."
+        : "Ya existe un pago pendiente o en revisión para esta suscripción.",
       409
     );
 
@@ -723,10 +889,6 @@ async function createPayment(
       .doc();
 
 
-  const now =
-    new Date();
-
-
   // ========================================
   // PAYMENT DATA
   // ========================================
@@ -740,7 +902,21 @@ async function createPayment(
     accountId:
       uid,
 
-    subscriptionId,
+
+    // ======================================
+    // SUBSCRIPTION
+    // ======================================
+    //
+    // Free → Pro:
+    // null
+    //
+    // Pro → Pro:
+    // subscription existente
+    //
+
+    subscriptionId:
+      subscriptionId ||
+      null,
 
 
     // ======================================
@@ -748,18 +924,10 @@ async function createPayment(
     // ======================================
     //
     // currentPlanId:
-    // plan actual al momento de crear
-    // el pago.
+    // plan actual al crear el pago.
     //
     // planId:
-    // plan que el usuario quiere activar.
-    //
-    // Esto permite representar:
-    //
-    // free → pro
-    //
-    // sin modificar todavía la
-    // suscripción.
+    // plan objetivo.
     //
 
     currentPlanId,
@@ -819,7 +987,7 @@ async function createPayment(
 
     // ======================================
     // REVIEW
-    // ========================================
+    // ======================================
 
     reviewedBy:
       null,
@@ -869,7 +1037,9 @@ async function createPayment(
         accountId:
           uid,
 
-        subscriptionId,
+        subscriptionId:
+          subscriptionId ||
+          null,
 
         currentPlanId,
 
@@ -980,7 +1150,6 @@ export default async function handler(
     if (
       error.code ===
         "auth/argument-error" ||
-
       error.code ===
         "auth/invalid-id-token"
     ) {
@@ -1009,7 +1178,7 @@ export default async function handler(
 
 
     // ======================================
-    // FIRESTORE / SERVER ERRORS
+    // SERVER ERROR
     // ======================================
 
     return errorResponse(

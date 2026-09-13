@@ -1,0 +1,636 @@
+// ========================================
+// NEXUS — Upgrade Page
+// ========================================
+
+.upgrade-page {
+  min-height: 100%;
+  width: 100%;
+  padding: 32px 20px 64px;
+  background: $color-black;
+  color: $color-white;
+}
+
+
+// ========================================
+// CONTAINER
+// ========================================
+
+.upgrade-page__container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+
+// ========================================
+// HEADER
+// ========================================
+
+.upgrade-page__header {
+  margin-bottom: 40px;
+
+  > div {
+    max-width: 720px;
+  }
+}
+
+.upgrade-page__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-bottom: 12px;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+
+  color: $color-300;
+}
+
+.upgrade-page__header h1 {
+  margin: 0;
+
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.upgrade-page__header p {
+  max-width: 620px;
+  margin: 16px 0 0;
+
+  color: $color-300;
+
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+
+// ========================================
+// SECTION
+// ========================================
+
+.upgrade-page__section {
+  margin-bottom: 32px;
+}
+
+.upgrade-page__section-heading {
+  margin-bottom: 14px;
+
+  span {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+
+    color: $color-500;
+  }
+}
+
+
+// ========================================
+// PRO CARD
+// ========================================
+
+.upgrade-page__pro-card {
+  padding: 24px;
+
+  border: 1px solid $color-700;
+  border-radius: 16px;
+
+  background: $color-900;
+}
+
+.upgrade-page__pro-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.upgrade-page__pro-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+
+  border-radius: 12px;
+
+  background: $color-800;
+  color: $color-white;
+
+  font-size: 18px;
+}
+
+.upgrade-page__plan-label {
+  display: block;
+  margin-bottom: 4px;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  color: $color-500;
+}
+
+.upgrade-page__pro-card h2 {
+  margin: 0;
+
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.upgrade-page__pro-card p {
+  margin: 8px 0 0;
+
+  color: $color-300;
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+// ========================================
+// DIVIDER
+// ========================================
+
+.upgrade-page__divider {
+  width: 100%;
+  height: 1px;
+  margin: 24px 0;
+
+  background: $color-700;
+}
+
+
+// ========================================
+// PRICE
+// ========================================
+
+.upgrade-page__price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.upgrade-page__price span {
+  color: $color-300;
+  font-size: 13px;
+}
+
+.upgrade-page__price strong {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+
+// ========================================
+// PAYMENT INSTRUCTIONS
+// ========================================
+
+.upgrade-page__instructions {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+
+  padding: 22px;
+
+  border: 1px solid $color-700;
+  border-radius: 16px;
+
+  background: $color-900;
+}
+
+.upgrade-page__instruction-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+
+  border-radius: 10px;
+
+  background: $color-800;
+  color: $color-100;
+
+  font-size: 16px;
+}
+
+.upgrade-page__instructions h3 {
+  margin: 0;
+
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.upgrade-page__instructions p {
+  margin: 7px 0 0;
+
+  color: $color-300;
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+// ========================================
+// NOTICE
+// ========================================
+
+.upgrade-page__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+
+  margin-top: 16px;
+  padding: 12px 14px;
+
+  border: 1px solid $color-700;
+  border-radius: 10px;
+
+  background: $color-800;
+
+  color: $color-300;
+
+  font-size: 12px;
+  line-height: 1.5;
+
+  i {
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+}
+
+
+// ========================================
+// FORM
+// ========================================
+
+.upgrade-page__form {
+  padding: 24px;
+
+  border: 1px solid $color-700;
+  border-radius: 16px;
+
+  background: $color-900;
+}
+
+.upgrade-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  margin-bottom: 20px;
+}
+
+.upgrade-page__field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-100;
+}
+
+.upgrade-page__field input,
+.upgrade-page__field select {
+  width: 100%;
+  min-height: 46px;
+
+  padding: 0 14px;
+
+  border: 1px solid $color-700;
+  border-radius: 10px;
+
+  outline: none;
+
+  background: $color-950;
+  color: $color-white;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.upgrade-page__field input:focus,
+.upgrade-page__field select:focus {
+  border-color: $color-500;
+  background: $color-900;
+}
+
+.upgrade-page__field input::placeholder {
+  color: $color-500;
+}
+
+.upgrade-page__field select {
+  cursor: pointer;
+}
+
+.upgrade-page__field input[type="file"] {
+  min-height: auto;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.upgrade-page__field-help {
+  color: $color-500;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+
+// ========================================
+// FIELD GRID
+// ========================================
+
+.upgrade-page__field-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 16px;
+}
+
+
+// ========================================
+// FORM ERROR
+// ========================================
+
+.upgrade-page__form-error {
+  margin: 4px 0 20px;
+  padding: 12px 14px;
+
+  border: 1px solid $color-700;
+  border-radius: 10px;
+
+  background: $color-800;
+
+  color: $color-100;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.upgrade-page__form-error[hidden] {
+  display: none;
+}
+
+
+// ========================================
+// ACTIONS
+// ========================================
+
+.upgrade-page__actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+
+  margin-top: 8px;
+}
+
+.upgrade-page__primary-button,
+.upgrade-page__secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  min-height: 46px;
+  padding: 0 18px;
+
+  border-radius: 10px;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    opacity 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.upgrade-page__primary-button {
+  border: 1px solid $color-white;
+
+  background: $color-white;
+  color: $color-black;
+}
+
+.upgrade-page__primary-button:hover {
+  opacity: 0.88;
+}
+
+.upgrade-page__secondary-button {
+  border: 1px solid $color-700;
+
+  background: transparent;
+  color: $color-100;
+}
+
+.upgrade-page__secondary-button:hover {
+  background: $color-800;
+}
+
+.upgrade-page__primary-button:disabled,
+.upgrade-page__secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+// ========================================
+// LOADING
+// ========================================
+
+.upgrade-page__loading {
+  min-height: 420px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 16px;
+
+  color: $color-300;
+
+  p {
+    margin: 0;
+    font-size: 13px;
+  }
+}
+
+.upgrade-page__loading-icon {
+  font-size: 24px;
+  color: $color-white;
+}
+
+
+// ========================================
+// ERROR
+// ========================================
+
+.upgrade-page__error {
+  min-height: 420px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+}
+
+.upgrade-page__error-icon {
+  margin-bottom: 18px;
+
+  font-size: 32px;
+  color: $color-300;
+}
+
+.upgrade-page__error h1 {
+  margin: 0;
+
+  font-size: 24px;
+}
+
+.upgrade-page__error p {
+  max-width: 520px;
+  margin: 12px 0 24px;
+
+  color: $color-300;
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+// ========================================
+// SUCCESS
+// ========================================
+
+.upgrade-page__success {
+  min-height: 560px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  max-width: 620px;
+  margin: 0 auto;
+
+  text-align: center;
+}
+
+.upgrade-page__success-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 72px;
+  height: 72px;
+
+  margin-bottom: 24px;
+
+  border: 1px solid $color-700;
+  border-radius: 50%;
+
+  background: $color-900;
+
+  color: $color-white;
+
+  font-size: 24px;
+}
+
+.upgrade-page__success h1 {
+  margin: 0;
+
+  font-size: clamp(28px, 5vw, 40px);
+  line-height: 1.1;
+}
+
+.upgrade-page__success > p {
+  max-width: 540px;
+  margin: 16px auto 0;
+
+  color: $color-300;
+
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.upgrade-page__success-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  margin: 24px 0;
+
+  padding: 11px 15px;
+
+  border: 1px solid $color-700;
+  border-radius: 10px;
+
+  background: $color-900;
+
+  color: $color-100;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+// ========================================
+// RESPONSIVE
+// ========================================
+
+@media (min-width: 640px) {
+
+  .upgrade-page {
+    padding: 44px 28px 80px;
+  }
+
+  .upgrade-page__field-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .upgrade-page__actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .upgrade-page__secondary-button,
+  .upgrade-page__primary-button {
+    width: auto;
+    min-width: 140px;
+  }
+
+}
+
+
+@media (min-width: 900px) {
+
+  .upgrade-page {
+    padding: 52px 40px 96px;
+  }
+
+  .upgrade-page__pro-card,
+  .upgrade-page__instructions,
+  .upgrade-page__form {
+    padding: 28px;
+  }
+
+}

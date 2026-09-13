@@ -35,25 +35,50 @@ const adminDb =
 // ========================================
 
 const PAYMENT_STATUS = {
-  PENDING: "pending",
-  UNDER_REVIEW: "under_review",
-  APPROVED: "approved",
-  REJECTED: "rejected",
-  EXPIRED: "expired"
+
+  PENDING:
+    "pending",
+
+  UNDER_REVIEW:
+    "under_review",
+
+  APPROVED:
+    "approved",
+
+  REJECTED:
+    "rejected",
+
+  EXPIRED:
+    "expired"
+
 };
 
 
 const SUBSCRIPTION_STATUS = {
-  ACTIVE: "active",
-  PENDING: "pending",
-  PAST_DUE: "past_due",
-  SUSPENDED: "suspended",
-  CANCELLED: "cancelled",
-  EXPIRED: "expired"
+
+  ACTIVE:
+    "active",
+
+  PENDING:
+    "pending",
+
+  PAST_DUE:
+    "past_due",
+
+  SUSPENDED:
+    "suspended",
+
+  CANCELLED:
+    "cancelled",
+
+  EXPIRED:
+    "expired"
+
 };
 
 
-const SUPPORTED_PERIOD = "monthly";
+const SUPPORTED_PERIOD =
+  "monthly";
 
 
 // ========================================
@@ -69,8 +94,12 @@ function successResponse(
   return res
     .status(status)
     .json({
-      success: true,
+
+      success:
+        true,
+
       ...data
+
     });
 
 }
@@ -85,8 +114,13 @@ function errorResponse(
   return res
     .status(status)
     .json({
-      success: false,
-      error: message
+
+      success:
+        false,
+
+      error:
+        message
+
     });
 
 }
@@ -105,6 +139,7 @@ function getBearerToken(
     req.headers?.Authorization ||
     "";
 
+
   if (
     !authorization.startsWith(
       "Bearer "
@@ -114,6 +149,7 @@ function getBearerToken(
     return null;
 
   }
+
 
   return authorization
     .substring(7)
@@ -127,7 +163,10 @@ async function authenticateRequest(
 ) {
 
   const token =
-    getBearerToken(req);
+    getBearerToken(
+      req
+    );
+
 
   if (!token) {
 
@@ -140,8 +179,11 @@ async function authenticateRequest(
 
   }
 
+
   return await adminAuth
-    .verifyIdToken(token);
+    .verifyIdToken(
+      token
+    );
 
 }
 
@@ -200,6 +242,7 @@ async function requireAdministrator(
     adminDb
       .collection("adminUsers")
       .doc(uid);
+
 
   const adminSnapshot =
     await adminRef.get();
@@ -293,7 +336,9 @@ function toDate(
 
 
   const date =
-    new Date(value);
+    new Date(
+      value
+    );
 
 
   if (
@@ -317,11 +362,15 @@ function calculateMonthlyPeriodEnd(
 ) {
 
   const endDate =
-    new Date(startDate);
+    new Date(
+      startDate
+    );
+
 
   endDate.setMonth(
     endDate.getMonth() + 1
   );
+
 
   return endDate;
 
@@ -342,12 +391,14 @@ async function approvePayment(
     decodedToken.uid;
 
 
-  // ========================================
+  // ======================================
   // REQUEST BODY
-  // ========================================
+  // ======================================
 
   const body =
-    getRequestBody(req);
+    getRequestBody(
+      req
+    );
 
 
   if (!body) {
@@ -366,9 +417,9 @@ async function approvePayment(
   } = body;
 
 
-  // ========================================
+  // ======================================
   // REQUIRED FIELD
-  // ========================================
+  // ======================================
 
   if (
     !paymentId
@@ -383,18 +434,18 @@ async function approvePayment(
   }
 
 
-  // ========================================
+  // ======================================
   // ADMIN AUTHORIZATION
-  // ========================================
+  // ======================================
 
   await requireAdministrator(
     adminUid
   );
 
 
-  // ========================================
+  // ======================================
   // REFERENCES
-  // ========================================
+  // ======================================
 
   const paymentRef =
     adminDb
@@ -402,14 +453,9 @@ async function approvePayment(
       .doc(paymentId);
 
 
-  // ========================================
+  // ======================================
   // TRANSACTION
-  // ========================================
-  //
-  // Todas las lecturas relacionadas
-  // se realizan dentro de la transacción
-  // antes de cualquier escritura.
-  //
+  // ======================================
 
   const result =
     await adminDb.runTransaction(
@@ -457,7 +503,7 @@ async function approvePayment(
 
 
         // ==================================
-        // PAYMENT OWNERSHIP
+        // PAYMENT ACCOUNT
         // ==================================
 
         if (
@@ -471,16 +517,9 @@ async function approvePayment(
         }
 
 
-        if (
-          !payment.subscriptionId
-        ) {
-
-          throw new Error(
-            "PAYMENT_SUBSCRIPTION_MISSING"
-          );
-
-        }
-
+        // ==================================
+        // PAYMENT PLAN
+        // ==================================
 
         if (
           !payment.currentPlanId
@@ -505,126 +544,41 @@ async function approvePayment(
 
 
         // ==================================
-        // SUBSCRIPTION
+        // ACCOUNT
         // ==================================
 
-        const subscriptionRef =
+        const accountRef =
           adminDb
-            .collection("subscriptions")
+            .collection("accounts")
             .doc(
-              payment.subscriptionId
+              payment.accountId
             );
 
 
-        const subscriptionSnapshot =
+        const accountSnapshot =
           await transaction.get(
-            subscriptionRef
+            accountRef
           );
 
 
         if (
-          !subscriptionSnapshot.exists
+          !accountSnapshot.exists
         ) {
 
           throw new Error(
-            "SUBSCRIPTION_NOT_FOUND"
+            "ACCOUNT_NOT_FOUND"
           );
 
         }
 
 
-        const subscription =
-          subscriptionSnapshot.data();
-
-
-        // ==================================
-        // SUBSCRIPTION OWNERSHIP
-        // ==================================
-
-        if (
-          subscription.accountId !==
-          payment.accountId
-        ) {
-
-          throw new Error(
-            "SUBSCRIPTION_OWNER_MISMATCH"
-          );
-
-        }
-
-
-        // ==================================
-        // CURRENT PLAN VALIDATION
-        // ==================================
-        //
-        // El plan actual debe seguir siendo
-        // el mismo que tenía cuando se creó
-        // el pago.
-        //
-
-        if (
-          subscription.planId !==
-          payment.currentPlanId
-        ) {
-
-          throw new Error(
-            "SUBSCRIPTION_PLAN_CHANGED"
-          );
-
-        }
-
-
-        // ==================================
-        // SUBSCRIPTION STATUS
-        // ==================================
-
-        if (
-          subscription.status ===
-          SUBSCRIPTION_STATUS.CANCELLED
-        ) {
-
-          throw new Error(
-            "SUBSCRIPTION_CANCELLED"
-          );
-
-        }
-
-
-        // ==================================
-        // PERIOD
-        // ==================================
-
-        const period =
-          payment.period ||
-          SUPPORTED_PERIOD;
-
-
-        if (
-          period !==
-          SUPPORTED_PERIOD
-        ) {
-
-          throw new Error(
-            "PERIOD_NOT_SUPPORTED"
-          );
-
-        }
+        const account =
+          accountSnapshot.data();
 
 
         // ==================================
         // PLAN TRANSITION
-        // ========================================
-        //
-        // MVP:
-        //
-        // FREE → PRO
-        // PRO  → PRO
-        //
-        // El primer caso es una activación/
-        // upgrade.
-        //
-        // El segundo es una renovación.
-        //
+        // ==================================
 
         const isInitialUpgrade =
           payment.currentPlanId ===
@@ -655,11 +609,299 @@ async function approvePayment(
 
 
         // ==================================
+        // ACCOUNT PLAN CONSISTENCY
+        // ==================================
+        //
+        // account.planId es metadata/cache.
+        //
+        // Para FREE → PRO esperamos que
+        // la cuenta siga siendo Free.
+        //
+        // Para PRO → PRO esperamos que
+        // continúe siendo Pro.
+        //
+
+        if (
+          account.planId &&
+          account.planId !==
+          payment.currentPlanId
+        ) {
+
+          throw new Error(
+            "ACCOUNT_PLAN_CHANGED"
+          );
+
+        }
+
+
+        // ==================================
+        // PERIOD
+        // ==================================
+
+        const period =
+          payment.period ||
+          SUPPORTED_PERIOD;
+
+
+        if (
+          period !==
+          SUPPORTED_PERIOD
+        ) {
+
+          throw new Error(
+            "PERIOD_NOT_SUPPORTED"
+          );
+
+        }
+
+
+        // ==================================
+        // SUBSCRIPTION
+        // ========================================
+        //
+        // FREE → PRO:
+        //
+        // Puede no existir subscription.
+        //
+        // PRO → PRO:
+        //
+        // Debe existir una subscription.
+        //
+
+        let subscription =
+          null;
+
+        let subscriptionRef =
+          null;
+
+        let subscriptionId =
+          payment.subscriptionId ||
+          null;
+
+
+        // ==================================
+        // EXISTING SUBSCRIPTION
+        // ==================================
+
+        if (
+          subscriptionId
+        ) {
+
+          subscriptionRef =
+            adminDb
+              .collection("subscriptions")
+              .doc(
+                subscriptionId
+              );
+
+
+          const subscriptionSnapshot =
+            await transaction.get(
+              subscriptionRef
+            );
+
+
+          if (
+            !subscriptionSnapshot.exists
+          ) {
+
+            throw new Error(
+              "SUBSCRIPTION_NOT_FOUND"
+            );
+
+          }
+
+
+          subscription =
+            subscriptionSnapshot.data();
+
+
+          // ==================================
+          // SUBSCRIPTION OWNERSHIP
+          // ==================================
+
+          if (
+            subscription.accountId !==
+            payment.accountId
+          ) {
+
+            throw new Error(
+              "SUBSCRIPTION_OWNER_MISMATCH"
+            );
+
+          }
+
+
+          // ==================================
+          // CURRENT PLAN VALIDATION
+          // ==================================
+
+          if (
+            subscription.planId !==
+            payment.currentPlanId
+          ) {
+
+            throw new Error(
+              "SUBSCRIPTION_PLAN_CHANGED"
+            );
+
+          }
+
+
+          // ==================================
+          // STATUS
+          // ==================================
+
+          if (
+            subscription.status ===
+            SUBSCRIPTION_STATUS.CANCELLED
+          ) {
+
+            throw new Error(
+              "SUBSCRIPTION_CANCELLED"
+            );
+
+          }
+
+        }
+
+
+        // ==================================
+        // FREE → PRO
+        // ==================================
+        //
+        // Si es una activación inicial,
+        // la cuenta puede no tener
+        // subscriptionId.
+        //
+
+        if (
+          isInitialUpgrade
+        ) {
+
+          if (
+            subscription
+          ) {
+
+            /*
+             * Si ya existe una subscription
+             * para una cuenta Free, verificamos
+             * que todavía represente Free.
+             */
+
+            if (
+              subscription.planId !==
+              "free"
+            ) {
+
+              throw new Error(
+                "SUBSCRIPTION_PLAN_CHANGED"
+              );
+
+            }
+
+          } else {
+
+            /*
+             * Creamos la referencia antes
+             * de realizar cualquier escritura.
+             *
+             * La transacción garantiza que
+             * la creación de la subscription
+             * y la activación del pago sean
+             * atómicas.
+             */
+
+            subscriptionRef =
+              adminDb
+                .collection("subscriptions")
+                .doc();
+
+
+            subscriptionId =
+              subscriptionRef.id;
+
+
+            subscription = {
+
+              accountId:
+                payment.accountId,
+
+              planId:
+                "free",
+
+              status:
+                SUBSCRIPTION_STATUS.PENDING,
+
+              period,
+
+              currency:
+                payment.currency ||
+                "GTQ",
+
+              billingDate:
+                null,
+
+              paymentDeadline:
+                null,
+
+              gracePeriodDays:
+                0,
+
+              currentPeriodStart:
+                null,
+
+              currentPeriodEnd:
+                null,
+
+              nextBillingAt:
+                null,
+
+              createdAt:
+                null,
+
+              activatedAt:
+                null,
+
+              cancelledAt:
+                null,
+
+              suspendedAt:
+                null,
+
+              expiredAt:
+                null
+
+            };
+
+          }
+
+        }
+
+
+        // ==================================
+        // PRO RENEWAL REQUIREMENT
+        // ==================================
+
+        if (
+          isProRenewal &&
+          !subscription
+        ) {
+
+          throw new Error(
+            "PAYMENT_SUBSCRIPTION_MISSING"
+          );
+
+        }
+
+
+        // ==================================
         // PERIOD START
         // ==================================
 
         const now =
           new Date();
+
 
         let currentPeriodStart =
           now;
@@ -670,8 +912,8 @@ async function approvePayment(
         // ==================================
         //
         // Si la suscripción Pro todavía
-        // tiene un período vigente, la
-        // renovación comienza al terminar
+        // tiene un período vigente,
+        // la renovación comienza al terminar
         // el período actual.
         //
         // Si ya terminó, comienza ahora.
@@ -713,15 +955,6 @@ async function approvePayment(
         // ==================================
         // SUBSCRIPTION UPDATE
         // ==================================
-        //
-        // Aquí ocurre el cambio real:
-        //
-        // FREE → PRO
-        //
-        // El plan de la suscripción se
-        // convierte en la fuente de verdad
-        // del acceso.
-        //
 
         const subscriptionUpdate = {
 
@@ -732,6 +965,11 @@ async function approvePayment(
             SUBSCRIPTION_STATUS.ACTIVE,
 
           period,
+
+          currency:
+            payment.currency ||
+            subscription?.currency ||
+            "GTQ",
 
           activatedAt:
             isInitialUpgrade
@@ -763,30 +1001,60 @@ async function approvePayment(
         };
 
 
-        transaction.update(
-          subscriptionRef,
-          subscriptionUpdate
-        );
+        // ==================================
+        // CREATE / UPDATE SUBSCRIPTION
+        // ==================================
+
+        if (
+          isInitialUpgrade &&
+          !payment.subscriptionId
+        ) {
+
+          /*
+           * Nueva subscription Pro.
+           */
+
+          transaction.set(
+            subscriptionRef,
+            {
+
+              accountId:
+                payment.accountId,
+
+              ...subscriptionUpdate,
+
+              createdAt:
+                FieldValue.serverTimestamp(),
+
+              cancelledAt:
+                null
+
+            }
+          );
+
+        } else {
+
+          /*
+           * Subscription existente.
+           */
+
+          transaction.update(
+            subscriptionRef,
+            subscriptionUpdate
+          );
+
+        }
 
 
         // ==================================
         // ACCOUNT
         // ==================================
         //
-        // account.planId es solamente
-        // metadata/cache.
+        // account.planId es metadata/cache.
         //
-        // La suscripción continúa siendo
-        // la fuente de verdad para Billing.
+        // La subscription es la fuente de
+        // verdad del Billing.
         //
-
-        const accountRef =
-          adminDb
-            .collection("accounts")
-            .doc(
-              payment.accountId
-            );
-
 
         transaction.update(
           accountRef,
@@ -794,6 +1062,8 @@ async function approvePayment(
 
             planId:
               payment.planId,
+
+            subscriptionId,
 
             updatedAt:
               FieldValue.serverTimestamp()
@@ -812,6 +1082,8 @@ async function approvePayment(
 
             status:
               PAYMENT_STATUS.APPROVED,
+
+            subscriptionId,
 
             reviewedBy:
               adminUid,
@@ -840,8 +1112,7 @@ async function approvePayment(
           accountId:
             payment.accountId,
 
-          subscriptionId:
-            payment.subscriptionId,
+          subscriptionId,
 
           previousPlanId:
             payment.currentPlanId,
@@ -886,6 +1157,7 @@ async function approvePayment(
   return successResponse(
     res,
     {
+
       message:
         "El pago fue aprobado y la suscripción fue activada correctamente.",
 
@@ -920,6 +1192,7 @@ export default async function handler(
       "Allow",
       "POST"
     );
+
 
     return errorResponse(
       res,
@@ -1100,6 +1373,28 @@ export default async function handler(
         return errorResponse(
           res,
           "El pago no tiene registrado el plan objetivo.",
+          409
+        );
+
+
+      // ====================================
+      // ACCOUNT ERRORS
+      // ====================================
+
+      case "ACCOUNT_NOT_FOUND":
+
+        return errorResponse(
+          res,
+          "La cuenta asociada al pago no existe.",
+          404
+        );
+
+
+      case "ACCOUNT_PLAN_CHANGED":
+
+        return errorResponse(
+          res,
+          "El plan de la cuenta cambió después de crear el pago. Este pago ya no puede aprobarse.",
           409
         );
 

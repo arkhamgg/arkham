@@ -465,7 +465,7 @@ function validateImageKitProof(
 
   // ======================================
   // NORMALIZED PROOF
-  // ======================================
+  // ========================================
 
   return {
     valid: true,
@@ -547,6 +547,7 @@ async function attachPaymentProof(
   const paymentSnapshot =
     await paymentRef.get();
 
+
   if (
     !paymentSnapshot.exists
   ) {
@@ -558,6 +559,7 @@ async function attachPaymentProof(
     );
 
   }
+
 
   const payment =
     paymentSnapshot.data();
@@ -598,18 +600,194 @@ async function attachPaymentProof(
 
 
   // ======================================
-  // PAYMENT SUBSCRIPTION
+  // PAYMENT CONTEXT
   // ======================================
 
   if (
+    !payment.currentPlanId
+  ) {
+
+    return errorResponse(
+      res,
+      "El pago no tiene registrado el plan actual.",
+      409
+    );
+
+  }
+
+
+  if (
+    !payment.planId
+  ) {
+
+    return errorResponse(
+      res,
+      "El pago no tiene un plan objetivo.",
+      409
+    );
+
+  }
+
+
+  // ======================================
+  // PAYMENT TRANSITION
+  // ======================================
+
+  const isInitialUpgrade =
+    payment.currentPlanId === "free" &&
+    payment.planId === "pro";
+
+  const isProRenewal =
+    payment.currentPlanId === "pro" &&
+    payment.planId === "pro";
+
+
+  if (
+    !isInitialUpgrade &&
+    !isProRenewal
+  ) {
+
+    return errorResponse(
+      res,
+      `La transición ${payment.currentPlanId} → ${payment.planId} no está disponible.`,
+      409
+    );
+
+  }
+
+
+  // ======================================
+  // SUBSCRIPTION CONTEXT
+  // ======================================
+  //
+  // FREE → PRO
+  //
+  // No necesita subscriptionId.
+  //
+  // PRO → PRO
+  //
+  // Debe tener subscriptionId.
+  //
+
+  if (
+    isInitialUpgrade &&
+    payment.subscriptionId
+  ) {
+
+    return errorResponse(
+      res,
+      "El pago inicial Free → Pro no debe tener una suscripción asociada.",
+      409
+    );
+
+  }
+
+
+  if (
+    isProRenewal &&
     !payment.subscriptionId
   ) {
 
     return errorResponse(
       res,
-      "El pago no tiene una suscripción asociada.",
-      400
+      "La renovación Pro requiere una suscripción asociada.",
+      409
     );
+
+  }
+
+
+  // ======================================
+  // EXISTING SUBSCRIPTION
+  // ======================================
+  //
+  // Solo se consulta cuando realmente
+  // existe una subscriptionId.
+  //
+
+  if (
+    payment.subscriptionId
+  ) {
+
+    const subscriptionRef =
+      adminDb
+        .collection("subscriptions")
+        .doc(
+          payment.subscriptionId
+        );
+
+    const subscriptionSnapshot =
+      await subscriptionRef.get();
+
+
+    if (
+      !subscriptionSnapshot.exists
+    ) {
+
+      return errorResponse(
+        res,
+        "La suscripción asociada al pago no existe.",
+        404
+      );
+
+    }
+
+
+    const subscription =
+      subscriptionSnapshot.data();
+
+
+    // ====================================
+    // SUBSCRIPTION OWNERSHIP
+    // ====================================
+
+    if (
+      subscription.accountId !== uid
+    ) {
+
+      return errorResponse(
+        res,
+        "La suscripción no pertenece a esta cuenta.",
+        403
+      );
+
+    }
+
+
+    // ====================================
+    // CURRENT PLAN
+    // ====================================
+
+    if (
+      subscription.planId !==
+      payment.currentPlanId
+    ) {
+
+      return errorResponse(
+        res,
+        "La suscripción cambió de plan después de crear este pago. Debes generar un nuevo pago.",
+        409
+      );
+
+    }
+
+
+    // ====================================
+    // CANCELLED
+    // ====================================
+
+    if (
+      subscription.status ===
+      "cancelled"
+    ) {
+
+      return errorResponse(
+        res,
+        "No se puede adjuntar un comprobante a un pago asociado a una suscripción cancelada.",
+        409
+      );
+
+    }
 
   }
 
@@ -624,6 +802,7 @@ async function attachPaymentProof(
       uid,
       paymentId
     );
+
 
   if (
     !validation.valid
@@ -672,6 +851,16 @@ async function attachPaymentProof(
 
         status:
           payment.status,
+
+        subscriptionId:
+          payment.subscriptionId ||
+          null,
+
+        currentPlanId:
+          payment.currentPlanId,
+
+        planId:
+          payment.planId,
 
         proof
       }

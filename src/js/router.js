@@ -17,6 +17,7 @@ import { CompetitionLanding } from "./pages/competitionLanding.js";
 import { CompetitionDetail } from "./pages/competitionDetail.js";
 import { Calendar } from "./pages/calendar.js";
 import { Billing } from "./pages/billing.js";
+import { Upgrade } from "./pages/upgrade.js";
 
 // ========================================
 // SESSION
@@ -91,6 +92,9 @@ const routes = {
   "/dashboard/billing":
     Billing,
 
+  "/dashboard/billing/upgrade":
+    Upgrade,
+
   "/calendar":
     Calendar,
 
@@ -128,7 +132,8 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
   "/dashboard",
   "/dashboard/tournaments/new",
   "/dashboard/tournaments/edit",
-  "/dashboard/billing"
+  "/dashboard/billing",
+  "/dashboard/billing/upgrade"
 
 ]);
 
@@ -529,6 +534,22 @@ export function Router(app) {
   window.addEventListener(
     "popstate",
     renderRoute
+  );
+
+
+  // ========================================
+  // BILLING → UPGRADE
+  // ========================================
+
+  window.addEventListener(
+    "nexus:billing-upgrade",
+    () => {
+
+      navigate(
+        "/dashboard/billing/upgrade"
+      );
+
+    }
   );
 
 

@@ -17,6 +17,9 @@ const BILLING_PAYMENT_API =
 const BILLING_PAYMENT_PROOF_API =
   "/api/billing-payment-proof";
 
+const BILLING_PAYMENT_SUBMIT_API =
+  "/api/billing-payment-submit";
+
 
 // ========================================
 // FIREBASE AUTH
@@ -33,6 +36,7 @@ async function getFirebaseIdToken() {
 
   const auth =
     getAuth();
+
 
   const user =
     auth.currentUser;
@@ -139,12 +143,26 @@ async function apiRequest(
 // Crea el registro inicial del pago.
 //
 // El backend determina:
+//
 // - amount
 // - currency
 // - currentPlanId
 // - transición permitida
 //
-// El frontend solamente solicita la operación.
+// El frontend solamente solicita
+// la operación.
+//
+// Estado inicial:
+//
+// PENDING
+//
+// IMPORTANTE:
+//
+// Free → Pro:
+// subscriptionId puede ser null.
+//
+// Pro → Pro:
+// subscriptionId es requerido.
 //
 
 export async function createBillingPayment(
@@ -180,15 +198,6 @@ export async function createBillingPayment(
   // ======================================
   // VALIDATION
   // ======================================
-
-  if (!subscriptionId) {
-
-    throw new Error(
-      "subscriptionId es obligatorio."
-    );
-
-  }
-
 
   if (!planId) {
 
@@ -266,12 +275,27 @@ export async function createBillingPayment(
 // ↓
 // Firestore
 //
+// El pago permanece en PENDING.
+//
 
 export async function uploadBillingPaymentProof(
   file,
   paymentId,
   uid = null
 ) {
+
+  // ======================================
+  // VALIDATE FILE
+  // ======================================
+
+  if (!file) {
+
+    throw new Error(
+      "Debes seleccionar un comprobante de pago."
+    );
+
+  }
+
 
   // ======================================
   // VALIDATE PAYMENT
@@ -299,6 +323,7 @@ export async function uploadBillingPaymentProof(
 
   const auth =
     getAuth();
+
 
   const user =
     auth.currentUser;
@@ -393,25 +418,87 @@ export async function uploadBillingPaymentProof(
 
 
 // ========================================
+// SUBMIT BILLING PAYMENT
+// ========================================
+//
+// Envía un pago con comprobante
+// a revisión administrativa.
+//
+// Flujo:
+//
+// PENDING
+// ↓
+// submit
+// ↓
+// UNDER_REVIEW
+//
+// Esta función NO aprueba el pago.
+//
+// La aprobación pertenece exclusivamente
+// al backend administrativo.
+//
+
+export async function submitBillingPayment(
+  paymentId
+) {
+
+  // ======================================
+  // VALIDATION
+  // ======================================
+
+  if (!paymentId) {
+
+    throw new Error(
+      "paymentId es obligatorio."
+    );
+
+  }
+
+
+  // ======================================
+  // SUBMIT
+  // ======================================
+
+  return await apiRequest(
+    BILLING_PAYMENT_SUBMIT_API,
+    {
+      method:
+        "POST",
+
+      body:
+        JSON.stringify({
+
+          paymentId
+
+        })
+
+    }
+  );
+
+}
+
+
+// ========================================
 // COMPLETE PAYMENT CREATION
 // ========================================
 //
 // Crea el pago y, opcionalmente,
 // sube el comprobante.
 //
-// Esta función NO envía el pago a revisión.
-// Eso pertenece a:
+// Esta función NO envía el pago
+// a revisión.
 //
-// /api/billing-payment-submit
+// Flujo:
 //
-// Se mantiene separado para respetar
-// el ciclo:
-//
-// pending
+// create
+// ↓
+// PENDING
 // ↓
 // proof
-// ↓
-// under_review
+//
+// Para enviar a revisión se utiliza:
+//
+// submitBillingPayment()
 //
 
 export async function createBillingPaymentWithProof(
@@ -484,6 +571,91 @@ export async function createBillingPaymentWithProof(
     payment,
 
     proofResponse
+
+  };
+
+}
+
+
+// ========================================
+// COMPLETE PAYMENT FLOW
+// ========================================
+//
+// Helper opcional para ejecutar:
+//
+// CREATE
+// ↓
+// PROOF
+// ↓
+// SUBMIT
+//
+// Esta función sí termina enviando
+// el pago a revisión.
+//
+// No aprueba el pago.
+//
+
+export async function createAndSubmitBillingPayment(
+  paymentOptions = {},
+  proofFile = null
+) {
+
+  // ======================================
+  // CREATE + PROOF
+  // ======================================
+
+  const result =
+    await createBillingPaymentWithProof(
+      paymentOptions,
+      proofFile
+    );
+
+
+  // ======================================
+  // REQUIRE PAYMENT
+  // ======================================
+
+  if (!result?.payment?.id) {
+
+    throw new Error(
+      "No se pudo obtener el paymentId."
+    );
+
+  }
+
+
+  // ======================================
+  // REQUIRE PROOF
+  // ======================================
+
+  if (!result?.proofResponse) {
+
+    throw new Error(
+      "Debes adjuntar el comprobante antes de enviar el pago a revisión."
+    );
+
+  }
+
+
+  // ======================================
+  // SUBMIT
+  // ======================================
+
+  const submitResponse =
+    await submitBillingPayment(
+      result.payment.id
+    );
+
+
+  // ======================================
+  // RESULT
+  // ======================================
+
+  return {
+
+    ...result,
+
+    submitResponse
 
   };
 
