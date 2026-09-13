@@ -4,30 +4,156 @@
 
 import ImageKit from "@imagekit/nodejs";
 
+import {
+  getAuth
+} from "firebase-admin/auth";
+
+import {
+  getFirebaseAdminApp
+} from "./_lib/firebaseAdmin.js";
+
+
+// ========================================
+// FIREBASE ADMIN
+// ========================================
+
+const firebaseAdminApp =
+  getFirebaseAdminApp();
+
+const adminAuth =
+  getAuth(firebaseAdminApp);
+
+
+// ========================================
+// AUTHORIZATION
+// ========================================
+
+function getBearerToken(request) {
+
+  const authorization =
+    request.headers.get("authorization") ||
+    "";
+
+  if (
+    !authorization.startsWith("Bearer ")
+  ) {
+    return null;
+  }
+
+  return authorization
+    .substring(7)
+    .trim();
+}
+
 
 // ========================================
 // API HANDLER
 // ========================================
 
-export async function GET() {
+export async function GET(request) {
 
   try {
 
     // ========================================
-    // VERIFY PRIVATE KEY
+    // VERIFY IMAGEKIT CONFIGURATION
     // ========================================
 
     if (
       !process.env.IMAGEKIT_PRIVATE_KEY
     ) {
 
+      console.error(
+        "NEXUS — IMAGEKIT_PRIVATE_KEY no está configurada."
+      );
+
       return Response.json(
         {
-          error:
-            "IMAGEKIT_PRIVATE_KEY no está configurada."
+          success: false,
+          reason:
+            "imagekit_not_configured"
         },
         {
           status: 500
+        }
+      );
+
+    }
+
+
+    // ========================================
+    // FIREBASE AUTHENTICATION
+    // ========================================
+
+    const idToken =
+      getBearerToken(request);
+
+
+    if (!idToken) {
+
+      return Response.json(
+        {
+          success: false,
+          reason:
+            "missing_authentication"
+        },
+        {
+          status: 401
+        }
+      );
+
+    }
+
+
+    // ========================================
+    // VERIFY FIREBASE TOKEN
+    // ========================================
+
+    let decodedToken;
+
+    try {
+
+      decodedToken =
+        await adminAuth.verifyIdToken(
+          idToken
+        );
+
+    } catch (error) {
+
+      console.error(
+        "NEXUS — ImageKit Auth: token Firebase inválido.",
+        error
+      );
+
+      return Response.json(
+        {
+          success: false,
+          reason:
+            "invalid_authentication"
+        },
+        {
+          status: 401
+        }
+      );
+
+    }
+
+
+    // ========================================
+    // VERIFY USER
+    // ========================================
+
+    if (
+      !decodedToken?.uid
+    ) {
+
+      return Response.json(
+        {
+          success: false,
+          reason:
+            "invalid_user"
+        },
+        {
+          status: 401
         }
       );
 
@@ -53,8 +179,16 @@ export async function GET() {
       imagekit.helper.getAuthenticationParameters();
 
 
+    // ========================================
+    // RESPONSE
+    // ========================================
+
     return Response.json(
-      authenticationParameters
+      {
+        success: true,
+
+        ...authenticationParameters
+      }
     );
 
   } catch (error) {
@@ -67,8 +201,9 @@ export async function GET() {
 
     return Response.json(
       {
-        error:
-          "No fue posible generar la autenticación de ImageKit."
+        success: false,
+        reason:
+          "imagekit_auth_generation_failed"
       },
       {
         status: 500

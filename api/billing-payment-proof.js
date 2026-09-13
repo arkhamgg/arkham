@@ -12,10 +12,6 @@ import {
 } from "firebase-admin/firestore";
 
 import {
-  getStorage
-} from "firebase-admin/storage";
-
-import {
   getFirebaseAdminApp
 } from "./_lib/firebaseAdmin.js";
 
@@ -33,9 +29,6 @@ const adminAuth =
 const adminDb =
   getFirestore(firebaseAdminApp);
 
-const adminStorage =
-  getStorage(firebaseAdminApp);
-
 
 // ========================================
 // CONSTANTS
@@ -44,13 +37,15 @@ const adminStorage =
 const MAX_FILE_SIZE =
   5 * 1024 * 1024;
 
-
 const ALLOWED_CONTENT_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
   "application/pdf"
 ];
+
+const IMAGEKIT_PROOF_ROOT =
+  "/nexus/payment-proofs";
 
 
 // ========================================
@@ -112,7 +107,6 @@ function getBearerToken(
 
   }
 
-
   return authorization
     .substring(7)
     .trim();
@@ -127,7 +121,6 @@ async function authenticateRequest(
   const token =
     getBearerToken(req);
 
-
   if (!token) {
 
     throw new Error(
@@ -135,7 +128,6 @@ async function authenticateRequest(
     );
 
   }
-
 
   return await adminAuth
     .verifyIdToken(token);
@@ -160,7 +152,6 @@ function getRequestBody(
 
   }
 
-
   if (
     typeof req.body === "string"
   ) {
@@ -179,93 +170,69 @@ function getRequestBody(
 
   }
 
-
   return null;
 
 }
 
 
 // ========================================
-// BASE64 VALIDATION
+// VALIDATION HELPERS
 // ========================================
 
-function getBase64Buffer(
-  fileData
+function normalizeString(
+  value
 ) {
 
   if (
-    typeof fileData !==
-    "string"
+    typeof value !== "string"
   ) {
 
-    return null;
+    return "";
 
   }
 
+  return value.trim();
 
-  let base64 =
-    fileData;
+}
 
 
-  // ======================================
-  // REMOVE DATA URL PREFIX
-  // ======================================
+function normalizeSize(
+  value
+) {
+
+  const size =
+    Number(value);
 
   if (
-    base64.startsWith(
-      "data:"
-    )
+    !Number.isFinite(size) ||
+    size <= 0
   ) {
-
-    const commaIndex =
-      base64.indexOf(",");
-
-
-    if (
-      commaIndex === -1
-    ) {
-
-      return null;
-
-    }
-
-
-    base64 =
-      base64.substring(
-        commaIndex + 1
-      );
-
-  }
-
-
-  // ======================================
-  // REMOVE WHITESPACE
-  // ======================================
-
-  base64 =
-    base64.replace(
-      /\s/g,
-      ""
-    );
-
-
-  if (!base64) {
 
     return null;
 
   }
 
+  return size;
+
+}
+
+
+function isValidHttpsUrl(
+  value
+) {
 
   try {
 
-    return Buffer.from(
-      base64,
-      "base64"
+    const url =
+      new URL(value);
+
+    return (
+      url.protocol === "https:"
     );
 
   } catch {
 
-    return null;
+    return false;
 
   }
 
@@ -273,81 +240,254 @@ function getBase64Buffer(
 
 
 // ========================================
-// SAFE FILE NAME
+// IMAGEKIT PROOF DATA
 // ========================================
 
-function sanitizeFileName(
-  fileName
+function validateImageKitProof(
+  proof,
+  uid,
+  paymentId
 ) {
 
   if (
-    typeof fileName !==
-    "string"
+    !proof ||
+    typeof proof !== "object"
   ) {
 
-    return "proof";
+    return {
+      valid: false,
+      error:
+        "La información del comprobante no es válida."
+    };
 
   }
 
 
-  const sanitized =
-    fileName
-      .trim()
-      .replace(
-        /[^a-zA-Z0-9._-]/g,
-        "_"
-      );
+  // ======================================
+  // PROVIDER
+  // ======================================
 
+  const provider =
+    normalizeString(
+      proof.provider
+    );
 
-  if (!sanitized) {
+  if (
+    provider !== "imagekit"
+  ) {
 
-    return "proof";
+    return {
+      valid: false,
+      error:
+        "El comprobante debe estar almacenado en ImageKit."
+    };
 
   }
 
 
-  return sanitized;
+  // ======================================
+  // IMAGEKIT DATA
+  // ======================================
+
+  const fileId =
+    normalizeString(
+      proof.fileId
+    );
+
+  const filePath =
+    normalizeString(
+      proof.filePath
+    );
+
+  const url =
+    normalizeString(
+      proof.url
+    );
+
+  const fileName =
+    normalizeString(
+      proof.fileName
+    );
+
+  const contentType =
+    normalizeString(
+      proof.contentType
+    );
+
+  const size =
+    normalizeSize(
+      proof.size
+    );
+
+
+  // ======================================
+  // FILE ID
+  // ======================================
+
+  if (!fileId) {
+
+    return {
+      valid: false,
+      error:
+        "El comprobante no contiene un fileId de ImageKit."
+    };
+
+  }
+
+
+  // ======================================
+  // FILE PATH
+  // ======================================
+
+  if (!filePath) {
+
+    return {
+      valid: false,
+      error:
+        "El comprobante no contiene un filePath de ImageKit."
+    };
+
+  }
+
+
+  // ======================================
+  // EXPECTED IMAGEKIT PATH
+  // ======================================
+
+  const expectedPrefix =
+    `${IMAGEKIT_PROOF_ROOT}/${uid}/${paymentId}/`;
+
+  if (
+    !filePath.startsWith(
+      expectedPrefix
+    )
+  ) {
+
+    return {
+      valid: false,
+      error:
+        "La ruta del comprobante no corresponde a este pago."
+    };
+
+  }
+
+
+  // ======================================
+  // URL
+  // ======================================
+
+  if (!url) {
+
+    return {
+      valid: false,
+      error:
+        "El comprobante no contiene una URL válida."
+    };
+
+  }
+
+  if (
+    !isValidHttpsUrl(url)
+  ) {
+
+    return {
+      valid: false,
+      error:
+        "La URL del comprobante no es válida."
+    };
+
+  }
+
+
+  // ======================================
+  // FILE NAME
+  // ======================================
+
+  if (!fileName) {
+
+    return {
+      valid: false,
+      error:
+        "El nombre del comprobante es obligatorio."
+    };
+
+  }
+
+
+  // ======================================
+  // CONTENT TYPE
+  // ======================================
+
+  if (
+    !ALLOWED_CONTENT_TYPES.includes(
+      contentType
+    )
+  ) {
+
+    return {
+      valid: false,
+      error:
+        "El tipo de comprobante no está permitido. Usa JPG, PNG, WEBP o PDF."
+    };
+
+  }
+
+
+  // ======================================
+  // FILE SIZE
+  // ======================================
+
+  if (
+    size === null
+  ) {
+
+    return {
+      valid: false,
+      error:
+        "El tamaño del comprobante no es válido."
+    };
+
+  }
+
+
+  if (
+    size > MAX_FILE_SIZE
+  ) {
+
+    return {
+      valid: false,
+      error:
+        "El comprobante no puede superar los 5 MB."
+    };
+
+  }
+
+
+  // ======================================
+  // NORMALIZED PROOF
+  // ======================================
+
+  return {
+    valid: true,
+    proof: {
+      provider: "imagekit",
+      fileId,
+      filePath,
+      url,
+      fileName,
+      contentType,
+      size
+    }
+  };
 
 }
 
 
 // ========================================
-// CONTENT TYPE → EXTENSION
+// PAYMENT PROOF
 // ========================================
 
-function getExtension(
-  contentType
-) {
-
-  switch (
-    contentType
-  ) {
-
-    case "image/jpeg":
-      return "jpg";
-
-    case "image/png":
-      return "png";
-
-    case "image/webp":
-      return "webp";
-
-    case "application/pdf":
-      return "pdf";
-
-    default:
-      return null;
-
-  }
-
-}
-
-
-// ========================================
-// UPLOAD PAYMENT PROOF
-// ========================================
-
-async function uploadPaymentProof(
+async function attachPaymentProof(
   req,
   res,
   decodedToken
@@ -357,13 +497,12 @@ async function uploadPaymentProof(
     decodedToken.uid;
 
 
-  // ========================================
+  // ======================================
   // BODY
-  // ========================================
+  // ======================================
 
   const body =
     getRequestBody(req);
-
 
   if (!body) {
 
@@ -376,17 +515,14 @@ async function uploadPaymentProof(
   }
 
 
-  const {
-    paymentId,
-    fileName,
-    contentType,
-    fileData
-  } = body;
+  // ======================================
+  // PAYMENT ID
+  // ======================================
 
-
-  // ========================================
-  // REQUIRED FIELDS
-  // ========================================
+  const paymentId =
+    normalizeString(
+      body.paymentId
+    );
 
   if (!paymentId) {
 
@@ -399,56 +535,17 @@ async function uploadPaymentProof(
   }
 
 
-  if (!contentType) {
-
-    return errorResponse(
-      res,
-      "contentType es obligatorio.",
-      400
-    );
-
-  }
-
-
-  if (
-    !ALLOWED_CONTENT_TYPES.includes(
-      contentType
-    )
-  ) {
-
-    return errorResponse(
-      res,
-      "El tipo de archivo no está permitido. Usa JPG, PNG, WEBP o PDF.",
-      400
-    );
-
-  }
-
-
-  if (!fileData) {
-
-    return errorResponse(
-      res,
-      "fileData es obligatorio.",
-      400
-    );
-
-  }
-
-
-  // ========================================
+  // ======================================
   // PAYMENT
-  // ========================================
+  // ======================================
 
   const paymentRef =
     adminDb
       .collection("payments")
       .doc(paymentId);
 
-
   const paymentSnapshot =
     await paymentRef.get();
-
 
   if (
     !paymentSnapshot.exists
@@ -462,18 +559,16 @@ async function uploadPaymentProof(
 
   }
 
-
   const payment =
     paymentSnapshot.data();
 
 
-  // ========================================
+  // ======================================
   // OWNERSHIP
-  // ========================================
+  // ======================================
 
   if (
-    payment.accountId !==
-    uid
+    payment.accountId !== uid
   ) {
 
     return errorResponse(
@@ -485,13 +580,12 @@ async function uploadPaymentProof(
   }
 
 
-  // ========================================
+  // ======================================
   // PAYMENT STATUS
-  // ========================================
+  // ======================================
 
   if (
-    payment.status !==
-    "pending"
+    payment.status !== "pending"
   ) {
 
     return errorResponse(
@@ -503,9 +597,9 @@ async function uploadPaymentProof(
   }
 
 
-  // ========================================
+  // ======================================
   // PAYMENT SUBSCRIPTION
-  // ========================================
+  // ======================================
 
   if (
     !payment.subscriptionId
@@ -520,170 +614,41 @@ async function uploadPaymentProof(
   }
 
 
-  // ========================================
-  // DECODE FILE
-  // ========================================
+  // ======================================
+  // IMAGEKIT PROOF
+  // ======================================
 
-  const fileBuffer =
-    getBase64Buffer(
-      fileData
+  const validation =
+    validateImageKitProof(
+      body.proof,
+      uid,
+      paymentId
     );
 
-
-  if (!fileBuffer) {
+  if (
+    !validation.valid
+  ) {
 
     return errorResponse(
       res,
-      "El archivo proporcionado no es válido.",
+      validation.error,
       400
     );
 
   }
 
 
-  // ========================================
-  // FILE SIZE
-  // ========================================
-
-  if (
-    fileBuffer.length >
-    MAX_FILE_SIZE
-  ) {
-
-    return errorResponse(
-      res,
-      "El comprobante no puede superar los 5 MB.",
-      400
-    );
-
-  }
+  const proof =
+    validation.proof;
 
 
-  if (
-    fileBuffer.length ===
-    0
-  ) {
-
-    return errorResponse(
-      res,
-      "El archivo está vacío.",
-      400
-    );
-
-  }
-
-
-  // ========================================
-  // FILE NAME
-  // ========================================
-
-  const extension =
-    getExtension(
-      contentType
-    );
-
-
-  const safeFileName =
-    sanitizeFileName(
-      fileName
-    );
-
-
-  // ========================================
-  // ENSURE CORRECT EXTENSION
-  // ========================================
-
-  let finalFileName =
-    safeFileName;
-
-
-  if (
-    !finalFileName
-      .toLowerCase()
-      .endsWith(
-        `.${extension}`
-      )
-  ) {
-
-    finalFileName =
-      `${finalFileName}.${extension}`;
-
-  }
-
-
-  // ========================================
-  // STORAGE PATH
-  // ========================================
-
-  const storagePath =
-    `payment-proofs/${uid}/${paymentId}/${finalFileName}`;
-
-
-  const bucket =
-    adminStorage.bucket();
-
-
-  const file =
-    bucket.file(
-      storagePath
-    );
-
-
-  // ========================================
-  // UPLOAD
-  // ========================================
-
-  await file.save(
-    fileBuffer,
-    {
-
-      metadata:
-        {
-
-          contentType,
-
-          metadata:
-            {
-
-              paymentId,
-
-              accountId:
-                uid,
-
-              uploadedBy:
-                uid
-
-            }
-
-        },
-
-      resumable:
-        false
-
-    }
-  );
-
-
-  // ========================================
+  // ======================================
   // UPDATE PAYMENT
-  // ========================================
+  // ======================================
 
   await paymentRef.update({
 
-    proof:
-      {
-
-        storagePath,
-
-        fileName:
-          finalFileName,
-
-        contentType,
-
-        size:
-          fileBuffer.length
-
-      },
+    proof,
 
     proofUploadedAt:
       FieldValue.serverTimestamp(),
@@ -694,40 +659,22 @@ async function uploadPaymentProof(
   });
 
 
-  // ========================================
+  // ======================================
   // RESPONSE
-  // ========================================
+  // ======================================
 
   return successResponse(
     res,
     {
+      payment: {
+        id:
+          paymentId,
 
-      payment:
-        {
+        status:
+          payment.status,
 
-          id:
-            paymentId,
-
-          status:
-            payment.status,
-
-          proof:
-            {
-
-              storagePath,
-
-              fileName:
-                finalFileName,
-
-              contentType,
-
-              size:
-                fileBuffer.length
-
-            }
-
-        }
-
+        proof
+      }
     },
     200
   );
@@ -744,13 +691,12 @@ export default async function handler(
   res
 ) {
 
-  // ========================================
+  // ======================================
   // METHOD
-  // ========================================
+  // ======================================
 
   if (
-    req.method !==
-    "POST"
+    req.method !== "POST"
   ) {
 
     res.setHeader(
@@ -769,9 +715,9 @@ export default async function handler(
 
   try {
 
-    // ======================================
+    // ====================================
     // AUTHENTICATE
-    // ======================================
+    // ====================================
 
     const decodedToken =
       await authenticateRequest(
@@ -779,11 +725,11 @@ export default async function handler(
       );
 
 
-    // ======================================
-    // UPLOAD
-    // ======================================
+    // ====================================
+    // ATTACH PROOF
+    // ====================================
 
-    return await uploadPaymentProof(
+    return await attachPaymentProof(
       req,
       res,
       decodedToken
@@ -799,9 +745,9 @@ export default async function handler(
     );
 
 
-    // ======================================
+    // ====================================
     // AUTH ERRORS
-    // ======================================
+    // ====================================
 
     if (
       error.code ===
@@ -820,7 +766,6 @@ export default async function handler(
     if (
       error.code ===
         "auth/argument-error" ||
-
       error.code ===
         "auth/invalid-id-token"
     ) {
@@ -848,13 +793,13 @@ export default async function handler(
     }
 
 
-    // ======================================
+    // ====================================
     // SERVER ERROR
-    // ======================================
+    // ====================================
 
     return errorResponse(
       res,
-      "Ocurrió un error al subir el comprobante.",
+      "Ocurrió un error al registrar el comprobante.",
       500
     );
 

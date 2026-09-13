@@ -17,6 +17,26 @@ import { CompetitionLanding } from "./pages/competitionLanding.js";
 import { CompetitionDetail } from "./pages/competitionDetail.js";
 import { Calendar } from "./pages/calendar.js";
 
+
+// ========================================
+// SESSION
+// ========================================
+
+import {
+  getCurrentSession,
+  initializeSession
+} from "./services/session.js";
+
+
+// ========================================
+// ADMIN ACCESS
+// ========================================
+
+import {
+  getCurrentAdminAccess
+} from "./services/adminAccess.js";
+
+
 // ========================================
 // ADMIN
 // ========================================
@@ -73,6 +93,7 @@ const routes = {
   "/calendar":
     Calendar,
 
+
   // ======================================
   // ADMIN
   // ======================================
@@ -87,7 +108,32 @@ const routes = {
 
 
 // ========================================
-// ROUTE RESOLUTION
+// ADMIN ROUTES
+// ========================================
+
+const ADMIN_ROUTES = new Set([
+
+  "/dashboard/admin",
+  "/dashboard/admin/staff"
+
+]);
+
+
+// ========================================
+// CLIENT DASHBOARD ROUTES
+// ========================================
+
+const CLIENT_DASHBOARD_ROUTES = new Set([
+
+  "/dashboard",
+  "/dashboard/tournaments/new",
+  "/dashboard/tournaments/edit"
+
+]);
+
+
+// ========================================
+// RESOLVE ROUTE
 // ========================================
 
 function resolveRoute(path) {
@@ -142,31 +188,320 @@ function resolveRoute(path) {
 
 
 // ========================================
+// ADMIN ROLE
+// ========================================
+
+function isAdministrativeAccess(
+  adminAccess
+) {
+
+  if (!adminAccess) {
+
+    return false;
+
+  }
+
+
+  return (
+    adminAccess.roleId ===
+      "administrator" ||
+    adminAccess.roleId ===
+      "agent"
+  );
+
+}
+
+
+// ========================================
+// ROUTE GUARD
+// ========================================
+
+async function resolveProtectedPath(
+  path
+) {
+
+  // ----------------------------------------
+  // SESSION
+  // ----------------------------------------
+
+  const session =
+    getCurrentSession();
+
+
+  // ----------------------------------------
+  // ADMIN ROUTES
+  // ----------------------------------------
+
+  if (
+    ADMIN_ROUTES.has(path)
+  ) {
+
+    /*
+     * Las rutas administrativas requieren
+     * una sesión autenticada.
+     */
+
+    if (!session) {
+
+      console.warn(
+        "NEXUS — Ruta administrativa sin sesión."
+      );
+
+
+      return "/login";
+
+    }
+
+
+    /*
+     * Utilizamos el servicio central de
+     * acceso administrativo.
+     *
+     * No duplicamos la lectura de
+     * adminUsers/{uid} aquí.
+     */
+
+    const adminAccess =
+      await getCurrentAdminAccess();
+
+
+    if (
+      !isAdministrativeAccess(
+        adminAccess
+      )
+    ) {
+
+      console.warn(
+        "NEXUS — Acceso administrativo rechazado."
+      );
+
+
+      return "/dashboard";
+
+    }
+
+
+    /*
+     * Usuario administrativo autorizado.
+     */
+
+    return path;
+
+  }
+
+
+  // ----------------------------------------
+  // CLIENT DASHBOARD
+  // ----------------------------------------
+
+  if (
+    CLIENT_DASHBOARD_ROUTES.has(path)
+  ) {
+
+    /*
+     * El dashboard cliente también requiere
+     * una sesión.
+     */
+
+    if (!session) {
+
+      console.warn(
+        "NEXUS — Dashboard cliente sin sesión."
+      );
+
+
+      return "/login";
+
+    }
+
+
+    /*
+     * Comprobamos si realmente se trata de
+     * una cuenta administrativa.
+     */
+
+    const adminAccess =
+      await getCurrentAdminAccess();
+
+
+    if (
+      isAdministrativeAccess(
+        adminAccess
+      )
+    ) {
+
+      console.log(
+        "NEXUS — Cuenta administrativa detectada. Redirigiendo al Admin Dashboard."
+      );
+
+
+      return "/dashboard/admin";
+
+    }
+
+
+    /*
+     * Usuario cliente.
+     */
+
+    return path;
+
+  }
+
+
+  // ----------------------------------------
+  // PUBLIC / NON-PROTECTED
+  // ----------------------------------------
+
+  return path;
+
+}
+
+
+// ========================================
 // ROUTER
 // ========================================
 
 export function Router(app) {
 
-  function renderRoute() {
-
-    const path =
-      window.location.pathname;
+  let isRendering =
+    false;
 
 
-    const Page =
-      resolveRoute(path);
+  async function renderRoute() {
+
+    /*
+     * Evitamos renderizados simultáneos
+     * provocados por navegaciones rápidas.
+     */
+
+    if (isRendering) {
+
+      return;
+
+    }
 
 
-    app.innerHTML = "";
+    isRendering =
+      true;
 
 
-    const page =
-      Page();
+    try {
+
+      const requestedPath =
+        window.location.pathname;
 
 
-    app.appendChild(
-      page
-    );
+      // ====================================
+      // ROUTE GUARD
+      // ====================================
+
+      const resolvedPath =
+        await resolveProtectedPath(
+          requestedPath
+        );
+
+
+      // ====================================
+      // REDIRECT
+      // ====================================
+
+      if (
+        resolvedPath !==
+        requestedPath
+      ) {
+
+        console.log(
+          "NEXUS — Redirección protegida:",
+          {
+            from:
+              requestedPath,
+
+            to:
+              resolvedPath
+          }
+        );
+
+
+        window.history.replaceState(
+          {},
+          "",
+          resolvedPath
+        );
+
+      }
+
+
+      // ====================================
+      // PAGE
+      // ====================================
+
+      const Page =
+        resolveRoute(
+          resolvedPath
+        );
+
+
+      // ====================================
+      // RENDER
+      // ====================================
+
+      app.innerHTML =
+        "";
+
+
+      const page =
+        Page();
+
+
+      app.appendChild(
+        page
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "NEXUS — Error resolviendo ruta:",
+        error
+      );
+
+
+      /*
+       * En caso de error inesperado,
+       * mostramos Home en lugar de dejar
+       * la aplicación completamente vacía.
+       */
+
+      try {
+
+        app.innerHTML =
+          "";
+
+
+        const page =
+          Home();
+
+
+        app.appendChild(
+          page
+        );
+
+      } catch (fallbackError) {
+
+        console.error(
+          "NEXUS — Error renderizando fallback:",
+          fallbackError
+        );
+
+      }
+
+    } finally {
+
+      isRendering =
+        false;
+
+    }
 
   }
 
@@ -200,14 +535,40 @@ export function Router(app) {
 
 
   // ========================================
-  // INITIAL RENDER
+  // INITIAL SESSION
   // ========================================
 
-  renderRoute();
+  initializeSession()
+    .then(
+      () => {
 
+        renderRoute();
+
+      }
+    )
+    .catch(
+      (error) => {
+
+        console.error(
+          "NEXUS — Error inicializando sesión:",
+          error
+        );
+
+
+        renderRoute();
+
+      }
+    );
+
+
+  // ========================================
+  // RETURN
+  // ========================================
 
   return {
+
     navigate
+
   };
 
 }

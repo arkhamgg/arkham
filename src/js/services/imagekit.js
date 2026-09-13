@@ -6,6 +6,10 @@ import {
   upload
 } from "@imagekit/javascript";
 
+import {
+  getAuth
+} from "firebase/auth";
+
 
 // ========================================
 // CONFIGURATION
@@ -19,27 +23,115 @@ const IMAGEKIT_URL_ENDPOINT =
 
 
 // ========================================
+// FIREBASE AUTH
+// ========================================
+
+const firebaseAuth =
+  getAuth();
+
+
+// ========================================
 // GET AUTHENTICATION PARAMETERS
 // ========================================
 
 async function getAuthenticationParameters() {
 
-  const response =
-    await fetch(
-      "/api/imagekit-auth"
-    );
+  // ======================================
+  // CURRENT USER
+  // ======================================
 
+  const user =
+    firebaseAuth.currentUser;
 
-  if (!response.ok) {
+  if (!user) {
 
     throw new Error(
-      "No fue posible obtener la autenticación de ImageKit."
+      "Debes iniciar sesión para utilizar ImageKit."
     );
 
   }
 
 
-  return response.json();
+  // ======================================
+  // FIREBASE ID TOKEN
+  // ======================================
+
+  const idToken =
+    await user.getIdToken();
+
+
+  // ======================================
+  // REQUEST
+  // ======================================
+
+  const response =
+    await fetch(
+      "/api/imagekit-auth",
+      {
+        method:
+          "GET",
+
+        headers: {
+          Authorization:
+            `Bearer ${idToken}`
+        }
+      }
+    );
+
+
+  // ======================================
+  // RESPONSE VALIDATION
+  // ======================================
+
+  if (!response.ok) {
+
+    let message =
+      "No fue posible obtener la autenticación de ImageKit.";
+
+    try {
+
+      const data =
+        await response.json();
+
+      if (
+        data?.error
+      ) {
+
+        message =
+          data.error;
+
+      }
+
+    } catch {
+
+      // Mantener mensaje genérico.
+
+    }
+
+
+    throw new Error(
+      message
+    );
+
+  }
+
+
+  const authenticationParameters =
+    await response.json();
+
+
+  if (
+    !authenticationParameters?.success
+  ) {
+
+    throw new Error(
+      "La autenticación de ImageKit no fue válida."
+    );
+
+  }
+
+
+  return authenticationParameters;
 
 }
 
@@ -53,9 +145,9 @@ export async function uploadImage(
   options = {}
 ) {
 
-  // ========================================
+  // ======================================
   // VALIDATE FILE
-  // ========================================
+  // ======================================
 
   if (!file) {
 
@@ -66,9 +158,9 @@ export async function uploadImage(
   }
 
 
-  // ========================================
+  // ======================================
   // VALIDATE CONFIGURATION
-  // ========================================
+  // ======================================
 
   if (!IMAGEKIT_PUBLIC_KEY) {
 
@@ -88,25 +180,37 @@ export async function uploadImage(
   }
 
 
-  // ========================================
+  // ======================================
   // GET AUTHENTICATION
-  // ========================================
+  // ======================================
 
   const authenticationParameters =
     await getAuthenticationParameters();
 
 
-  // ========================================
+  // ======================================
+  // UPLOAD OPTIONS
+  // ======================================
+
+  const fileName =
+    options.fileName ||
+    file.name;
+
+  const folder =
+    options.folder ||
+    "/nexus";
+
+
+  // ======================================
   // UPLOAD
-  // ========================================
+  // ======================================
 
   const result =
     await upload({
+
       file,
 
-      fileName:
-        options.fileName ||
-        file.name,
+      fileName,
 
       publicKey:
         IMAGEKIT_PUBLIC_KEY,
@@ -123,19 +227,137 @@ export async function uploadImage(
       signature:
         authenticationParameters.signature,
 
-      folder:
-        options.folder ||
-        "/nexus",
+      folder,
 
       useUniqueFileName:
         true
+
     });
 
 
-  // ========================================
+  // ======================================
   // RESULT
-  // ========================================
+  // ======================================
 
   return result;
+
+}
+
+
+// ========================================
+// UPLOAD PAYMENT PROOF
+// ========================================
+//
+// Sube un comprobante directamente a
+// ImageKit utilizando una ruta asociada
+// al usuario y al pago.
+//
+// Ruta:
+//
+// /nexus/payment-proofs/{uid}/{paymentId}/
+//
+
+export async function uploadPaymentProof(
+  file,
+  uid,
+  paymentId
+) {
+
+  // ======================================
+  // VALIDATE USER
+  // ======================================
+
+  if (!uid) {
+
+    throw new Error(
+      "uid es obligatorio para subir el comprobante."
+    );
+
+  }
+
+
+  // ======================================
+  // VALIDATE PAYMENT
+  // ======================================
+
+  if (!paymentId) {
+
+    throw new Error(
+      "paymentId es obligatorio para subir el comprobante."
+    );
+
+  }
+
+
+  // ======================================
+  // VALIDATE FILE
+  // ======================================
+
+  if (!file) {
+
+    throw new Error(
+      "No se proporcionó ningún comprobante."
+    );
+
+  }
+
+
+  // ======================================
+  // PAYMENT PROOF FOLDER
+  // ======================================
+
+  const folder =
+    `/nexus/payment-proofs/${uid}/${paymentId}`;
+
+
+  // ======================================
+  // UPLOAD
+  // ======================================
+
+  const result =
+    await uploadImage(
+      file,
+      {
+        folder
+      }
+    );
+
+
+  // ======================================
+  // RETURN NORMALIZED DATA
+  // ======================================
+
+  return {
+
+    provider:
+      "imagekit",
+
+    fileId:
+      result.fileId ||
+      null,
+
+    filePath:
+      result.filePath ||
+      null,
+
+    url:
+      result.url ||
+      null,
+
+    fileName:
+      result.name ||
+      file.name,
+
+    contentType:
+      result.fileType ||
+      file.type ||
+      null,
+
+    size:
+      result.size ||
+      file.size ||
+      null
+
+  };
 
 }

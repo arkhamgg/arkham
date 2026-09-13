@@ -1,0 +1,1181 @@
+@use "../abstracts/variables" as *;
+
+
+// ========================================
+// PAGE
+// ========================================
+
+.admin-payments-page {
+
+  width: 100%;
+  min-height: 100vh;
+
+  background:
+    $color-black;
+
+  color:
+    $color-white;
+
+}
+
+
+// ========================================
+// CONTAINER
+// ========================================
+
+.admin-payments {
+
+  width: 100%;
+  max-width: 1440px;
+
+  margin: 0 auto;
+
+  padding:
+    $space-8
+    $space-6
+    $space-12;
+
+}
+
+
+// ========================================
+// HEADER
+// ========================================
+
+.admin-payments__header {
+
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap:
+    $space-6;
+
+  padding-bottom:
+    $space-8;
+
+  border-bottom:
+    1px solid $color-800;
+
+}
+
+
+.admin-payments__heading {
+
+  min-width: 0;
+
+}
+
+
+.admin-payments__eyebrow {
+
+  display: block;
+
+  margin-bottom:
+    $space-2;
+
+  color:
+    $color-500;
+
+  font-size:
+    0.65rem;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.14em;
+
+  text-transform:
+    uppercase;
+
+}
+
+
+.admin-payments__heading h1 {
+
+  margin:
+    0;
+
+  color:
+    $color-white;
+
+  font-size:
+    clamp(
+      2rem,
+      4vw,
+      3rem
+    );
+
+  font-weight:
+    700;
+
+  line-height:
+    1.05;
+
+  letter-spacing:
+    -0.04em;
+
+}
+
+
+.admin-payments__heading p {
+
+  max-width:
+    620px;
+
+  margin:
+    $space-3
+    0
+    0;
+
+  color:
+    $color-300;
+
+  font-size:
+    $font-size-sm;
+
+  line-height:
+    1.6;
+
+}
+
+
+// ========================================
+// HEADER ACTIONS
+// ========================================
+
+.admin-payments__header-actions {
+
+  display: flex;
+
+  align-items: center;
+
+  flex-shrink: 0;
+
+}
+
+
+.admin-payments__refresh {
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap:
+    $space-2;
+
+  min-height:
+    42px;
+
+  padding:
+    0
+    $space-4;
+
+  border:
+    1px solid $color-700;
+
+  border-radius:
+    4px;
+
+  background:
+    $color-900;
+
+  color:
+    $color-100;
+
+  font-family:
+    $font-family-base;
+
+  font-size:
+    $font-size-sm;
+
+  font-weight:
+    600;
+
+  cursor:
+    pointer;
+
+  transition:
+    background $transition-base $ease-standard,
+    border-color $transition-base $ease-standard,
+    color $transition-base $ease-standard;
+
+}
+
+
+.admin-payments__refresh:hover {
+
+  border-color:
+    $color-500;
+
+  background:
+    $color-800;
+
+  color:
+    $color-white;
+
+}
+
+
+// ========================================
+// MESSAGE
+// ========================================
+
+.admin-payments__message {
+
+  min-height:
+    0;
+
+}
+
+
+.admin-payments__message-box {
+
+  display: flex;
+
+  align-items: center;
+
+  gap:
+    $space-3;
+
+  margin-top:
+    $space-6;
+
+  padding:
+    $space-4;
+
+  border:
+    1px solid $color-800;
+
+  background:
+    $color-900;
+
+  color:
+    $color-100;
+
+  font-size:
+    $font-size-sm;
+
+}
+
+
+.admin-payments__message-box--error {
+
+  border-color:
+    $color-700;
+
+}
+
+
+// ========================================
+// SUMMARY
+// ========================================
+
+.admin-payments__summary {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap:
+    $space-4;
+
+  margin-top:
+    $space-6;
+
+}
+
+
+.admin-payments__summary-card {
+
+  display: flex;
+
+  align-items: center;
+
+  gap:
+    $space-4;
+
+  min-width:
+    0;
+
+  min-height:
+    100px;
+
+  padding:
+    $space-5;
+
+  border:
+    1px solid $color-800;
+
+  background:
+    $color-900;
+
+}
+
+
+.admin-payments__summary-icon {
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width:
+    42px;
+
+  height:
+    42px;
+
+  border:
+    1px solid $color-700;
+
+  background:
+    $color-800;
+
+  color:
+    $color-300;
+
+}
+
+
+.admin-payments__summary-card > div:last-child {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap:
+    $space-1;
+
+  min-width:
+    0;
+
+}
+
+
+.admin-payments__summary-card span {
+
+  color:
+    $color-500;
+
+  font-size:
+    0.65rem;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.1em;
+
+}
+
+
+.admin-payments__summary-card strong {
+
+  color:
+    $color-white;
+
+  font-size:
+    1.65rem;
+
+  font-weight:
+    700;
+
+  line-height:
+    1;
+
+}
+
+
+// ========================================
+// TOOLBAR
+// ========================================
+
+.admin-payments__toolbar {
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap:
+    $space-5;
+
+  margin-top:
+    $space-8;
+
+  padding-bottom:
+    $space-4;
+
+  border-bottom:
+    1px solid $color-800;
+
+}
+
+
+.admin-payments__filters {
+
+  display: flex;
+
+  align-items: center;
+
+  gap:
+    $space-1;
+
+  flex-wrap:
+    wrap;
+
+}
+
+
+.admin-payments__filter {
+
+  min-height:
+    38px;
+
+  padding:
+    0
+    $space-3;
+
+  border:
+    1px solid transparent;
+
+  background:
+    transparent;
+
+  color:
+    $color-500;
+
+  font-family:
+    $font-family-base;
+
+  font-size:
+    $font-size-xs;
+
+  font-weight:
+    600;
+
+  cursor:
+    pointer;
+
+  transition:
+    color $transition-base $ease-standard,
+    background $transition-base $ease-standard,
+    border-color $transition-base $ease-standard;
+
+}
+
+
+.admin-payments__filter:hover {
+
+  color:
+    $color-100;
+
+}
+
+
+.admin-payments__filter.is-active {
+
+  border-color:
+    $color-700;
+
+  background:
+    $color-800;
+
+  color:
+    $color-white;
+
+}
+
+
+// ========================================
+// SEARCH
+// ========================================
+
+.admin-payments__search {
+
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  width:
+    min(
+      100%,
+      340px
+    );
+
+}
+
+
+.admin-payments__search i {
+
+  position: absolute;
+
+  left:
+    $space-3;
+
+  color:
+    $color-500;
+
+  pointer-events:
+    none;
+
+}
+
+
+.admin-payments__search input {
+
+  width: 100%;
+
+  min-height:
+    40px;
+
+  padding:
+    0
+    $space-3
+    0
+    $space-10;
+
+  border:
+    1px solid $color-800;
+
+  border-radius:
+    4px;
+
+  outline:
+    none;
+
+  background:
+    $color-900;
+
+  color:
+    $color-white;
+
+  font-family:
+    $font-family-base;
+
+  font-size:
+    $font-size-xs;
+
+  transition:
+    border-color $transition-base $ease-standard,
+    background $transition-base $ease-standard;
+
+}
+
+
+.admin-payments__search input::placeholder {
+
+  color:
+    $color-500;
+
+}
+
+
+.admin-payments__search input:focus {
+
+  border-color:
+    $color-500;
+
+  background:
+    $color-800;
+
+}
+
+
+// ========================================
+// CONTENT
+// ========================================
+
+.admin-payments__content {
+
+  margin-top:
+    $space-6;
+
+}
+
+
+.admin-payments__table-wrapper {
+
+  width: 100%;
+
+  overflow-x:
+    auto;
+
+  border:
+    1px solid $color-800;
+
+  background:
+    $color-900;
+
+}
+
+
+// ========================================
+// LOADING
+// ========================================
+
+.admin-payments__loading {
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  min-height:
+    320px;
+
+  padding:
+    $space-8;
+
+  text-align:
+    center;
+
+}
+
+
+.admin-payments__loading-icon {
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width:
+    44px;
+
+  height:
+    44px;
+
+  margin-bottom:
+    $space-4;
+
+  color:
+    $color-300;
+
+  font-size:
+    1.1rem;
+
+}
+
+
+.admin-payments__loading strong {
+
+  color:
+    $color-white;
+
+  font-size:
+    $font-size-sm;
+
+}
+
+
+.admin-payments__loading span {
+
+  margin-top:
+    $space-2;
+
+  color:
+    $color-500;
+
+  font-size:
+    $font-size-xs;
+
+}
+
+
+// ========================================
+// EMPTY
+// ========================================
+
+.admin-payments__empty {
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  min-height:
+    320px;
+
+  padding:
+    $space-8;
+
+  text-align:
+    center;
+
+}
+
+
+.admin-payments__empty-icon {
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width:
+    52px;
+
+  height:
+    52px;
+
+  margin-bottom:
+    $space-5;
+
+  border:
+    1px solid $color-800;
+
+  background:
+    $color-800;
+
+  color:
+    $color-500;
+
+  font-size:
+    1.1rem;
+
+}
+
+
+.admin-payments__empty h2 {
+
+  margin:
+    0;
+
+  color:
+    $color-white;
+
+  font-size:
+    1rem;
+
+  font-weight:
+    600;
+
+}
+
+
+.admin-payments__empty p {
+
+  max-width:
+    460px;
+
+  margin:
+    $space-2
+    0
+    0;
+
+  color:
+    $color-500;
+
+  font-size:
+    $font-size-xs;
+
+  line-height:
+    1.6;
+
+}
+
+// ========================================
+// PAYMENT STATUS
+// ========================================
+
+.admin-payments__status {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  min-height:
+    28px;
+
+  padding:
+    0
+    $space-2;
+
+  border:
+    1px solid $color-700;
+
+  background:
+    $color-800;
+
+  color:
+    $color-300;
+
+  font-size:
+    0.65rem;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.03em;
+
+  white-space:
+    nowrap;
+
+}
+
+
+.admin-payments__status--pending {
+
+  color:
+    $color-100;
+
+}
+
+
+.admin-payments__status--under_review {
+
+  color:
+    $color-white;
+
+}
+
+
+.admin-payments__status--approved {
+
+  border-color:
+    $color-500;
+
+  color:
+    $color-white;
+
+}
+
+
+.admin-payments__status--rejected {
+
+  color:
+    $color-300;
+
+}
+
+
+.admin-payments__status--expired {
+
+  color:
+    $color-500;
+
+}
+
+
+// ========================================
+// TABLE ACCOUNT
+// ========================================
+
+.admin-payments__table td strong {
+
+  display: block;
+
+  color:
+    $color-white;
+
+  font-weight:
+    600;
+
+}
+
+
+.admin-payments__table td small {
+
+  display: block;
+
+  margin-top:
+    3px;
+
+  color:
+    $color-500;
+
+  font-size:
+    0.65rem;
+
+}
+
+
+// ========================================
+// TABLE HOVER
+// ========================================
+
+.admin-payments__table tbody tr {
+
+  transition:
+    background $transition-base $ease-standard;
+
+}
+
+
+.admin-payments__table tbody tr:hover {
+
+  background:
+    $color-800;
+
+}
+// ========================================
+// TABLE — FUTURE DATA
+// ========================================
+
+.admin-payments__table {
+
+  width: 100%;
+
+  border-collapse:
+    collapse;
+
+}
+
+
+.admin-payments__table th {
+
+  padding:
+    $space-4;
+
+  border-bottom:
+    1px solid $color-800;
+
+  color:
+    $color-500;
+
+  font-size:
+    0.65rem;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.08em;
+
+  text-align:
+    left;
+
+  text-transform:
+    uppercase;
+
+  white-space:
+    nowrap;
+
+}
+
+
+.admin-payments__table td {
+
+  padding:
+    $space-4;
+
+  border-bottom:
+    1px solid $color-800;
+
+  color:
+    $color-300;
+
+  font-size:
+    $font-size-xs;
+
+  vertical-align:
+    middle;
+
+}
+
+
+.admin-payments__table tr:last-child td {
+
+  border-bottom:
+    none;
+
+}
+
+
+// ========================================
+// RESPONSIVE — TABLET
+// ========================================
+
+@media (max-width: 1000px) {
+
+  .admin-payments__summary {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+  }
+
+
+  .admin-payments__toolbar {
+
+    align-items:
+      stretch;
+
+    flex-direction:
+      column;
+
+  }
+
+
+  .admin-payments__search {
+
+    width:
+      100%;
+
+  }
+
+}
+
+
+// ========================================
+// RESPONSIVE — MOBILE
+// ========================================
+
+@media (max-width: 700px) {
+
+  .admin-payments {
+
+    padding:
+      $space-6
+      $space-4
+      $space-8;
+
+  }
+
+
+  .admin-payments__header {
+
+    align-items:
+      stretch;
+
+    flex-direction:
+      column;
+
+  }
+
+
+  .admin-payments__header-actions {
+
+    width:
+      100%;
+
+  }
+
+
+  .admin-payments__refresh {
+
+    width:
+      100%;
+
+  }
+
+
+  .admin-payments__summary {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .admin-payments__filters {
+
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    width:
+      100%;
+
+  }
+
+
+  .admin-payments__filter {
+
+    width:
+      100%;
+
+  }
+
+}
+
+
+// ========================================
+// SMALL MOBILE
+// ========================================
+
+@media (max-width: 480px) {
+
+  .admin-payments {
+
+    padding:
+      $space-5
+      $space-3
+      $space-6;
+
+  }
+
+
+  .admin-payments__heading h1 {
+
+    font-size:
+      2rem;
+
+  }
+
+
+  .admin-payments__heading p {
+
+    font-size:
+      $font-size-xs;
+
+  }
+
+
+  .admin-payments__summary-card {
+
+    min-height:
+      88px;
+
+    padding:
+      $space-4;
+
+  }
+
+
+  .admin-payments__summary-icon {
+
+    width:
+      38px;
+
+    height:
+      38px;
+
+  }
+
+}

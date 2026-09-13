@@ -10,6 +10,10 @@ import {
   waitForAuthenticatedSession
 } from "../services/session.js";
 
+import {
+  getCurrentAdminAccess
+} from "../services/adminAccess.js";
+
 
 // ========================================
 // PAGE
@@ -25,19 +29,113 @@ export function Login() {
 
 
   // ========================================
+  // RESOLVE DASHBOARD
+  // ========================================
+
+  async function resolveDashboardPath() {
+
+    // ----------------------------------------
+    // ADMIN ACCESS
+    // ----------------------------------------
+
+    const adminAccess =
+      await getCurrentAdminAccess();
+
+
+    if (
+      adminAccess &&
+      (
+        adminAccess.roleId === "administrator" ||
+        adminAccess.roleId === "agent"
+      )
+    ) {
+
+      return "/dashboard/admin";
+
+    }
+
+
+    // ----------------------------------------
+    // CLIENT DASHBOARD
+    // ----------------------------------------
+
+    return "/dashboard";
+
+  }
+
+
+  // ========================================
+  // NAVIGATE
+  // ========================================
+
+  async function navigateAuthenticatedUser(
+    replace = false
+  ) {
+
+    const destination =
+      await resolveDashboardPath();
+
+
+    console.log(
+      "NEXUS — Dashboard de destino:",
+      destination
+    );
+
+
+    const currentPath =
+      window.location.pathname;
+
+
+    if (
+      currentPath ===
+      destination
+    ) {
+
+      return;
+
+    }
+
+
+    if (replace) {
+
+      window.history.replaceState(
+        {},
+        "",
+        destination
+      );
+
+    } else {
+
+      window.history.pushState(
+        {},
+        "",
+        destination
+      );
+
+    }
+
+
+    window.dispatchEvent(
+      new PopStateEvent("popstate")
+    );
+
+  }
+
+
+  // ========================================
   // SESSION GUARD
   // ========================================
 
   initializeSession()
     .then(
-      () => {
+      async () => {
 
         const currentSession =
           getCurrentSession();
 
 
         // ========================================
-        // ALREADY AUTHENTICATED
+        // NO AUTHENTICATED SESSION
         // ========================================
 
         if (!currentSession) {
@@ -48,22 +146,20 @@ export function Login() {
 
 
         // ========================================
-        // REDIRECT TO DASHBOARD
+        // ALREADY AUTHENTICATED
         // ========================================
 
-        if (
-          window.location.pathname !==
-          "/dashboard"
-        ) {
+        try {
 
-          window.history.replaceState(
-            {},
-            "",
-            "/dashboard"
+          await navigateAuthenticatedUser(
+            true
           );
 
-          window.dispatchEvent(
-            new PopStateEvent("popstate")
+        } catch (error) {
+
+          console.error(
+            "NEXUS — Error determinando dashboard:",
+            error
           );
 
         }
@@ -392,19 +488,10 @@ export function Login() {
 
 
         // ========================================
-        // NAVIGATE TO DASHBOARD
+        // NAVIGATE TO CORRECT DASHBOARD
         // ========================================
 
-        window.history.pushState(
-          {},
-          "",
-          "/dashboard"
-        );
-
-
-        window.dispatchEvent(
-          new PopStateEvent("popstate")
-        );
+        await navigateAuthenticatedUser();
 
 
       } catch (error) {

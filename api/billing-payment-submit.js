@@ -31,12 +31,15 @@ const adminDb =
 
 
 // ========================================
-// PAYMENT STATUS
+// CONSTANTS
 // ========================================
 
 const PAYMENT_STATUS = {
   PENDING: "pending",
-  UNDER_REVIEW: "under_review"
+  UNDER_REVIEW: "under_review",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+  EXPIRED: "expired"
 };
 
 
@@ -114,12 +117,14 @@ async function authenticateRequest(
   const token =
     getBearerToken(req);
 
-
   if (!token) {
 
-    throw new Error(
-      "AUTH_TOKEN_MISSING"
-    );
+    const error =
+      new Error(
+        "AUTH_TOKEN_MISSING"
+      );
+
+    throw error;
 
   }
 
@@ -173,6 +178,106 @@ function getRequestBody(
 
 
 // ========================================
+// IMAGEKIT PROOF VALIDATION
+// ========================================
+
+function isValidImageKitProof(
+  proof
+) {
+
+  if (
+    !proof ||
+    typeof proof !== "object"
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    proof.provider !==
+    "imagekit"
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    typeof proof.fileId !==
+      "string" ||
+    !proof.fileId.trim()
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    typeof proof.filePath !==
+      "string" ||
+    !proof.filePath.trim()
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    typeof proof.url !==
+      "string" ||
+    !proof.url.trim()
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    typeof proof.fileName !==
+      "string" ||
+    !proof.fileName.trim()
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    typeof proof.contentType !==
+      "string" ||
+    !proof.contentType.trim()
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    !Number.isFinite(
+      Number(proof.size)
+    ) ||
+    Number(proof.size) <= 0
+  ) {
+
+    return false;
+
+  }
+
+
+  return true;
+
+}
+
+
+// ========================================
 // SUBMIT PAYMENT
 // ========================================
 
@@ -210,7 +315,13 @@ async function submitPayment(
   } = body;
 
 
-  if (!paymentId) {
+  // ========================================
+  // REQUIRED FIELD
+  // ========================================
+
+  if (
+    !paymentId
+  ) {
 
     return errorResponse(
       res,
@@ -253,7 +364,7 @@ async function submitPayment(
 
 
   // ========================================
-  // OWNERSHIP
+  // PAYMENT OWNERSHIP
   // ========================================
 
   if (
@@ -263,7 +374,7 @@ async function submitPayment(
 
     return errorResponse(
       res,
-      "Este pago no pertenece a tu cuenta.",
+      "El pago no pertenece a esta cuenta.",
       403
     );
 
@@ -281,7 +392,7 @@ async function submitPayment(
 
     return errorResponse(
       res,
-      "El pago no está disponible para envío a revisión.",
+      "El pago no puede ser enviado a revisión desde su estado actual.",
       409
     );
 
@@ -289,7 +400,7 @@ async function submitPayment(
 
 
   // ========================================
-  // REQUIRED PAYMENT DATA
+  // REQUIRED PAYMENT CONTEXT
   // ========================================
 
   if (
@@ -299,7 +410,7 @@ async function submitPayment(
     return errorResponse(
       res,
       "El pago no tiene una suscripción asociada.",
-      400
+      409
     );
 
   }
@@ -311,38 +422,67 @@ async function submitPayment(
 
     return errorResponse(
       res,
-      "El pago no tiene un plan objetivo asociado.",
-      400
-    );
-
-  }
-
-
-  // ========================================
-  // PROOF
-  // ========================================
-
-  if (
-    !payment.proof
-  ) {
-
-    return errorResponse(
-      res,
-      "Debes adjuntar el comprobante de pago antes de enviarlo a revisión.",
-      400
+      "El pago no tiene un plan objetivo.",
+      409
     );
 
   }
 
 
   if (
-    !payment.proof.storagePath
+    !payment.currentPlanId
   ) {
 
     return errorResponse(
       res,
-      "El comprobante de pago no tiene una referencia válida.",
-      400
+      "El pago no tiene registrado el plan actual de la suscripción.",
+      409
+    );
+
+  }
+
+
+  if (
+    !payment.amount ||
+    Number(payment.amount) <= 0
+  ) {
+
+    return errorResponse(
+      res,
+      "El pago no tiene un monto válido.",
+      409
+    );
+
+  }
+
+
+  if (
+    !payment.method
+  ) {
+
+    return errorResponse(
+      res,
+      "El pago no tiene un método de pago válido.",
+      409
+    );
+
+  }
+
+
+  // ========================================
+  // PAYMENT PROOF
+  // ========================================
+
+  if (
+    !isValidImageKitProof(
+      payment.proof
+    )
+  ) {
+
+    return errorResponse(
+      res,
+      "El comprobante de pago no tiene una referencia válida de ImageKit.",
+      409
     );
 
   }
@@ -370,7 +510,7 @@ async function submitPayment(
 
     return errorResponse(
       res,
-      "La suscripción asociada no existe.",
+      "La suscripción asociada al pago no existe.",
       404
     );
 
@@ -382,17 +522,49 @@ async function submitPayment(
 
 
   // ========================================
-  // ACCOUNT CONSISTENCY
+  // SUBSCRIPTION OWNERSHIP
   // ========================================
 
   if (
     subscription.accountId !==
-    payment.accountId
+    uid
   ) {
 
     return errorResponse(
       res,
-      "La cuenta del pago y la suscripción no coinciden.",
+      "La suscripción no pertenece a esta cuenta.",
+      403
+    );
+
+  }
+
+
+  // ========================================
+  // CURRENT PLAN VALIDATION
+  // ========================================
+  //
+  // payment.currentPlanId representa
+  // el plan que tenía la suscripción
+  // cuando se creó el pago.
+  //
+  // subscription.planId representa
+  // el plan actual de la suscripción.
+  //
+  // Si son diferentes, significa que
+  // la suscripción cambió después de
+  // crear el pago.
+  //
+  // En ese caso no permitimos continuar.
+  //
+
+  if (
+    subscription.planId !==
+    payment.currentPlanId
+  ) {
+
+    return errorResponse(
+      res,
+      "La suscripción cambió de plan después de crear este pago. Debes generar un nuevo pago.",
       409
     );
 
@@ -400,29 +572,17 @@ async function submitPayment(
 
 
   // ========================================
-  // CURRENT PLAN CONSISTENCY
-  // ========================================
-  //
-  // payment.currentPlanId =
-  // plan que tenía la cuenta al crear
-  // el pago.
-  //
-  // subscription.planId =
-  // plan actual de la suscripción.
-  //
-  // Si cambió entretanto, el pago
-  // queda obsoleto y no debe continuar.
+  // SUBSCRIPTION STATUS
   // ========================================
 
   if (
-    payment.currentPlanId &&
-    payment.currentPlanId !==
-      subscription.planId
+    subscription.status ===
+    "cancelled"
   ) {
 
     return errorResponse(
       res,
-      "La suscripción cambió después de crear este pago. Debes crear un nuevo pago.",
+      "No se puede enviar a revisión un pago asociado a una suscripción cancelada.",
       409
     );
 
@@ -432,45 +592,284 @@ async function submitPayment(
   // ========================================
   // TARGET PLAN VALIDATION
   // ========================================
+  //
+  // Upgrade:
+  //
+  // free → pro
+  //
+  // Renewal:
+  //
+  // pro → pro
+  //
+
+  const isInitialUpgrade =
+    payment.currentPlanId === "free" &&
+    payment.planId === "pro";
+
+
+  const isProRenewal =
+    payment.currentPlanId === "pro" &&
+    payment.planId === "pro";
+
 
   if (
-    payment.planId ===
-    "free"
+    !isInitialUpgrade &&
+    !isProRenewal
   ) {
 
     return errorResponse(
       res,
-      "No se puede enviar un pago para activar el plan Free.",
-      400
+      `La transición ${payment.currentPlanId} → ${payment.planId} no está disponible.`,
+      409
     );
 
   }
 
 
   // ========================================
-  // TIMESTAMP
+  // RENEWAL PLAN VALIDATION
   // ========================================
+  //
+  // En una renovación el plan objetivo
+  // debe ser exactamente el plan actual.
+  //
 
-  const now =
-    new Date();
+  if (
+    isProRenewal &&
+    payment.planId !==
+    subscription.planId
+  ) {
+
+    return errorResponse(
+      res,
+      "El plan del pago no coincide con el plan actual de la suscripción.",
+      409
+    );
+
+  }
 
 
   // ========================================
-  // SUBMIT FOR REVIEW
+  // TRANSACTION
   // ========================================
+  //
+  // Volvemos a leer el pago dentro de
+  // una transacción para evitar que dos
+  // solicitudes intenten enviarlo a
+  // revisión simultáneamente.
+  //
 
-  await paymentRef.update({
+  const transactionResult =
+    await adminDb.runTransaction(
+      async transaction => {
 
-    status:
-      PAYMENT_STATUS.UNDER_REVIEW,
+        const freshPaymentSnapshot =
+          await transaction.get(
+            paymentRef
+          );
 
-    submittedAt:
-      FieldValue.serverTimestamp(),
 
-    updatedAt:
-      FieldValue.serverTimestamp()
+        if (
+          !freshPaymentSnapshot.exists
+        ) {
 
-  });
+          throw new Error(
+            "PAYMENT_NOT_FOUND"
+          );
+
+        }
+
+
+        const freshPayment =
+          freshPaymentSnapshot.data();
+
+
+        // ==================================
+        // OWNERSHIP
+        // ==================================
+
+        if (
+          freshPayment.accountId !==
+          uid
+        ) {
+
+          throw new Error(
+            "PAYMENT_NOT_OWNER"
+          );
+
+        }
+
+
+        // ==================================
+        // STATUS
+        // ==================================
+
+        if (
+          freshPayment.status !==
+          PAYMENT_STATUS.PENDING
+        ) {
+
+          throw new Error(
+            "PAYMENT_NOT_PENDING"
+          );
+
+        }
+
+
+        // ==================================
+        // PROOF
+        // ==================================
+
+        if (
+          !isValidImageKitProof(
+            freshPayment.proof
+          )
+        ) {
+
+          throw new Error(
+            "PAYMENT_PROOF_MISSING"
+          );
+
+        }
+
+
+        // ==================================
+        // SUBSCRIPTION
+        // ==================================
+
+        const freshSubscriptionSnapshot =
+          await transaction.get(
+            subscriptionRef
+          );
+
+
+        if (
+          !freshSubscriptionSnapshot.exists
+        ) {
+
+          throw new Error(
+            "SUBSCRIPTION_NOT_FOUND"
+          );
+
+        }
+
+
+        const freshSubscription =
+          freshSubscriptionSnapshot.data();
+
+
+        // ==================================
+        // SUBSCRIPTION OWNERSHIP
+        // ==================================
+
+        if (
+          freshSubscription.accountId !==
+          uid
+        ) {
+
+          throw new Error(
+            "SUBSCRIPTION_NOT_OWNER"
+          );
+
+        }
+
+
+        // ==================================
+        // STALE PAYMENT PROTECTION
+        // ==================================
+
+        if (
+          freshSubscription.planId !==
+          freshPayment.currentPlanId
+        ) {
+
+          throw new Error(
+            "SUBSCRIPTION_PLAN_CHANGED"
+          );
+
+        }
+
+
+        // ==================================
+        // CANCELLED SUBSCRIPTION
+        // ==================================
+
+        if (
+          freshSubscription.status ===
+          "cancelled"
+        ) {
+
+          throw new Error(
+            "SUBSCRIPTION_CANCELLED"
+          );
+
+        }
+
+
+        // ==================================
+        // UPDATE PAYMENT
+        // ==================================
+
+        const now =
+          new Date();
+
+
+        transaction.update(
+          paymentRef,
+          {
+
+            status:
+              PAYMENT_STATUS.UNDER_REVIEW,
+
+            submittedAt:
+              now,
+
+            updatedAt:
+              FieldValue.serverTimestamp()
+
+          }
+        );
+
+
+        return {
+
+          paymentId,
+
+          accountId:
+            freshPayment.accountId,
+
+          subscriptionId:
+            freshPayment.subscriptionId,
+
+          currentPlanId:
+            freshPayment.currentPlanId,
+
+          planId:
+            freshPayment.planId,
+
+          period:
+            freshPayment.period ||
+            "monthly",
+
+          amount:
+            Number(
+              freshPayment.amount
+            ),
+
+          currency:
+            freshPayment.currency ||
+            "GTQ",
+
+          method:
+            freshPayment.method,
+
+          status:
+            PAYMENT_STATUS.UNDER_REVIEW
+
+        };
+
+      }
+    );
 
 
   // ========================================
@@ -480,34 +879,8 @@ async function submitPayment(
   return successResponse(
     res,
     {
-
       payment:
-        {
-
-          id:
-            paymentId,
-
-          accountId:
-            payment.accountId,
-
-          subscriptionId:
-            payment.subscriptionId,
-
-          currentPlanId:
-            payment.currentPlanId ||
-            subscription.planId,
-
-          planId:
-            payment.planId,
-
-          status:
-            PAYMENT_STATUS.UNDER_REVIEW,
-
-          submittedAt:
-            now
-
-        }
-
+        transactionResult
     },
     200
   );
@@ -629,14 +1002,94 @@ export default async function handler(
 
 
     // ======================================
-    // SERVER ERROR
+    // BUSINESS ERRORS
     // ======================================
 
-    return errorResponse(
-      res,
-      "Ocurrió un error al enviar el pago a revisión.",
-      500
-    );
+    switch (
+      error.message
+    ) {
+
+      case "PAYMENT_NOT_FOUND":
+
+        return errorResponse(
+          res,
+          "El pago no existe.",
+          404
+        );
+
+
+      case "PAYMENT_NOT_OWNER":
+
+        return errorResponse(
+          res,
+          "El pago no pertenece a esta cuenta.",
+          403
+        );
+
+
+      case "PAYMENT_NOT_PENDING":
+
+        return errorResponse(
+          res,
+          "El pago ya no está pendiente y no puede enviarse nuevamente a revisión.",
+          409
+        );
+
+
+      case "PAYMENT_PROOF_MISSING":
+
+        return errorResponse(
+          res,
+          "Debes adjuntar un comprobante válido de ImageKit antes de enviar el pago a revisión.",
+          409
+        );
+
+
+      case "SUBSCRIPTION_NOT_FOUND":
+
+        return errorResponse(
+          res,
+          "La suscripción asociada al pago no existe.",
+          404
+        );
+
+
+      case "SUBSCRIPTION_NOT_OWNER":
+
+        return errorResponse(
+          res,
+          "La suscripción no pertenece a esta cuenta.",
+          403
+        );
+
+
+      case "SUBSCRIPTION_PLAN_CHANGED":
+
+        return errorResponse(
+          res,
+          "La suscripción cambió de plan después de crear este pago. Debes generar un nuevo pago.",
+          409
+        );
+
+
+      case "SUBSCRIPTION_CANCELLED":
+
+        return errorResponse(
+          res,
+          "No se puede enviar a revisión un pago asociado a una suscripción cancelada.",
+          409
+        );
+
+
+      default:
+
+        return errorResponse(
+          res,
+          "Ocurrió un error al enviar el pago a revisión.",
+          500
+        );
+
+    }
 
   }
 

@@ -15,6 +15,10 @@ import {
   getFirebaseAdminApp
 } from "./_lib/firebaseAdmin.js";
 
+import {
+  getPlanPrice
+} from "./_lib/billingConfig.js";
+
 
 // ========================================
 // FIREBASE ADMIN
@@ -49,9 +53,25 @@ const PAYMENT_METHOD = {
 };
 
 
-const PAYMENT_CURRENCY =
+const BILLING_CURRENCY =
   "GTQ";
 
+
+const BILLING_PERIOD = {
+  MONTHLY: "monthly"
+};
+
+
+// ========================================
+// CURRENT MVP TARGET PLANS
+// ========================================
+//
+// Para el MVP solamente permitimos
+// pagos manuales destinados a Pro.
+//
+// Más adelante esto podrá salir de una
+// configuración central de Billing.
+//
 
 const ALLOWED_TARGET_PLANS = [
   "pro"
@@ -117,7 +137,6 @@ function getBearerToken(
 
   }
 
-
   return authorization
     .substring(7)
     .trim();
@@ -132,15 +151,16 @@ async function authenticateRequest(
   const token =
     getBearerToken(req);
 
-
   if (!token) {
 
-    throw new Error(
-      "AUTH_TOKEN_MISSING"
-    );
+    const error =
+      new Error(
+        "AUTH_TOKEN_MISSING"
+      );
+
+    throw error;
 
   }
-
 
   return await adminAuth
     .verifyIdToken(token);
@@ -199,13 +219,13 @@ function isValidDate(
 ) {
 
   if (!value) {
-    return false;
-  }
 
+    return false;
+
+  }
 
   const date =
     new Date(value);
-
 
   return (
     !Number.isNaN(
@@ -252,8 +272,7 @@ async function createPayment(
   const {
     subscriptionId,
     planId,
-    amount,
-    currency,
+    period = BILLING_PERIOD.MONTHLY,
     method,
     paymentDate,
     paymentTime,
@@ -291,33 +310,27 @@ async function createPayment(
   }
 
 
+  // ========================================
+  // PERIOD VALIDATION
+  // ========================================
+
   if (
-    !amount ||
-    Number(amount) <= 0
+    period !==
+    BILLING_PERIOD.MONTHLY
   ) {
 
     return errorResponse(
       res,
-      "amount debe ser mayor que cero.",
+      "El período de facturación no es válido.",
       400
     );
 
   }
 
 
-  if (
-    currency !==
-    PAYMENT_CURRENCY
-  ) {
-
-    return errorResponse(
-      res,
-      "La moneda debe ser GTQ.",
-      400
-    );
-
-  }
-
+  // ========================================
+  // PAYMENT METHOD
+  // ========================================
 
   if (
     !Object.values(
@@ -333,6 +346,10 @@ async function createPayment(
 
   }
 
+
+  // ========================================
+  // PAYMENT DATE
+  // ========================================
 
   if (
     !paymentDate ||
@@ -362,6 +379,92 @@ async function createPayment(
       res,
       "El plan solicitado no está disponible para pagos manuales.",
       400
+    );
+
+  }
+
+
+  // ========================================
+  // BILLING PRICE
+  // ========================================
+  //
+  // El frontend NO puede decidir:
+  // - amount
+  // - currency
+  //
+  // El backend obtiene ambos valores
+  // desde billingConfig.js.
+  //
+
+  const pricing =
+    getPlanPrice(
+      planId,
+      period
+    );
+
+
+  if (!pricing) {
+
+    return errorResponse(
+      res,
+      "No existe una configuración de precio para el plan solicitado.",
+      409
+    );
+
+  }
+
+
+  const amount =
+    Number(
+      pricing.amount
+    );
+
+
+  const currency =
+    pricing.currency;
+
+
+  if (
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
+
+    console.error(
+      "NEXUS — Billing: precio inválido.",
+      {
+        planId,
+        period,
+        amount
+      }
+    );
+
+    return errorResponse(
+      res,
+      "La configuración de precio del plan no es válida.",
+      500
+    );
+
+  }
+
+
+  if (
+    currency !==
+    BILLING_CURRENCY
+  ) {
+
+    console.error(
+      "NEXUS — Billing: moneda inválida.",
+      {
+        planId,
+        period,
+        currency
+      }
+    );
+
+    return errorResponse(
+      res,
+      "La configuración de moneda del plan no es válida.",
+      500
     );
 
   }
@@ -489,6 +592,18 @@ async function createPayment(
   // ========================================
   // PLAN TRANSITION
   // ========================================
+  //
+  // currentPlanId = plan actual
+  // planId        = plan objetivo
+  //
+  // MVP:
+  //
+  // FREE → PRO
+  // PRO  → PRO
+  //
+  // No permitimos otras transiciones
+  // hasta que Billing las soporte.
+  //
 
   const isInitialUpgrade =
     currentPlanId === "free" &&
@@ -515,8 +630,40 @@ async function createPayment(
 
 
   // ========================================
+  // PAYMENT PERIOD VALIDATION
+  // ========================================
+  //
+  // Para una renovación Pro → Pro:
+  // el pago debe corresponder al mismo
+  // período de la suscripción.
+  //
+  // Para Free → Pro:
+  // se trata de una activación inicial.
+  //
+
+  if (
+    isProRenewal &&
+    subscription.period &&
+    subscription.period !== period
+  ) {
+
+    return errorResponse(
+      res,
+      "El período de pago no coincide con el período actual de la suscripción.",
+      409
+    );
+
+  }
+
+
+  // ========================================
   // EXISTING PAYMENT CHECK
   // ========================================
+  //
+  // Evita que el usuario genere varios
+  // pagos pendientes para la misma
+  // suscripción.
+  //
 
   const existingPaymentsSnapshot =
     await adminDb
@@ -538,11 +685,10 @@ async function createPayment(
     existingPaymentsSnapshot
       .docs
       .map(
-        doc =>
-          ({
-            id: doc.id,
-            ...doc.data()
-          })
+        doc => ({
+          id: doc.id,
+          ...doc.data()
+        })
       )
       .find(
         payment =>
@@ -568,7 +714,7 @@ async function createPayment(
 
 
   // ========================================
-  // PAYMENT DATA
+  // CREATE PAYMENT REFERENCE
   // ========================================
 
   const paymentRef =
@@ -580,6 +726,10 @@ async function createPayment(
   const now =
     new Date();
 
+
+  // ========================================
+  // PAYMENT DATA
+  // ========================================
 
   const paymentData = {
 
@@ -598,12 +748,19 @@ async function createPayment(
     // ======================================
     //
     // currentPlanId:
-    // plan actual de la suscripción
+    // plan actual al momento de crear
+    // el pago.
     //
     // planId:
-    // plan que el usuario quiere activar
+    // plan que el usuario quiere activar.
     //
-    // ======================================
+    // Esto permite representar:
+    //
+    // free → pro
+    //
+    // sin modificar todavía la
+    // suscripción.
+    //
 
     currentPlanId,
 
@@ -611,14 +768,19 @@ async function createPayment(
 
 
     // ======================================
+    // BILLING PERIOD
+    // ======================================
+
+    period,
+
+
+    // ======================================
     // PAYMENT
     // ======================================
 
-    amount:
-      Number(amount),
+    amount,
 
-    currency:
-      PAYMENT_CURRENCY,
+    currency,
 
     method,
 
@@ -657,7 +819,7 @@ async function createPayment(
 
     // ======================================
     // REVIEW
-    // ======================================
+    // ========================================
 
     reviewedBy:
       null,
@@ -699,33 +861,32 @@ async function createPayment(
     res,
     {
 
-      payment:
-        {
+      payment: {
 
-          id:
-            paymentRef.id,
+        id:
+          paymentRef.id,
 
-          accountId:
-            uid,
+        accountId:
+          uid,
 
-          subscriptionId,
+        subscriptionId,
 
-          currentPlanId,
+        currentPlanId,
 
-          planId,
+        planId,
 
-          amount:
-            Number(amount),
+        period,
 
-          currency:
-            PAYMENT_CURRENCY,
+        amount,
 
-          method,
+        currency,
 
-          status:
-            PAYMENT_STATUS.PENDING
+        method,
 
-        }
+        status:
+          PAYMENT_STATUS.PENDING
+
+      }
 
     },
     201
@@ -779,7 +940,7 @@ export default async function handler(
 
 
     // ======================================
-    // CREATE
+    // CREATE PAYMENT
     // ======================================
 
     return await createPayment(

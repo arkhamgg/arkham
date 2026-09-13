@@ -63,6 +63,18 @@ export const PAYMENT_CURRENCY = {
 
 
 // ========================================
+// PAYMENT PERIOD
+// ========================================
+
+export const PAYMENT_PERIOD = {
+
+  MONTHLY:
+    "monthly"
+
+};
+
+
+// ========================================
 // CREATE PAYMENT DATA
 // ========================================
 
@@ -72,14 +84,39 @@ export function createPayment(
 
   const {
 
+    // ======================================
+    // RELATIONSHIPS
+    // ======================================
+
     accountId =
       null,
 
     subscriptionId =
       null,
 
+
+    // ======================================
+    // PLAN CONTEXT
+    // ======================================
+
+    currentPlanId =
+      null,
+
     planId =
       null,
+
+
+    // ======================================
+    // BILLING PERIOD
+    // ======================================
+
+    period =
+      PAYMENT_PERIOD.MONTHLY,
+
+
+    // ======================================
+    // PAYMENT DATA
+    // ======================================
 
     amount =
       0,
@@ -93,17 +130,56 @@ export function createPayment(
     status =
       PAYMENT_STATUS.PENDING,
 
+
+    // ======================================
+    // PAYMENT DATE
+    // ======================================
+
     paymentDate =
       null,
 
     paymentTime =
       null,
 
+
+    // ======================================
+    // BANK / TRANSACTION REFERENCE
+    // ======================================
+
     reference =
       null,
 
+
+    // ======================================
+    // PAYMENT PROOF
+    // ======================================
+    //
+    // El comprobante NO se almacena
+    // directamente en NEXUS.
+    //
+    // proof contiene únicamente la referencia
+    // al archivo almacenado en ImageKit.
+    //
+    // Ejemplo:
+    //
+    // proof: {
+    //   provider: "imagekit",
+    //   fileId: "...",
+    //   filePath: "...",
+    //   url: "...",
+    //   fileName: "...",
+    //   contentType: "...",
+    //   size: 123456
+    // }
+    //
+
     proof =
       null,
+
+
+    // ======================================
+    // NOTES
+    // ======================================
 
     notes =
       null
@@ -113,20 +189,34 @@ export function createPayment(
 
   return {
 
-    // ========================================
+    // ======================================
     // RELATIONSHIPS
-    // ========================================
+    // ======================================
 
     accountId,
 
     subscriptionId,
 
+
+    // ======================================
+    // PLAN CONTEXT
+    // ======================================
+
+    currentPlanId,
+
     planId,
 
 
-    // ========================================
+    // ======================================
+    // BILLING PERIOD
+    // ======================================
+
+    period,
+
+
+    // ======================================
     // PAYMENT DATA
-    // ========================================
+    // ======================================
 
     amount,
 
@@ -137,46 +227,39 @@ export function createPayment(
     status,
 
 
-    // ========================================
+    // ======================================
     // PAYMENT DATE
-    // ========================================
+    // ======================================
 
     paymentDate,
 
     paymentTime,
 
 
-    // ========================================
+    // ======================================
     // BANK / TRANSACTION REFERENCE
-    // ========================================
+    // ======================================
 
     reference,
 
 
-    // ========================================
+    // ======================================
     // PAYMENT PROOF
-    // ========================================
-    //
-    // La prueba de pago NO se almacena
-    // directamente dentro del documento.
-    //
-    // proof será una referencia al archivo
-    // almacenado posteriormente en Storage.
-    //
+    // ======================================
 
     proof,
 
 
-    // ========================================
+    // ======================================
     // NOTES
-    // ========================================
+    // ======================================
 
     notes,
 
 
-    // ========================================
+    // ======================================
     // REVIEW
-    // ========================================
+    // ======================================
 
     reviewedBy:
       null,
@@ -188,9 +271,9 @@ export function createPayment(
       null,
 
 
-    // ========================================
+    // ======================================
     // LIFECYCLE
-    // ========================================
+    // ======================================
 
     createdAt:
       null,
@@ -285,7 +368,7 @@ export async function getAccountPayment(
 
 
 // ========================================
-// CHECK PAYMENT STATUS
+// CHECK PAYMENT PENDING / UNDER REVIEW
 // ========================================
 
 export function isPaymentPending(
@@ -439,6 +522,125 @@ export function getPaymentMethod(
 
   return payment.method ||
     null;
+
+}
+
+
+// ========================================
+// GET PAYMENT PERIOD
+// ========================================
+
+export function getPaymentPeriod(
+  payment
+) {
+
+  if (!payment) {
+
+    return null;
+
+  }
+
+
+  return payment.period ||
+    null;
+
+}
+
+
+// ========================================
+// GET CURRENT PLAN
+// ========================================
+
+export function getPaymentCurrentPlan(
+  payment
+) {
+
+  if (!payment) {
+
+    return null;
+
+  }
+
+
+  return payment.currentPlanId ||
+    null;
+
+}
+
+
+// ========================================
+// GET TARGET PLAN
+// ========================================
+
+export function getPaymentTargetPlan(
+  payment
+) {
+
+  if (!payment) {
+
+    return null;
+
+  }
+
+
+  return payment.planId ||
+    null;
+
+}
+
+
+// ========================================
+// GET PAYMENT PROOF
+// ========================================
+
+export function getPaymentProof(
+  payment
+) {
+
+  if (!payment) {
+
+    return null;
+
+  }
+
+
+  return payment.proof ||
+    null;
+
+}
+
+
+// ========================================
+// CHECK IMAGEKIT PROOF
+// ========================================
+
+export function hasImageKitProof(
+  payment
+) {
+
+  if (!payment?.proof) {
+
+    return false;
+
+  }
+
+
+  return (
+    payment.proof.provider ===
+      "imagekit" &&
+
+    Boolean(
+      payment.proof.fileId
+    ) &&
+
+    Boolean(
+      payment.proof.filePath
+    ) &&
+
+    Boolean(
+      payment.proof.url
+    )
+  );
 
 }
 

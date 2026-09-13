@@ -7,18 +7,13 @@ import {
 } from "firebase-admin/auth";
 
 import {
-  getFirestore
+  getFirestore,
+  FieldValue
 } from "firebase-admin/firestore";
 
 import {
   getFirebaseAdminApp
 } from "./_lib/firebaseAdmin.js";
-
-import {
-  buildActivationData,
-  buildRenewalData,
-  getSubscriptionLifecycleAction
-} from "../src/js/services/subscriptionLifecycle.js";
 
 
 // ========================================
@@ -33,6 +28,32 @@ const adminAuth =
 
 const adminDb =
   getFirestore(firebaseAdminApp);
+
+
+// ========================================
+// CONSTANTS
+// ========================================
+
+const PAYMENT_STATUS = {
+  PENDING: "pending",
+  UNDER_REVIEW: "under_review",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+  EXPIRED: "expired"
+};
+
+
+const SUBSCRIPTION_STATUS = {
+  ACTIVE: "active",
+  PENDING: "pending",
+  PAST_DUE: "past_due",
+  SUSPENDED: "suspended",
+  CANCELLED: "cancelled",
+  EXPIRED: "expired"
+};
+
+
+const SUPPORTED_PERIOD = "monthly";
 
 
 // ========================================
@@ -94,7 +115,6 @@ function getBearerToken(
 
   }
 
-
   return authorization
     .substring(7)
     .trim();
@@ -109,15 +129,16 @@ async function authenticateRequest(
   const token =
     getBearerToken(req);
 
-
   if (!token) {
 
-    throw new Error(
-      "No se proporcionó un token de autenticación."
-    );
+    const error =
+      new Error(
+        "AUTH_TOKEN_MISSING"
+      );
+
+    throw error;
 
   }
-
 
   return await adminAuth
     .verifyIdToken(token);
@@ -171,26 +192,14 @@ function getRequestBody(
 // ADMIN AUTHORIZATION
 // ========================================
 
-async function verifyAdministrator(
-  decodedToken
+async function requireAdministrator(
+  uid
 ) {
-
-  const uid =
-    decodedToken.uid;
-
-
-  if (!uid) {
-
-    return false;
-
-  }
-
 
   const adminRef =
     adminDb
       .collection("adminUsers")
       .doc(uid);
-
 
   const adminSnapshot =
     await adminRef.get();
@@ -200,7 +209,12 @@ async function verifyAdministrator(
     !adminSnapshot.exists
   ) {
 
-    return false;
+    const error =
+      new Error(
+        "ADMIN_NOT_FOUND"
+      );
+
+    throw error;
 
   }
 
@@ -209,13 +223,107 @@ async function verifyAdministrator(
     adminSnapshot.data();
 
 
-  return (
-    adminUser.status ===
-      "active" &&
+  if (
+    adminUser.roleId !==
+    "administrator"
+  ) {
 
-    adminUser.roleId ===
-      "administrator"
+    const error =
+      new Error(
+        "ADMIN_ROLE_INVALID"
+      );
+
+    throw error;
+
+  }
+
+
+  if (
+    adminUser.status !==
+    "active"
+  ) {
+
+    const error =
+      new Error(
+        "ADMIN_INACTIVE"
+      );
+
+    throw error;
+
+  }
+
+
+  return adminUser;
+
+}
+
+
+// ========================================
+// DATE HELPERS
+// ========================================
+
+function toDate(
+  value
+) {
+
+  if (!value) {
+
+    return null;
+
+  }
+
+
+  if (
+    value instanceof Date
+  ) {
+
+    return value;
+
+  }
+
+
+  if (
+    typeof value.toDate ===
+    "function"
+  ) {
+
+    return value.toDate();
+
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return null;
+
+  }
+
+
+  return date;
+
+}
+
+
+function calculateMonthlyPeriodEnd(
+  startDate
+) {
+
+  const endDate =
+    new Date(startDate);
+
+  endDate.setMonth(
+    endDate.getMonth() + 1
   );
+
+  return endDate;
 
 }
 
@@ -230,29 +338,12 @@ async function approvePayment(
   decodedToken
 ) {
 
-  // ========================================
-  // ADMIN AUTHORIZATION
-  // ========================================
-
-  const isAdministrator =
-    await verifyAdministrator(
-      decodedToken
-    );
-
-
-  if (!isAdministrator) {
-
-    return errorResponse(
-      res,
-      "No tienes autorización para aprobar pagos.",
-      403
-    );
-
-  }
+  const adminUid =
+    decodedToken.uid;
 
 
   // ========================================
-  // BODY
+  // REQUEST BODY
   // ========================================
 
   const body =
@@ -275,7 +366,13 @@ async function approvePayment(
   } = body;
 
 
-  if (!paymentId) {
+  // ========================================
+  // REQUIRED FIELD
+  // ========================================
+
+  if (
+    !paymentId
+  ) {
 
     return errorResponse(
       res,
@@ -287,7 +384,16 @@ async function approvePayment(
 
 
   // ========================================
-  // PAYMENT REF
+  // ADMIN AUTHORIZATION
+  // ========================================
+
+  await requireAdministrator(
+    adminUid
+  );
+
+
+  // ========================================
+  // REFERENCES
   // ========================================
 
   const paymentRef =
@@ -299,15 +405,18 @@ async function approvePayment(
   // ========================================
   // TRANSACTION
   // ========================================
+  //
+  // Todas las lecturas relacionadas
+  // se realizan dentro de la transacción
+  // antes de cualquier escritura.
+  //
 
   const result =
     await adminDb.runTransaction(
-      async (
-        transaction
-      ) => {
+      async transaction => {
 
         // ==================================
-        // READ PAYMENT
+        // PAYMENT
         // ==================================
 
         const paymentSnapshot =
@@ -337,18 +446,18 @@ async function approvePayment(
 
         if (
           payment.status !==
-          "under_review"
+          PAYMENT_STATUS.UNDER_REVIEW
         ) {
 
           throw new Error(
-            "INVALID_PAYMENT_STATUS"
+            "PAYMENT_NOT_UNDER_REVIEW"
           );
 
         }
 
 
         // ==================================
-        // REQUIRED PAYMENT DATA
+        // PAYMENT OWNERSHIP
         // ==================================
 
         if (
@@ -356,7 +465,7 @@ async function approvePayment(
         ) {
 
           throw new Error(
-            "ACCOUNT_ID_MISSING"
+            "PAYMENT_ACCOUNT_MISSING"
           );
 
         }
@@ -367,7 +476,18 @@ async function approvePayment(
         ) {
 
           throw new Error(
-            "SUBSCRIPTION_ID_MISSING"
+            "PAYMENT_SUBSCRIPTION_MISSING"
+          );
+
+        }
+
+
+        if (
+          !payment.currentPlanId
+        ) {
+
+          throw new Error(
+            "PAYMENT_CURRENT_PLAN_MISSING"
           );
 
         }
@@ -378,7 +498,7 @@ async function approvePayment(
         ) {
 
           throw new Error(
-            "PLAN_ID_MISSING"
+            "PAYMENT_TARGET_PLAN_MISSING"
           );
 
         }
@@ -390,9 +510,7 @@ async function approvePayment(
 
         const subscriptionRef =
           adminDb
-            .collection(
-              "subscriptions"
-            )
+            .collection("subscriptions")
             .doc(
               payment.subscriptionId
             );
@@ -420,7 +538,7 @@ async function approvePayment(
 
 
         // ==================================
-        // ACCOUNT CONSISTENCY
+        // SUBSCRIPTION OWNERSHIP
         // ==================================
 
         if (
@@ -429,210 +547,221 @@ async function approvePayment(
         ) {
 
           throw new Error(
-            "ACCOUNT_MISMATCH"
+            "SUBSCRIPTION_OWNER_MISMATCH"
           );
 
         }
 
 
         // ==================================
-        // CURRENT PLAN CONSISTENCY
+        // CURRENT PLAN VALIDATION
         // ==================================
         //
-        // payment.planId =
-        // TARGET PLAN
+        // El plan actual debe seguir siendo
+        // el mismo que tenía cuando se creó
+        // el pago.
         //
-        // subscription.planId =
-        // CURRENT PLAN
-        //
-        // Therefore:
-        //
-        // FREE -> PRO
-        // payment.planId = pro
-        // subscription.planId = free
-        //
-        // is valid.
-        //
-        // For stale payments, currentPlanId
-        // allows us to detect that the
-        // subscription changed after payment
-        // creation.
-        //
-        // Legacy payments without
-        // currentPlanId remain compatible.
-        // ==================================
 
         if (
-          payment.currentPlanId &&
-          payment.currentPlanId !==
-            subscription.planId
+          subscription.planId !==
+          payment.currentPlanId
         ) {
 
           throw new Error(
-            "CURRENT_PLAN_MISMATCH"
+            "SUBSCRIPTION_PLAN_CHANGED"
           );
 
         }
 
 
         // ==================================
-        // LIFECYCLE ACTION
+        // SUBSCRIPTION STATUS
         // ==================================
 
-        const lifecycleAction =
-          getSubscriptionLifecycleAction(
-            subscription
-          );
-
-
-        if (!lifecycleAction) {
+        if (
+          subscription.status ===
+          SUBSCRIPTION_STATUS.CANCELLED
+        ) {
 
           throw new Error(
-            "INVALID_SUBSCRIPTION_LIFECYCLE"
+            "SUBSCRIPTION_CANCELLED"
           );
 
         }
 
 
         // ==================================
-        // TARGET PLAN VALIDATION
+        // PERIOD
         // ==================================
 
-        const currentPlanId =
-          subscription.planId;
+        const period =
+          payment.period ||
+          SUPPORTED_PERIOD;
 
-        const targetPlanId =
-          payment.planId;
-
-
-        // ==================================
-        // ACTIVATION / UPGRADE
-        // ==================================
 
         if (
-          lifecycleAction ===
-          "activate"
+          period !==
+          SUPPORTED_PERIOD
         ) {
 
-          // Initial activation may change
-          // the subscription plan.
-          //
-          // Example:
-          //
-          // FREE -> PRO
-
-          if (
-            targetPlanId ===
-            "free"
-          ) {
-
-            throw new Error(
-              "INVALID_TARGET_PLAN"
-            );
-
-          }
+          throw new Error(
+            "PERIOD_NOT_SUPPORTED"
+          );
 
         }
 
 
         // ==================================
-        // RENEWAL
-        // ==================================
+        // PLAN TRANSITION
+        // ========================================
+        //
+        // MVP:
+        //
+        // FREE → PRO
+        // PRO  → PRO
+        //
+        // El primer caso es una activación/
+        // upgrade.
+        //
+        // El segundo es una renovación.
+        //
+
+        const isInitialUpgrade =
+          payment.currentPlanId ===
+            "free" &&
+
+          payment.planId ===
+            "pro";
+
+
+        const isProRenewal =
+          payment.currentPlanId ===
+            "pro" &&
+
+          payment.planId ===
+            "pro";
+
 
         if (
-          lifecycleAction ===
-          "renew"
+          !isInitialUpgrade &&
+          !isProRenewal
         ) {
 
-          // A renewal must be for the
-          // currently active plan.
-
-          if (
-            targetPlanId !==
-            currentPlanId
-          ) {
-
-            throw new Error(
-              "RENEWAL_PLAN_MISMATCH"
-            );
-
-          }
+          throw new Error(
+            "PLAN_TRANSITION_NOT_SUPPORTED"
+          );
 
         }
 
 
         // ==================================
-        // BUILD SUBSCRIPTION UPDATE
+        // PERIOD START
         // ==================================
 
         const now =
           new Date();
 
+        let currentPeriodStart =
+          now;
 
-        let subscriptionUpdate;
 
+        // ==================================
+        // RENEWAL START
+        // ==================================
+        //
+        // Si la suscripción Pro todavía
+        // tiene un período vigente, la
+        // renovación comienza al terminar
+        // el período actual.
+        //
+        // Si ya terminó, comienza ahora.
+        //
 
         if (
-          lifecycleAction ===
-          "activate"
+          isProRenewal
         ) {
 
-          subscriptionUpdate = {
-
-            ...buildActivationData(
-              subscription,
-              now
-            ),
-
-            // The payment plan becomes
-            // the new active subscription
-            // plan.
-            planId:
-              targetPlanId
-
-          };
-
-        } else {
-
-          subscriptionUpdate =
-            buildRenewalData(
-              subscription,
-              now
+          const currentPeriodEnd =
+            toDate(
+              subscription.currentPeriodEnd
             );
+
+
+          if (
+            currentPeriodEnd &&
+            currentPeriodEnd > now
+          ) {
+
+            currentPeriodStart =
+              currentPeriodEnd;
+
+          }
 
         }
 
 
         // ==================================
-        // APPROVE PAYMENT
+        // PERIOD END
         // ==================================
 
-        transaction.update(
-          paymentRef,
-          {
-
-            status:
-              "approved",
-
-            reviewedBy:
-              decodedToken.uid,
-
-            reviewedAt:
-              now,
-
-            rejectionReason:
-              null,
-
-            updatedAt:
-              now
-
-          }
-        );
+        const currentPeriodEnd =
+          calculateMonthlyPeriodEnd(
+            currentPeriodStart
+          );
 
 
         // ==================================
-        // UPDATE SUBSCRIPTION
+        // SUBSCRIPTION UPDATE
         // ==================================
+        //
+        // Aquí ocurre el cambio real:
+        //
+        // FREE → PRO
+        //
+        // El plan de la suscripción se
+        // convierte en la fuente de verdad
+        // del acceso.
+        //
+
+        const subscriptionUpdate = {
+
+          planId:
+            payment.planId,
+
+          status:
+            SUBSCRIPTION_STATUS.ACTIVE,
+
+          period,
+
+          activatedAt:
+            isInitialUpgrade
+              ? now
+              : (
+                  subscription.activatedAt ||
+                  now
+                ),
+
+          currentPeriodStart,
+
+          currentPeriodEnd,
+
+          nextBillingAt:
+            currentPeriodEnd,
+
+          paymentDeadline:
+            null,
+
+          suspendedAt:
+            null,
+
+          expiredAt:
+            null,
+
+          updatedAt:
+            FieldValue.serverTimestamp()
+
+        };
+
 
         transaction.update(
           subscriptionRef,
@@ -641,15 +770,15 @@ async function approvePayment(
 
 
         // ==================================
-        // UPDATE ACCOUNT
+        // ACCOUNT
         // ==================================
         //
-        // account.planId is maintained as
-        // a cached/current reference.
+        // account.planId es solamente
+        // metadata/cache.
         //
-        // The subscription remains the
-        // authoritative billing state.
-        // ==================================
+        // La suscripción continúa siendo
+        // la fuente de verdad para Billing.
+        //
 
         const accountRef =
           adminDb
@@ -664,14 +793,37 @@ async function approvePayment(
           {
 
             planId:
-              subscriptionUpdate.planId ||
-              currentPlanId,
-
-            subscriptionId:
-              payment.subscriptionId,
+              payment.planId,
 
             updatedAt:
-              now
+              FieldValue.serverTimestamp()
+
+          }
+        );
+
+
+        // ==================================
+        // PAYMENT UPDATE
+        // ==================================
+
+        transaction.update(
+          paymentRef,
+          {
+
+            status:
+              PAYMENT_STATUS.APPROVED,
+
+            reviewedBy:
+              adminUid,
+
+            reviewedAt:
+              now,
+
+            approvedAt:
+              now,
+
+            updatedAt:
+              FieldValue.serverTimestamp()
 
           }
         );
@@ -685,26 +837,41 @@ async function approvePayment(
 
           paymentId,
 
+          accountId:
+            payment.accountId,
+
           subscriptionId:
             payment.subscriptionId,
 
-          planId:
-            subscriptionUpdate.planId ||
-            currentPlanId,
-
           previousPlanId:
-            currentPlanId,
+            payment.currentPlanId,
 
-          lifecycleAction,
+          planId:
+            payment.planId,
 
-          currentPeriodStart:
-            subscriptionUpdate.currentPeriodStart,
+          period,
 
-          currentPeriodEnd:
-            subscriptionUpdate.currentPeriodEnd,
+          amount:
+            Number(
+              payment.amount
+            ),
+
+          currency:
+            payment.currency ||
+            "GTQ",
+
+          paymentStatus:
+            PAYMENT_STATUS.APPROVED,
+
+          subscriptionStatus:
+            SUBSCRIPTION_STATUS.ACTIVE,
+
+          currentPeriodStart,
+
+          currentPeriodEnd,
 
           nextBillingAt:
-            subscriptionUpdate.nextBillingAt
+            currentPeriodEnd
 
         };
 
@@ -719,47 +886,10 @@ async function approvePayment(
   return successResponse(
     res,
     {
+      message:
+        "El pago fue aprobado y la suscripción fue activada correctamente.",
 
-      payment:
-        {
-
-          id:
-            result.paymentId,
-
-          status:
-            "approved"
-
-        },
-
-
-      subscription:
-        {
-
-          id:
-            result.subscriptionId,
-
-          planId:
-            result.planId,
-
-          previousPlanId:
-            result.previousPlanId,
-
-          status:
-            "active",
-
-          lifecycleAction:
-            result.lifecycleAction,
-
-          currentPeriodStart:
-            result.currentPeriodStart,
-
-          currentPeriodEnd:
-            result.currentPeriodEnd,
-
-          nextBillingAt:
-            result.nextBillingAt
-
-        }
+      result
 
     },
     200
@@ -869,12 +999,12 @@ export default async function handler(
 
     if (
       error.message ===
-      "No se proporcionó un token de autenticación."
+      "AUTH_TOKEN_MISSING"
     ) {
 
       return errorResponse(
         res,
-        error.message,
+        "No se proporcionó un token de autenticación.",
         401
       );
 
@@ -882,12 +1012,43 @@ export default async function handler(
 
 
     // ======================================
-    // BUSINESS ERRORS
+    // ADMIN ERRORS
     // ======================================
 
     switch (
       error.message
     ) {
+
+      case "ADMIN_NOT_FOUND":
+
+        return errorResponse(
+          res,
+          "El usuario no está registrado como administrador.",
+          403
+        );
+
+
+      case "ADMIN_ROLE_INVALID":
+
+        return errorResponse(
+          res,
+          "El usuario no tiene permisos de administrador.",
+          403
+        );
+
+
+      case "ADMIN_INACTIVE":
+
+        return errorResponse(
+          res,
+          "La cuenta administrativa está inactiva.",
+          403
+        );
+
+
+      // ====================================
+      // PAYMENT ERRORS
+      // ====================================
 
       case "PAYMENT_NOT_FOUND":
 
@@ -898,92 +1059,109 @@ export default async function handler(
         );
 
 
-      case "INVALID_PAYMENT_STATUS":
+      case "PAYMENT_NOT_UNDER_REVIEW":
 
         return errorResponse(
           res,
-          "El pago no está en estado under_review.",
+          "El pago no está pendiente de revisión.",
           409
         );
 
 
-      case "ACCOUNT_ID_MISSING":
+      case "PAYMENT_ACCOUNT_MISSING":
 
         return errorResponse(
           res,
           "El pago no tiene una cuenta asociada.",
-          400
+          409
         );
 
 
-      case "SUBSCRIPTION_ID_MISSING":
+      case "PAYMENT_SUBSCRIPTION_MISSING":
 
         return errorResponse(
           res,
           "El pago no tiene una suscripción asociada.",
-          400
+          409
         );
 
 
-      case "PLAN_ID_MISSING":
+      case "PAYMENT_CURRENT_PLAN_MISSING":
 
         return errorResponse(
           res,
-          "El pago no tiene un plan objetivo asociado.",
-          400
+          "El pago no tiene registrado el plan actual.",
+          409
         );
 
+
+      case "PAYMENT_TARGET_PLAN_MISSING":
+
+        return errorResponse(
+          res,
+          "El pago no tiene registrado el plan objetivo.",
+          409
+        );
+
+
+      // ====================================
+      // SUBSCRIPTION ERRORS
+      // ====================================
 
       case "SUBSCRIPTION_NOT_FOUND":
 
         return errorResponse(
           res,
-          "La suscripción asociada no existe.",
+          "La suscripción asociada al pago no existe.",
           404
         );
 
 
-      case "ACCOUNT_MISMATCH":
+      case "SUBSCRIPTION_OWNER_MISMATCH":
 
         return errorResponse(
           res,
-          "La cuenta del pago y la suscripción no coinciden.",
+          "La suscripción no corresponde a la cuenta del pago.",
           409
         );
 
 
-      case "CURRENT_PLAN_MISMATCH":
+      case "SUBSCRIPTION_PLAN_CHANGED":
 
         return errorResponse(
           res,
-          "La suscripción cambió después de crear el pago. El pago debe revisarse nuevamente.",
+          "La suscripción cambió de plan después de crear el pago. Este pago ya no puede aprobarse.",
           409
         );
 
 
-      case "RENEWAL_PLAN_MISMATCH":
+      case "SUBSCRIPTION_CANCELLED":
 
         return errorResponse(
           res,
-          "El pago de renovación no corresponde al plan actual de la suscripción.",
+          "No se puede activar una suscripción cancelada.",
           409
         );
 
 
-      case "INVALID_TARGET_PLAN":
+      // ====================================
+      // BILLING ERRORS
+      // ====================================
+
+      case "PERIOD_NOT_SUPPORTED":
 
         return errorResponse(
           res,
-          "El plan objetivo no es válido para esta activación.",
-          400
+          "El período de facturación no está soportado.",
+          409
         );
 
 
-      case "INVALID_SUBSCRIPTION_LIFECYCLE":
+      case "PLAN_TRANSITION_NOT_SUPPORTED":
 
         return errorResponse(
           res,
-          "La suscripción no se encuentra en un estado válido para esta operación.",
+          "La transición de plan de este pago no está soportada.",
           409
         );
 
