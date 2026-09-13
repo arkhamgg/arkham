@@ -81,6 +81,7 @@ export function Dashboard() {
     `;
 
     return page;
+
   }
 
 
@@ -89,6 +90,7 @@ export function Dashboard() {
   // ========================================
 
   page.innerHTML = `
+
     <div class="dashboard-layout">
 
       <section class="dashboard-main">
@@ -124,6 +126,10 @@ export function Dashboard() {
             class="dashboard-header__actions"
           >
 
+            <!-- ================================= -->
+            <!-- NOTIFICATIONS -->
+            <!-- ================================= -->
+
             <button
               type="button"
               class="dashboard-header__notification"
@@ -137,6 +143,33 @@ export function Dashboard() {
 
             </button>
 
+
+            <!-- ================================= -->
+            <!-- LOGOUT -->
+            <!-- ================================= -->
+
+            <button
+              type="button"
+              class="dashboard-header__logout"
+              data-dashboard-logout
+              aria-label="Cerrar sesión"
+            >
+
+              <i
+                class="fa-solid fa-arrow-right-from-bracket"
+                aria-hidden="true"
+              ></i>
+
+              <span>
+                Cerrar sesión
+              </span>
+
+            </button>
+
+
+            <!-- ================================= -->
+            <!-- ACCOUNT -->
+            <!-- ================================= -->
 
             <div
               class="dashboard-header__account"
@@ -297,6 +330,7 @@ export function Dashboard() {
       </section>
 
     </div>
+
   `;
 
 
@@ -304,27 +338,33 @@ export function Dashboard() {
   // ELEMENTS
   // ========================================
 
-  let currentTournamentId = null;
+  let currentTournamentId =
+    null;
+
 
   const main =
     page.querySelector(
       ".dashboard-main"
     );
 
+
   const headerDescription =
     page.querySelector(
       "[data-dashboard-description]"
     );
+
 
   const createTournamentButton =
     page.querySelector(
       "[data-create-tournament]"
     );
 
+
   const competitionsContainer =
     page.querySelector(
       "[data-competitions]"
     );
+
 
   const competitionCount =
     page.querySelector(
@@ -373,15 +413,28 @@ export function Dashboard() {
   function formatDate(dateValue) {
 
     if (!dateValue) {
+
       return "";
+
     }
+
 
     const date =
-      new Date(`${dateValue}T00:00:00`);
+      new Date(
+        `${dateValue}T00:00:00`
+      );
 
-    if (Number.isNaN(date.getTime())) {
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+
       return dateValue;
+
     }
+
 
     return new Intl.DateTimeFormat(
       "es-GT",
@@ -398,12 +451,19 @@ export function Dashboard() {
   function getGameLabel(gameId) {
 
     const labels = {
-      "call-of-duty": "CALL OF DUTY"
+
+      "call-of-duty":
+        "CALL OF DUTY"
+
     };
+
 
     return (
       labels[gameId] ||
-      String(gameId || "COMPETENCIA")
+      String(
+        gameId ||
+        "COMPETENCIA"
+      )
         .replace(/-/g, " ")
         .toUpperCase()
     );
@@ -413,22 +473,37 @@ export function Dashboard() {
 
   function renderCompetitions(events) {
 
-    if (!competitionsContainer || !competitionCount) {
+    if (
+      !competitionsContainer ||
+      !competitionCount
+    ) {
+
       return;
+
     }
 
+
     const entries =
-      Object.entries(events || {});
+      Object.entries(
+        events || {}
+      );
+
 
     competitionCount.textContent =
       entries.length;
 
+
     if (!entries.length) {
 
       competitionsContainer.innerHTML = `
-        <div class="dashboard-empty">
 
-          <div class="dashboard-empty__icon">
+        <div
+          class="dashboard-empty"
+        >
+
+          <div
+            class="dashboard-empty__icon"
+          >
 
             <i
               class="fa-solid fa-trophy"
@@ -437,9 +512,11 @@ export function Dashboard() {
 
           </div>
 
+
           <h3>
             Todavía no tienes competencias.
           </h3>
+
 
           <p>
             Crea tu primer torneo para comenzar
@@ -447,239 +524,274 @@ export function Dashboard() {
           </p>
 
         </div>
+
       `;
 
       return;
+
     }
 
 
     competitionsContainer.innerHTML =
-      entries.map(
-        ([eventId, event]) => {
+      entries
+        .map(
+          ([eventId, event]) => {
 
-          const game =
-            getGameLabel(event?.gameId);
-
-          const participation =
-            event?.participationType ||
-            "—";
-
-          const format =
-            event?.format ||
-            "—";
-
-          const matchSystem =
-            event?.matchSystem ||
-            "—";
-
-          const capacity =
-            event?.capacity ??
-            "—";
-
-          const startDate =
-            formatDate(
-              event?.dateTime?.startDate
-            );
-
-          const location =
-            event?.location?.type === "presencial"
-              ? event?.location?.venue || "Presencial"
-              : event?.location?.platform || "Online";
+            const game =
+              getGameLabel(
+                event?.gameId
+              );
 
 
-          return `
-            <article
-              class="dashboard-competition-card"
-              data-competition-card
-              data-event-id="${escapeHtml(eventId)}"
-            >
-
-              <div class="dashboard-competition-card__top">
-
-                <span
-                  class="dashboard-competition-card__eyebrow"
-                >
-                  ${escapeHtml(game)}
-                </span>
-
-                <span
-                  class="dashboard-competition-card__id"
-                >
-                  EVENTO
-                </span>
-
-              </div>
+            const participation =
+              event?.participationType ||
+              "—";
 
 
-              <div class="dashboard-competition-card__body">
+            const format =
+              event?.format ||
+              "—";
 
-                <h3>
-                  ${escapeHtml(
-                    `${game} · ${participation}`
-                  )}
-                </h3>
 
+            const matchSystem =
+              event?.matchSystem ||
+              "—";
+
+
+            const capacity =
+              event?.capacity ??
+              "—";
+
+
+            const startDate =
+              formatDate(
+                event?.dateTime?.startDate
+              );
+
+
+            const location =
+              event?.location?.type ===
+              "presencial"
+                ? event?.location?.venue ||
+                  "Presencial"
+                : event?.location?.platform ||
+                  "Online";
+
+
+            return `
+
+              <article
+                class="dashboard-competition-card"
+                data-competition-card
+                data-event-id="${escapeHtml(eventId)}"
+              >
 
                 <div
-                  class="dashboard-competition-card__meta"
+                  class="dashboard-competition-card__top"
                 >
 
-                  <span>
-
-                    <i
-                      class="fa-solid fa-sitemap"
-                      aria-hidden="true"
-                    ></i>
-
-                    ${escapeHtml(format)}
-
+                  <span
+                    class="dashboard-competition-card__eyebrow"
+                  >
+                    ${escapeHtml(game)}
                   </span>
 
-
-                  <span>
-
-                    <i
-                      class="fa-solid fa-gamepad"
-                      aria-hidden="true"
-                    ></i>
-
-                    ${escapeHtml(matchSystem)}
-
+                  <span
+                    class="dashboard-competition-card__id"
+                  >
+                    EVENTO
                   </span>
-
-
-                  <span>
-
-                    <i
-                      class="fa-solid fa-users"
-                      aria-hidden="true"
-                    ></i>
-
-                    ${escapeHtml(capacity)}
-
-                  </span>
-
-
-                  ${
-                    startDate
-                      ? `
-                        <span>
-
-                          <i
-                            class="fa-regular fa-calendar"
-                            aria-hidden="true"
-                          ></i>
-
-                          ${escapeHtml(startDate)}
-
-                        </span>
-                      `
-                      : ""
-                  }
-
-
-                  ${
-                    location
-                      ? `
-                        <span>
-
-                          <i
-                            class="fa-solid fa-location-dot"
-                            aria-hidden="true"
-                          ></i>
-
-                          ${escapeHtml(location)}
-
-                        </span>
-                      `
-                      : ""
-                  }
 
                 </div>
 
-              </div>
 
-
-              <footer
-                class="dashboard-competition-card__actions"
-              >
-
-                <button
-                  type="button"
-                  class="dashboard-competition-card__button dashboard-competition-card__button--primary"
-                  data-manage-event
-                  data-event-id="${escapeHtml(eventId)}"
+                <div
+                  class="dashboard-competition-card__body"
                 >
 
-                  <i
-                    class="fa-solid fa-sliders"
-                    aria-hidden="true"
-                  ></i>
-
-                  Administrar evento
-
-                </button>
+                  <h3>
+                    ${escapeHtml(
+                      `${game} · ${participation}`
+                    )}
+                  </h3>
 
 
-                <button
-                  type="button"
-                  class="dashboard-competition-card__button dashboard-competition-card__button--danger"
-                  data-delete-event
-                  data-event-id="${escapeHtml(eventId)}"
+                  <div
+                    class="dashboard-competition-card__meta"
+                  >
+
+                    <span>
+
+                      <i
+                        class="fa-solid fa-sitemap"
+                        aria-hidden="true"
+                      ></i>
+
+                      ${escapeHtml(format)}
+
+                    </span>
+
+
+                    <span>
+
+                      <i
+                        class="fa-solid fa-gamepad"
+                        aria-hidden="true"
+                      ></i>
+
+                      ${escapeHtml(matchSystem)}
+
+                    </span>
+
+
+                    <span>
+
+                      <i
+                        class="fa-solid fa-users"
+                        aria-hidden="true"
+                      ></i>
+
+                      ${escapeHtml(capacity)}
+
+                    </span>
+
+
+                    ${
+                      startDate
+                        ? `
+
+                          <span>
+
+                            <i
+                              class="fa-regular fa-calendar"
+                              aria-hidden="true"
+                            ></i>
+
+                            ${escapeHtml(startDate)}
+
+                          </span>
+
+                        `
+                        : ""
+                    }
+
+
+                    ${
+                      location
+                        ? `
+
+                          <span>
+
+                            <i
+                              class="fa-solid fa-location-dot"
+                              aria-hidden="true"
+                            ></i>
+
+                            ${escapeHtml(location)}
+
+                          </span>
+
+                        `
+                        : ""
+                    }
+
+                  </div>
+
+                </div>
+
+
+                <footer
+                  class="dashboard-competition-card__actions"
                 >
 
-                  <i
-                    class="fa-solid fa-trash"
-                    aria-hidden="true"
-                  ></i>
+                  <button
+                    type="button"
+                    class="dashboard-competition-card__button dashboard-competition-card__button--primary"
+                    data-manage-event
+                    data-event-id="${escapeHtml(eventId)}"
+                  >
 
-                  Eliminar
+                    <i
+                      class="fa-solid fa-sliders"
+                      aria-hidden="true"
+                    ></i>
 
-                </button>
+                    Administrar evento
+
+                  </button>
 
 
-                <button
-                  type="button"
-                  class="dashboard-competition-card__button"
-                  data-view-event
-                  data-event-id="${escapeHtml(eventId)}"
-                >
+                  <button
+                    type="button"
+                    class="dashboard-competition-card__button dashboard-competition-card__button--danger"
+                    data-delete-event
+                    data-event-id="${escapeHtml(eventId)}"
+                  >
 
-                  <i
-                    class="fa-solid fa-arrow-up-right-from-square"
-                    aria-hidden="true"
-                  ></i>
+                    <i
+                      class="fa-solid fa-trash"
+                      aria-hidden="true"
+                    ></i>
 
-                  Ver evento
+                    Eliminar
 
-                </button>
+                  </button>
 
-              </footer>
 
-            </article>
-          `;
+                  <button
+                    type="button"
+                    class="dashboard-competition-card__button"
+                    data-view-event
+                    data-event-id="${escapeHtml(eventId)}"
+                  >
 
-        }
-      ).join("");
+                    <i
+                      class="fa-solid fa-arrow-up-right-from-square"
+                      aria-hidden="true"
+                    ></i>
+
+                    Ver evento
+
+                  </button>
+
+                </footer>
+
+              </article>
+
+            `;
+
+          }
+        )
+        .join("");
 
   }
 
 
-  async function loadCompetitions(tournamentId) {
+  async function loadCompetitions(
+    tournamentId
+  ) {
 
     if (
       !tournamentId ||
       !competitionsContainer
     ) {
+
       return;
+
     }
+
 
     try {
 
       competitionsContainer.innerHTML = `
-        <div class="dashboard-empty">
 
-          <div class="dashboard-empty__icon">
+        <div
+          class="dashboard-empty"
+        >
+
+          <div
+            class="dashboard-empty__icon"
+          >
 
             <i
               class="fa-solid fa-spinner fa-spin"
@@ -693,6 +805,7 @@ export function Dashboard() {
           </h3>
 
         </div>
+
       `;
 
 
@@ -721,13 +834,19 @@ export function Dashboard() {
       );
 
 
-      competitionCount.textContent = "0";
+      competitionCount.textContent =
+        "0";
 
 
       competitionsContainer.innerHTML = `
-        <div class="dashboard-empty">
 
-          <div class="dashboard-empty__icon">
+        <div
+          class="dashboard-empty"
+        >
+
+          <div
+            class="dashboard-empty__icon"
+          >
 
             <i
               class="fa-solid fa-triangle-exclamation"
@@ -745,6 +864,7 @@ export function Dashboard() {
           </p>
 
         </div>
+
       `;
 
     }
@@ -771,18 +891,26 @@ export function Dashboard() {
         const eventId =
           manageButton.dataset.eventId;
 
+
         const tournamentId =
           currentTournamentId;
 
 
-        if (!tournamentId || !eventId) {
+        if (
+          !tournamentId ||
+          !eventId
+        ) {
 
           console.error(
             "NEXUS — No se pudo abrir el evento para administrar.",
-            { tournamentId, eventId }
+            {
+              tournamentId,
+              eventId
+            }
           );
 
           return;
+
         }
 
 
@@ -794,11 +922,14 @@ export function Dashboard() {
 
 
         window.dispatchEvent(
-          new PopStateEvent("popstate")
+          new PopStateEvent(
+            "popstate"
+          )
         );
 
 
         return;
+
       }
 
 
@@ -813,18 +944,26 @@ export function Dashboard() {
         const eventId =
           deleteButton.dataset.eventId;
 
+
         const tournamentId =
           currentTournamentId;
 
 
-        if (!tournamentId || !eventId) {
+        if (
+          !tournamentId ||
+          !eventId
+        ) {
 
           console.error(
             "NEXUS — No se pudo eliminar la competencia.",
-            { tournamentId, eventId }
+            {
+              tournamentId,
+              eventId
+            }
           );
 
           return;
+
         }
 
 
@@ -835,7 +974,9 @@ export function Dashboard() {
 
 
         if (!confirmed) {
+
           return;
+
         }
 
 
@@ -855,7 +996,10 @@ export function Dashboard() {
 
           console.log(
             "NEXUS — Competencia eliminada correctamente:",
-            { tournamentId, eventId }
+            {
+              tournamentId,
+              eventId
+            }
           );
 
 
@@ -883,6 +1027,7 @@ export function Dashboard() {
 
 
         return;
+
       }
 
 
@@ -897,18 +1042,26 @@ export function Dashboard() {
         const eventId =
           viewButton.dataset.eventId;
 
+
         const tournamentId =
           currentTournamentId;
 
 
-        if (!tournamentId || !eventId) {
+        if (
+          !tournamentId ||
+          !eventId
+        ) {
 
           console.error(
             "NEXUS — No se pudo abrir la competencia pública.",
-            { tournamentId, eventId }
+            {
+              tournamentId,
+              eventId
+            }
           );
 
           return;
+
         }
 
 
@@ -920,7 +1073,9 @@ export function Dashboard() {
 
 
         window.dispatchEvent(
-          new PopStateEvent("popstate")
+          new PopStateEvent(
+            "popstate"
+          )
         );
 
       }
@@ -940,19 +1095,22 @@ export function Dashboard() {
       const accountContext =
         await getCurrentAccountContext();
 
+
       const entityContext =
         await getCurrentEntityContext();
 
 
       currentTournamentId =
-        entityContext?.id || null;
+        entityContext?.id ||
+        null;
 
 
       // ====================================
       // ACCOUNT
       // ====================================
 
-      let access = null;
+      let access =
+        null;
 
 
       if (
@@ -1003,7 +1161,8 @@ export function Dashboard() {
       if (entityContext) {
 
         if (
-          entityContext.type === "tournament" &&
+          entityContext.type ===
+            "tournament" &&
           entityContext.id
         ) {
 
@@ -1047,9 +1206,11 @@ export function Dashboard() {
 
         sidebar.setContext({
 
-          type: null,
+          type:
+            null,
 
-          name: "Mi NEXUS",
+          name:
+            "Mi NEXUS",
 
           accessContext:
             access
@@ -1109,7 +1270,9 @@ export function Dashboard() {
 
 
       window.dispatchEvent(
-        new PopStateEvent("popstate")
+        new PopStateEvent(
+          "popstate"
+        )
       );
 
     }
@@ -1119,13 +1282,6 @@ export function Dashboard() {
   // ========================================
   // LOGOUT
   // ========================================
-
-  const logoutButton =
-    () =>
-      page.querySelector(
-        "[data-dashboard-logout]"
-      );
-
 
   page.addEventListener(
     "click",
@@ -1138,7 +1294,9 @@ export function Dashboard() {
 
 
       if (!button) {
+
         return;
+
       }
 
 
@@ -1149,6 +1307,7 @@ export function Dashboard() {
 
 
         button.innerHTML = `
+
           <i
             class="fa-solid fa-spinner fa-spin"
             aria-hidden="true"
@@ -1157,6 +1316,7 @@ export function Dashboard() {
           <span>
             Cerrando sesión...
           </span>
+
         `;
 
 
@@ -1166,6 +1326,7 @@ export function Dashboard() {
         console.log(
           "NEXUS — Sesión cerrada correctamente"
         );
+
 
       } catch (error) {
 
@@ -1180,6 +1341,7 @@ export function Dashboard() {
 
 
         button.innerHTML = `
+
           <i
             class="fa-solid fa-arrow-right-from-bracket"
             aria-hidden="true"
@@ -1188,6 +1350,7 @@ export function Dashboard() {
           <span>
             Cerrar sesión
           </span>
+
         `;
 
       }
