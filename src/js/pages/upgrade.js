@@ -2,6 +2,7 @@
 // NEXUS — Upgrade to Pro Page
 // ========================================
 
+
 import {
   getCurrentAccountContext
 } from "../services/account.js";
@@ -10,32 +11,14 @@ import {
   PLAN_IDS
 } from "../services/plans.js";
 
-import {
-  createBillingPayment,
-  uploadBillingPaymentProof,
-  submitBillingPayment
-} from "../services/billingPayment.js";
-
-
-// ========================================
-// CONSTANTS
-// ========================================
-
-const MAX_PROOF_SIZE = 5 * 1024 * 1024;
-
-const ALLOWED_PROOF_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/pdf"
-];
-
 
 // ========================================
 // HELPERS
 // ========================================
 
-function escapeHtml(value = "") {
+function escapeHtml(
+  value = ""
+) {
 
   return String(value)
     .replaceAll("&", "&amp;")
@@ -47,98 +30,36 @@ function escapeHtml(value = "") {
 }
 
 
-function formatCurrency(
-  amount,
-  currency = "GTQ"
-) {
+// ========================================
+// NAVIGATION
+// ========================================
 
-  if (
-    amount === null ||
-    amount === undefined ||
-    amount === ""
-  ) {
+function goBackToBilling() {
 
-    return "—";
+  window.history.pushState(
+    {},
+    "",
+    "/dashboard/billing"
+  );
 
-  }
-
-  const numericAmount = Number(amount);
-
-  if (!Number.isFinite(numericAmount)) {
-
-    return "—";
-
-  }
-
-  return new Intl.NumberFormat(
-    "es-GT",
-    {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2
-    }
-  ).format(numericAmount);
+  window.dispatchEvent(
+    new PopStateEvent("popstate")
+  );
 
 }
 
 
-function formatDate(value) {
+function goToPayment() {
 
-  if (!value) {
+  window.history.pushState(
+    {},
+    "",
+    "/dashboard/billing/payment"
+  );
 
-    return "—";
-
-  }
-
-  let date;
-
-  if (value instanceof Date) {
-
-    date = value;
-
-  } else if (
-    typeof value?.toDate === "function"
-  ) {
-
-    date = value.toDate();
-
-  } else {
-
-    date = new Date(value);
-
-  }
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-
-    return "—";
-
-  }
-
-  return new Intl.DateTimeFormat(
-    "es-GT",
-    {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    }
-  ).format(date);
-
-}
-
-
-function formatTime(value) {
-
-  if (!value) {
-
-    return "—";
-
-  }
-
-  return String(value);
+  window.dispatchEvent(
+    new PopStateEvent("popstate")
+  );
 
 }
 
@@ -197,6 +118,10 @@ function renderError(
 
           </div>
 
+          <span class="upgrade-page__eyebrow">
+            NEXUS BILLING
+          </span>
+
           <h1>
             No pudimos cargar Upgrade
           </h1>
@@ -228,7 +153,7 @@ function renderError(
 
 
 // ========================================
-// PAGE HEADER
+// HEADER
 // ========================================
 
 function renderHeader() {
@@ -243,13 +168,13 @@ function renderHeader() {
         </span>
 
         <h1>
-          Actualizar a Pro
+          Evoluciona tu operación.
         </h1>
 
         <p>
-          Completa la información de tu pago
-          para solicitar la activación de tu
-          suscripción Pro.
+          Compara los planes disponibles y descubre
+          lo que obtienes al llevar tu operación
+          competitiva a NEXUS Pro.
         </p>
 
       </div>
@@ -261,12 +186,10 @@ function renderHeader() {
 
 
 // ========================================
-// PRO SUMMARY
+// PLAN COMPARISON
 // ========================================
 
-function renderProSummary(
-  price = null
-) {
+function renderPlanComparison() {
 
   return `
     <section class="upgrade-page__section">
@@ -274,62 +197,232 @@ function renderProSummary(
       <div class="upgrade-page__section-heading">
 
         <span>
-          PLAN SELECCIONADO
+          COMPARACIÓN DE PLANES
         </span>
 
       </div>
 
 
-      <article class="upgrade-page__pro-card">
+      <div class="upgrade-page__comparison">
 
-        <div class="upgrade-page__pro-card-top">
 
-          <div class="upgrade-page__pro-icon">
+        <!-- ==================================
+             FREE
+        =================================== -->
+
+        <article
+          class="
+            upgrade-page__plan-card
+            upgrade-page__plan-card--free
+          "
+        >
+
+          <div class="upgrade-page__plan-top">
+
+            <div>
+
+              <span class="upgrade-page__plan-label">
+                PLAN ACTUAL
+              </span>
+
+              <h2>
+                Free
+              </h2>
+
+            </div>
+
+            <div class="upgrade-page__plan-icon">
+
+              <i class="fa-solid fa-user"></i>
+
+            </div>
+
+          </div>
+
+
+          <p class="upgrade-page__plan-description">
+
+            Comienza a utilizar NEXUS y construye
+            tu presencia competitiva.
+
+          </p>
+
+
+          <div class="upgrade-page__divider"></div>
+
+
+          <ul class="upgrade-page__feature-list">
+
+            <li>
+
+              <i class="fa-solid fa-check"></i>
+
+              <span>
+                Crear y administrar competencias
+                disponibles para el plan Free.
+              </span>
+
+            </li>
+
+            <li>
+
+              <i class="fa-solid fa-check"></i>
+
+              <span>
+                Publicar tus competencias en NEXUS.
+              </span>
+
+            </li>
+
+            <li>
+
+              <i class="fa-solid fa-check"></i>
+
+              <span>
+                Construir tu presencia dentro
+                del ecosistema NEXUS.
+              </span>
+
+            </li>
+
+          </ul>
+
+
+          <div class="upgrade-page__plan-footer">
+
+            <span>
+              Tu plan actual
+            </span>
+
+            <strong>
+              Free
+            </strong>
+
+          </div>
+
+        </article>
+
+
+        <!-- ==================================
+             PRO
+        =================================== -->
+
+        <article
+          class="
+            upgrade-page__plan-card
+            upgrade-page__plan-card--pro
+          "
+        >
+
+          <div class="upgrade-page__pro-badge">
 
             <i class="fa-solid fa-crown"></i>
 
+            RECOMENDADO
+
           </div>
 
-          <div>
 
-            <span class="upgrade-page__plan-label">
-              NEXUS
+          <div class="upgrade-page__plan-top">
+
+            <div>
+
+              <span class="upgrade-page__plan-label">
+                PLAN PROFESIONAL
+              </span>
+
+              <h2>
+                Pro
+              </h2>
+
+            </div>
+
+            <div class="upgrade-page__plan-icon">
+
+              <i class="fa-solid fa-crown"></i>
+
+            </div>
+
+          </div>
+
+
+          <p class="upgrade-page__plan-description">
+
+            Diseñado para organizaciones que necesitan
+            operar competencias de forma profesional,
+            con mayor capacidad y control.
+
+          </p>
+
+
+          <div class="upgrade-page__divider"></div>
+
+
+          <ul class="upgrade-page__feature-list">
+
+            <li>
+
+              <i class="fa-solid fa-check"></i>
+
+              <span>
+                Todas las capacidades disponibles
+                del plan Free.
+              </span>
+
+            </li>
+
+            <li>
+
+              <i class="fa-solid fa-check"></i>
+
+              <span>
+                Capacidades operativas avanzadas
+                para la gestión de competencias.
+              </span>
+
+            </li>
+
+            <li>
+
+              <i class="fa-solid fa-check"></i>
+
+              <span>
+                Mayor capacidad para administrar
+                operaciones competitivas.
+              </span>
+
+            </li>
+
+            <li>
+
+              <i class="fa-solid fa-check"></i>
+
+              <span>
+                Acceso a capacidades Pro según
+                la configuración de NEXUS.
+              </span>
+
+            </li>
+
+          </ul>
+
+
+          <div class="upgrade-page__plan-footer">
+
+            <span>
+              Disponible para actualizar
             </span>
 
-            <h2>
+            <strong>
               Pro
-            </h2>
-
-            <p>
-              Plan profesional para operar
-              competencias en NEXUS.
-            </p>
+            </strong>
 
           </div>
 
-        </div>
+        </article>
 
 
-        <div class="upgrade-page__divider"></div>
-
-
-        <div class="upgrade-page__price">
-
-          <span>
-            Precio mensual
-          </span>
-
-          <strong>
-            ${
-              price === null
-                ? "Consultar"
-                : formatCurrency(price, "GTQ")
-            }
-          </strong>
-
-        </div>
-
-      </article>
+      </div>
 
     </section>
   `;
@@ -338,10 +431,10 @@ function renderProSummary(
 
 
 // ========================================
-// PAYMENT INSTRUCTIONS
+// VALUE PROPOSITION
 // ========================================
 
-function renderPaymentInstructions() {
+function renderValueSection() {
 
   return `
     <section class="upgrade-page__section">
@@ -349,299 +442,77 @@ function renderPaymentInstructions() {
       <div class="upgrade-page__section-heading">
 
         <span>
-          MÉTODO DE PAGO
+          ¿POR QUÉ PRO?
         </span>
 
       </div>
 
 
-      <article class="upgrade-page__instructions">
+      <div class="upgrade-page__value-grid">
 
-        <div class="upgrade-page__instruction-icon">
 
-          <i class="fa-solid fa-building-columns"></i>
+        <article class="upgrade-page__value-card">
 
-        </div>
+          <div class="upgrade-page__value-icon">
 
-        <div>
+            <i class="fa-solid fa-sliders"></i>
+
+          </div>
 
           <h3>
-            Transferencia o depósito bancario
+            Más control
           </h3>
 
           <p>
-            Realiza el pago utilizando los datos
-            bancarios oficiales proporcionados
-            por NEXUS.
+            Obtén acceso a capacidades diseñadas
+            para administrar operaciones competitivas
+            con mayor control.
           </p>
 
-          <div class="upgrade-page__notice">
-
-            <i class="fa-solid fa-circle-info"></i>
-
-            <span>
-              Los datos bancarios oficiales se
-              configurarán próximamente en esta
-              sección.
-            </span>
-
-          </div>
-
-        </div>
-
-      </article>
-
-    </section>
-  `;
-
-}
+        </article>
 
 
-// ========================================
-// PAYMENT FORM
-// ========================================
+        <article class="upgrade-page__value-card">
 
-function renderPaymentForm() {
+          <div class="upgrade-page__value-icon">
 
-  return `
-    <section class="upgrade-page__section">
-
-      <div class="upgrade-page__section-heading">
-
-        <span>
-          INFORMACIÓN DEL PAGO
-        </span>
-
-      </div>
-
-
-      <form
-        class="upgrade-page__form"
-        data-upgrade-form
-      >
-
-        <!-- PAYMENT METHOD -->
-
-        <div class="upgrade-page__field">
-
-          <label for="upgrade-payment-method">
-            Método de pago
-          </label>
-
-          <select
-            id="upgrade-payment-method"
-            name="paymentMethod"
-            required
-          >
-
-            <option value="">
-              Selecciona un método
-            </option>
-
-            <option value="bank_transfer">
-              Transferencia bancaria
-            </option>
-
-            <option value="bank_deposit">
-              Depósito bancario
-            </option>
-
-          </select>
-
-        </div>
-
-
-        <!-- DATE + TIME -->
-
-        <div class="upgrade-page__field-grid">
-
-          <div class="upgrade-page__field">
-
-            <label for="upgrade-payment-date">
-              Fecha del pago
-            </label>
-
-            <input
-              id="upgrade-payment-date"
-              name="paymentDate"
-              type="date"
-              required
-            />
+            <i class="fa-solid fa-chart-line"></i>
 
           </div>
 
-
-          <div class="upgrade-page__field">
-
-            <label for="upgrade-payment-time">
-              Hora del pago
-            </label>
-
-            <input
-              id="upgrade-payment-time"
-              name="paymentTime"
-              type="time"
-              required
-            />
-
-          </div>
-
-        </div>
-
-
-        <!-- REFERENCE -->
-
-        <div class="upgrade-page__field">
-
-          <label for="upgrade-payment-reference">
-            Referencia
-          </label>
-
-          <input
-            id="upgrade-payment-reference"
-            name="reference"
-            type="text"
-            maxlength="120"
-            placeholder="Número de referencia o boleta"
-          />
-
-          <span class="upgrade-page__field-help">
-            Opcional, pero recomendado.
-          </span>
-
-        </div>
-
-
-        <!-- PROOF -->
-
-        <div class="upgrade-page__field">
-
-          <label for="upgrade-payment-proof">
-            Comprobante de pago
-          </label>
-
-          <input
-            id="upgrade-payment-proof"
-            name="proof"
-            type="file"
-            accept=".jpg,.jpeg,.png,.webp,.pdf"
-            required
-          />
-
-          <span class="upgrade-page__field-help">
-            JPG, PNG, WEBP o PDF. Máximo 5 MB.
-          </span>
-
-        </div>
-
-
-        <!-- ERROR -->
-
-        <div
-          class="upgrade-page__form-error"
-          data-upgrade-error
-          hidden
-        ></div>
-
-
-        <!-- ACTIONS -->
-
-        <div class="upgrade-page__actions">
-
-          <button
-            type="button"
-            class="upgrade-page__secondary-button"
-            data-upgrade-back
-          >
-
-            <i class="fa-solid fa-arrow-left"></i>
-
-            Volver
-
-          </button>
-
-
-          <button
-            type="submit"
-            class="upgrade-page__primary-button"
-            data-upgrade-submit
-          >
-
-            <span data-upgrade-submit-label>
-              Enviar solicitud
-            </span>
-
-            <i class="fa-solid fa-arrow-right"></i>
-
-          </button>
-
-        </div>
-
-      </form>
-
-    </section>
-  `;
-
-}
-
-
-// ========================================
-// SUCCESS
-// ========================================
-
-function renderSuccess() {
-
-  return `
-    <section class="upgrade-page">
-
-      <div class="upgrade-page__container">
-
-        <div class="upgrade-page__success">
-
-          <div class="upgrade-page__success-icon">
-
-            <i class="fa-solid fa-check"></i>
-
-          </div>
-
-          <span class="upgrade-page__eyebrow">
-            SOLICITUD ENVIADA
-          </span>
-
-          <h1>
-            Pago enviado a revisión
-          </h1>
+          <h3>
+            Operación profesional
+          </h3>
 
           <p>
-            Recibimos tu solicitud correctamente.
-            Un administrador de NEXUS revisará
-            el comprobante y procesará la activación
-            de tu plan Pro.
+            Lleva tus competencias desde una gestión
+            básica hacia una operación competitiva
+            más estructurada.
           </p>
 
-          <div class="upgrade-page__success-status">
+        </article>
 
-            <i class="fa-solid fa-clock"></i>
 
-            <span>
-              Estado: Pago en revisión
-            </span>
+        <article class="upgrade-page__value-card">
+
+          <div class="upgrade-page__value-icon">
+
+            <i class="fa-solid fa-bolt"></i>
 
           </div>
 
-          <button
-            type="button"
-            class="upgrade-page__primary-button"
-            data-upgrade-success-back
-          >
+          <h3>
+            Más capacidades
+          </h3>
 
-            Ir a Billing
+          <p>
+            Activa las capacidades disponibles para
+            Pro mediante el sistema central de
+            entitlements de NEXUS.
+          </p>
 
-            <i class="fa-solid fa-arrow-right"></i>
+        </article>
 
-          </button>
-
-        </div>
 
       </div>
 
@@ -652,409 +523,65 @@ function renderSuccess() {
 
 
 // ========================================
-// VALIDATION
+// CTA
 // ========================================
 
-function validateProofFile(
-  file
-) {
+function renderCTA() {
 
-  if (!file) {
+  return `
+    <section class="upgrade-page__cta">
 
-    return "Debes seleccionar un comprobante de pago.";
+      <div class="upgrade-page__cta-content">
 
-  }
+        <span class="upgrade-page__eyebrow">
+          NEXUS PRO
+        </span>
 
-  if (
-    !ALLOWED_PROOF_TYPES.includes(
-      file.type
-    )
-  ) {
+        <h2>
+          ¿Listo para continuar?
+        </h2>
 
-    return "El comprobante debe ser JPG, PNG, WEBP o PDF.";
+        <p>
+          Selecciona tu método de pago y envía
+          tu solicitud de activación.
+        </p>
 
-  }
+      </div>
 
-  if (
-    file.size > MAX_PROOF_SIZE
-  ) {
 
-    return "El comprobante no puede superar los 5 MB.";
+      <div class="upgrade-page__cta-actions">
 
-  }
+        <button
+          type="button"
+          class="upgrade-page__secondary-button"
+          data-upgrade-back
+        >
 
-  return null;
+          <i class="fa-solid fa-arrow-left"></i>
 
-}
+          Volver
 
+        </button>
 
-// ========================================
-// FORM ERROR
-// ========================================
 
-function showFormError(
-  root,
-  message
-) {
+        <button
+          type="button"
+          class="upgrade-page__primary-button"
+          data-upgrade-payment
+        >
 
-  const errorElement =
-    root.querySelector(
-      "[data-upgrade-error]"
-    );
+          <span>
+            Continuar con Pro
+          </span>
 
-  if (!errorElement) {
+          <i class="fa-solid fa-arrow-right"></i>
 
-    return;
+        </button>
 
-  }
+      </div>
 
-  errorElement.textContent =
-    message || "Ocurrió un error.";
-
-  errorElement.hidden = false;
-
-}
-
-
-function clearFormError(
-  root
-) {
-
-  const errorElement =
-    root.querySelector(
-      "[data-upgrade-error]"
-    );
-
-  if (!errorElement) {
-
-    return;
-
-  }
-
-  errorElement.textContent = "";
-
-  errorElement.hidden = true;
-
-}
-
-
-// ========================================
-// SUBMIT STATE
-// ========================================
-
-function setSubmittingState(
-  root,
-  submitting
-) {
-
-  const button =
-    root.querySelector(
-      "[data-upgrade-submit]"
-    );
-
-  const label =
-    root.querySelector(
-      "[data-upgrade-submit-label]"
-    );
-
-  if (!button) {
-
-    return;
-
-  }
-
-  button.disabled =
-    submitting;
-
-  if (submitting) {
-
-    if (label) {
-
-      label.textContent =
-        "Procesando...";
-
-    }
-
-    button.innerHTML = `
-      <i class="fa-solid fa-spinner fa-spin"></i>
-      <span>Procesando...</span>
-    `;
-
-  } else {
-
-    button.innerHTML = `
-      <span>
-        Enviar solicitud
-      </span>
-
-      <i class="fa-solid fa-arrow-right"></i>
-    `;
-
-  }
-
-}
-
-
-// ========================================
-// BACK NAVIGATION
-// ========================================
-
-function goBackToBilling() {
-
-  window.history.pushState(
-    {},
-    "",
-    "/dashboard/billing"
-  );
-
-  window.dispatchEvent(
-    new PopStateEvent("popstate")
-  );
-
-}
-
-
-// ========================================
-// PAYMENT FLOW
-// ========================================
-
-async function handleSubmit(
-  root,
-  form
-) {
-
-  clearFormError(root);
-
-  const formData =
-    new FormData(form);
-
-  const paymentMethod =
-    String(
-      formData.get("paymentMethod") || ""
-    ).trim();
-
-  const paymentDate =
-    String(
-      formData.get("paymentDate") || ""
-    ).trim();
-
-  const paymentTime =
-    String(
-      formData.get("paymentTime") || ""
-    ).trim();
-
-  const reference =
-    String(
-      formData.get("reference") || ""
-    ).trim();
-
-  const proofFile =
-    formData.get("proof");
-
-
-  // --------------------------------------
-  // BASIC VALIDATION
-  // --------------------------------------
-
-  if (!paymentMethod) {
-
-    showFormError(
-      root,
-      "Selecciona el método de pago."
-    );
-
-    return;
-
-  }
-
-
-  if (!paymentDate) {
-
-    showFormError(
-      root,
-      "Selecciona la fecha del pago."
-    );
-
-    return;
-
-  }
-
-
-  if (!paymentTime) {
-
-    showFormError(
-      root,
-      "Selecciona la hora del pago."
-    );
-
-    return;
-
-  }
-
-
-  const proofError =
-    validateProofFile(
-      proofFile
-    );
-
-  if (proofError) {
-
-    showFormError(
-      root,
-      proofError
-    );
-
-    return;
-
-  }
-
-
-  setSubmittingState(
-    root,
-    true
-  );
-
-
-  try {
-
-    // ------------------------------------
-    // ACCOUNT
-    // ------------------------------------
-
-    const accountContext =
-      await getCurrentAccountContext();
-
-    if (!accountContext) {
-
-      throw new Error(
-        "No fue posible obtener la información de tu cuenta."
-      );
-
-    }
-
-
-    const account =
-      accountContext.account ||
-      accountContext;
-
-
-    const currentPlanId =
-      String(
-        account?.planId ||
-        PLAN_IDS.FREE
-      ).toLowerCase();
-
-
-    // ------------------------------------
-    // ONLY FREE → PRO
-    // ------------------------------------
-
-    if (
-      currentPlanId !== PLAN_IDS.FREE
-    ) {
-
-      throw new Error(
-        "Tu cuenta no está disponible para este Upgrade."
-      );
-
-    }
-
-
-    // ------------------------------------
-    // CREATE PAYMENT
-    // ------------------------------------
-
-    const paymentResponse =
-      await createBillingPayment({
-
-        subscriptionId: null,
-
-        currentPlanId: PLAN_IDS.FREE,
-
-        planId: PLAN_IDS.PRO,
-
-        period: "monthly",
-
-        method: paymentMethod,
-
-        paymentDate,
-
-        paymentTime,
-
-        reference
-
-      });
-
-
-    const payment =
-      paymentResponse?.payment;
-
-
-    const paymentId =
-      payment?.id ||
-      paymentResponse?.id;
-
-
-    if (!paymentId) {
-
-      throw new Error(
-        "El pago fue creado, pero no recibimos su identificador."
-      );
-
-    }
-
-
-    // ------------------------------------
-    // UPLOAD PROOF
-    // ------------------------------------
-
-    await uploadBillingPaymentProof(
-      proofFile,
-      paymentId
-    );
-
-
-    // ------------------------------------
-    // SUBMIT PAYMENT
-    // ------------------------------------
-
-    await submitBillingPayment(
-      paymentId
-    );
-
-
-    // ------------------------------------
-    // SUCCESS
-    // ------------------------------------
-
-    root.innerHTML =
-      renderSuccess();
-
-
-    bindSuccessEvents(
-      root
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "NEXUS — Upgrade: error procesando solicitud.",
-      error
-    );
-
-    showFormError(
-      root,
-      error?.message ||
-      "No fue posible procesar la solicitud."
-    );
-
-    setSubmittingState(
-      root,
-      false
-    );
-
-  }
+    </section>
+  `;
 
 }
 
@@ -1063,127 +590,46 @@ async function handleSubmit(
 // EVENTS
 // ========================================
 
-function bindSuccessEvents(
-  root
-) {
-
-  const button =
-    root.querySelector(
-      "[data-upgrade-success-back]"
-    );
-
-  if (!button) {
-
-    return;
-
-  }
-
-  button.addEventListener(
-    "click",
-    goBackToBilling
-  );
-
-}
-
-
 function bindEvents(
   root
 ) {
+
 
   // --------------------------------------
   // BACK
   // --------------------------------------
 
-  const backButtons =
-    root.querySelectorAll(
+  root
+    .querySelectorAll(
       "[data-upgrade-back]"
-    );
+    )
+    .forEach(
+      (button) => {
 
-  backButtons.forEach(
-    (button) => {
-
-      button.addEventListener(
-        "click",
-        goBackToBilling
-      );
-
-    }
-  );
-
-
-  // --------------------------------------
-  // FORM
-  // --------------------------------------
-
-  const form =
-    root.querySelector(
-      "[data-upgrade-form]"
-    );
-
-  if (!form) {
-
-    return;
-
-  }
-
-  form.addEventListener(
-    "submit",
-    (event) => {
-
-      event.preventDefault();
-
-      handleSubmit(
-        root,
-        form
-      );
-
-    }
-  );
-
-
-  // --------------------------------------
-  // FILE VALIDATION
-  // --------------------------------------
-
-  const proofInput =
-    root.querySelector(
-      "#upgrade-payment-proof"
-    );
-
-  if (proofInput) {
-
-    proofInput.addEventListener(
-      "change",
-      () => {
-
-        clearFormError(root);
-
-        const file =
-          proofInput.files?.[0];
-
-        if (!file) {
-
-          return;
-
-        }
-
-        const error =
-          validateProofFile(
-            file
-          );
-
-        if (error) {
-
-          proofInput.value = "";
-
-          showFormError(
-            root,
-            error
-          );
-
-        }
+        button.addEventListener(
+          "click",
+          goBackToBilling
+        );
 
       }
+    );
+
+
+  // --------------------------------------
+  // PAYMENT
+  // --------------------------------------
+
+  const paymentButton =
+    root.querySelector(
+      "[data-upgrade-payment]"
+    );
+
+
+  if (paymentButton) {
+
+    paymentButton.addEventListener(
+      "click",
+      goToPayment
     );
 
   }
@@ -1248,12 +694,13 @@ async function renderUpgradeContent(
     // ------------------------------------
 
     if (
-      currentPlanId !== PLAN_IDS.FREE
+      currentPlanId !==
+      PLAN_IDS.FREE
     ) {
 
       root.innerHTML =
         renderError(
-          "Tu cuenta ya tiene un plan de pago o no puede solicitar este Upgrade."
+          "Tu cuenta no está disponible para este Upgrade."
         );
 
       bindEvents(root);
@@ -1275,11 +722,11 @@ async function renderUpgradeContent(
 
           ${renderHeader()}
 
-          ${renderProSummary()}
+          ${renderPlanComparison()}
 
-          ${renderPaymentInstructions()}
+          ${renderValueSection()}
 
-          ${renderPaymentForm()}
+          ${renderCTA()}
 
         </div>
 
@@ -1288,9 +735,7 @@ async function renderUpgradeContent(
     `;
 
 
-    bindEvents(
-      root
-    );
+    bindEvents(root);
 
 
   } catch (error) {
@@ -1300,15 +745,15 @@ async function renderUpgradeContent(
       error
     );
 
+
     root.innerHTML =
       renderError(
         error?.message ||
         "Ocurrió un error inesperado."
       );
 
-    bindEvents(
-      root
-    );
+
+    bindEvents(root);
 
   }
 
@@ -1325,6 +770,7 @@ export function Upgrade() {
     document.createElement(
       "div"
     );
+
 
   root.className =
     "upgrade-page-root";

@@ -3,10 +3,9 @@
 // ========================================
 
 .upgrade-page {
-  min-height: 100%;
   width: 100%;
-  padding: 32px 20px 64px;
-  background: $color-black;
+  min-height: 100%;
+  background: $color-950;
   color: $color-white;
 }
 
@@ -16,9 +15,9 @@
 // ========================================
 
 .upgrade-page__container {
-  width: 100%;
-  max-width: 1100px;
+  width: min(100%, 1280px);
   margin: 0 auto;
+  padding: 32px 20px 48px;
 }
 
 
@@ -27,45 +26,43 @@
 // ========================================
 
 .upgrade-page__header {
-  margin-bottom: 40px;
-
-  > div {
-    max-width: 720px;
-  }
+  margin-bottom: 36px;
+  max-width: 760px;
 }
 
 .upgrade-page__eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
 
   color: $color-300;
 }
 
 .upgrade-page__header h1 {
   margin: 0;
+  max-width: 720px;
 
-  font-size: clamp(32px, 5vw, 48px);
-  line-height: 1.05;
+  font-size: clamp(32px, 5vw, 54px);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+
+  color: $color-white;
 }
 
 .upgrade-page__header p {
-  max-width: 620px;
-  margin: 16px 0 0;
-
-  color: $color-300;
+  margin: 18px 0 0;
+  max-width: 650px;
 
   font-size: 15px;
   line-height: 1.7;
+
+  color: $color-300;
 }
 
 
@@ -74,86 +71,194 @@
 // ========================================
 
 .upgrade-page__section {
-  margin-bottom: 32px;
+  margin-top: 40px;
 }
 
 .upgrade-page__section-heading {
-  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 
-  span {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+  margin-bottom: 16px;
+}
 
-    color: $color-500;
-  }
+.upgrade-page__section-heading::after {
+  content: "";
+
+  flex: 1;
+  height: 1px;
+
+  background: $color-700;
+}
+
+.upgrade-page__section-heading span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+
+  color: $color-500;
 }
 
 
 // ========================================
-// PRO CARD
+// COMPARISON
 // ========================================
 
-.upgrade-page__pro-card {
+.upgrade-page__comparison {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+
+// ========================================
+// PLAN CARD
+// ========================================
+
+.upgrade-page__plan-card {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
   padding: 24px;
 
   border: 1px solid $color-700;
   border-radius: 16px;
 
   background: $color-900;
+
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease;
 }
 
-.upgrade-page__pro-card-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
+.upgrade-page__plan-card:hover {
+  border-color: $color-500;
 }
 
-.upgrade-page__pro-icon {
-  display: flex;
+.upgrade-page__plan-card--pro {
+  border-color: $color-500;
+  background:
+    linear-gradient(
+      145deg,
+      $color-900 0%,
+      $color-800 100%
+    );
+}
+
+.upgrade-page__plan-card--pro:hover {
+  border-color: $color-300;
+}
+
+
+// ========================================
+// RECOMMENDED BADGE
+// ========================================
+
+.upgrade-page__pro-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
 
-  flex: 0 0 48px;
-  width: 48px;
-  height: 48px;
+  padding: 6px 9px;
 
-  border-radius: 12px;
+  border: 1px solid $color-500;
+  border-radius: 999px;
 
   background: $color-800;
-  color: $color-white;
 
-  font-size: 18px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+
+  color: $color-white;
 }
 
-.upgrade-page__plan-label {
+
+// ========================================
+// PLAN HEADER
+// ========================================
+
+.upgrade-page__plan-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+.upgrade-page__plan-card--pro
+  .upgrade-page__plan-card-header {
+  padding-right: 90px;
+}
+
+.upgrade-page__plan-eyebrow {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.12em;
 
   color: $color-500;
 }
 
-.upgrade-page__pro-card h2 {
+.upgrade-page__plan-card h2 {
   margin: 0;
 
-  font-size: 28px;
-  line-height: 1.1;
+  font-size: 30px;
   font-weight: 700;
+  line-height: 1;
+
+  letter-spacing: -0.025em;
+
+  color: $color-white;
 }
 
-.upgrade-page__pro-card p {
-  margin: 8px 0 0;
+.upgrade-page__plan-card p {
+  margin: 12px 0 0;
+  max-width: 470px;
+
+  font-size: 13px;
+  line-height: 1.6;
+
+  color: $color-300;
+}
+
+
+// ========================================
+// PLAN ICON
+// ========================================
+
+.upgrade-page__plan-icon {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 42px;
+  height: 42px;
+
+  border: 1px solid $color-700;
+  border-radius: 12px;
+
+  background: $color-950;
 
   color: $color-300;
 
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 15px;
+}
+
+.upgrade-page__plan-card--pro
+  .upgrade-page__plan-icon {
+  border-color: $color-500;
+  color: $color-white;
 }
 
 
@@ -161,9 +266,10 @@
 // DIVIDER
 // ========================================
 
-.upgrade-page__divider {
+.upgrade-page__plan-divider {
   width: 100%;
   height: 1px;
+
   margin: 24px 0;
 
   background: $color-700;
@@ -171,112 +277,163 @@
 
 
 // ========================================
-// PRICE
+// FEATURE GROUP
 // ========================================
 
-.upgrade-page__price {
+.upgrade-page__feature-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.upgrade-page__feature-title {
+  margin-bottom: 2px;
+
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+
+  color: $color-500;
+}
+
+
+// ========================================
+// FEATURE
+// ========================================
+
+.upgrade-page__feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: $color-100;
+}
+
+.upgrade-page__feature i {
+  flex: 0 0 auto;
+
+  margin-top: 3px;
+
+  font-size: 11px;
+
+  color: $color-300;
+}
+
+.upgrade-page__plan-card--pro
+  .upgrade-page__feature i {
+  color: $color-white;
+}
+
+
+// ========================================
+// PLAN STATE
+// ========================================
+
+.upgrade-page__plan-state {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
+  gap: 9px;
 
-.upgrade-page__price span {
+  margin-top: 28px;
+  padding-top: 18px;
+
+  border-top: 1px solid $color-700;
+
+  font-size: 12px;
+  font-weight: 600;
+
   color: $color-300;
-  font-size: 13px;
 }
 
-.upgrade-page__price strong {
-  font-size: 22px;
-  font-weight: 700;
+.upgrade-page__plan-state i {
+  font-size: 11px;
+}
+
+.upgrade-page__plan-state--pro {
+  color: $color-white;
 }
 
 
 // ========================================
-// PAYMENT INSTRUCTIONS
+// VALUE GRID
 // ========================================
 
-.upgrade-page__instructions {
+.upgrade-page__value-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+
+// ========================================
+// VALUE CARD
+// ========================================
+
+.upgrade-page__value-card {
   display: flex;
   align-items: flex-start;
   gap: 16px;
 
-  padding: 22px;
+  padding: 20px;
 
   border: 1px solid $color-700;
-  border-radius: 16px;
+  border-radius: 14px;
 
   background: $color-900;
 }
 
-.upgrade-page__instruction-icon {
+.upgrade-page__value-icon {
+  flex: 0 0 auto;
+
   display: flex;
   align-items: center;
   justify-content: center;
 
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
-
-  border-radius: 10px;
-
-  background: $color-800;
-  color: $color-100;
-
-  font-size: 16px;
-}
-
-.upgrade-page__instructions h3 {
-  margin: 0;
-
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.upgrade-page__instructions p {
-  margin: 7px 0 0;
-
-  color: $color-300;
-
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-
-// ========================================
-// NOTICE
-// ========================================
-
-.upgrade-page__notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-
-  margin-top: 16px;
-  padding: 12px 14px;
+  width: 38px;
+  height: 38px;
 
   border: 1px solid $color-700;
   border-radius: 10px;
 
-  background: $color-800;
+  background: $color-950;
 
-  color: $color-300;
+  color: $color-100;
+
+  font-size: 13px;
+}
+
+.upgrade-page__value-card h3 {
+  margin: 0;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  color: $color-white;
+}
+
+.upgrade-page__value-card p {
+  margin: 7px 0 0;
 
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.65;
 
-  i {
-    margin-top: 2px;
-    flex-shrink: 0;
-  }
+  color: $color-300;
 }
 
 
 // ========================================
-// FORM
+// CTA
 // ========================================
 
-.upgrade-page__form {
+.upgrade-page__cta {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  margin-top: 40px;
   padding: 24px;
 
   border: 1px solid $color-700;
@@ -285,116 +442,46 @@
   background: $color-900;
 }
 
-.upgrade-page__field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  margin-bottom: 20px;
+.upgrade-page__cta-content {
+  max-width: 650px;
 }
 
-.upgrade-page__field label {
-  font-size: 13px;
-  font-weight: 600;
-  color: $color-100;
-}
+.upgrade-page__cta-content h2 {
+  margin: 0;
 
-.upgrade-page__field input,
-.upgrade-page__field select {
-  width: 100%;
-  min-height: 46px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
 
-  padding: 0 14px;
+  letter-spacing: -0.02em;
 
-  border: 1px solid $color-700;
-  border-radius: 10px;
-
-  outline: none;
-
-  background: $color-950;
   color: $color-white;
-
-  font-family: inherit;
-  font-size: 14px;
-
-  transition:
-    border-color 160ms ease,
-    background 160ms ease;
 }
 
-.upgrade-page__field input:focus,
-.upgrade-page__field select:focus {
-  border-color: $color-500;
-  background: $color-900;
-}
-
-.upgrade-page__field input::placeholder {
-  color: $color-500;
-}
-
-.upgrade-page__field select {
-  cursor: pointer;
-}
-
-.upgrade-page__field input[type="file"] {
-  min-height: auto;
-  padding: 12px;
-  cursor: pointer;
-}
-
-.upgrade-page__field-help {
-  color: $color-500;
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-
-// ========================================
-// FIELD GRID
-// ========================================
-
-.upgrade-page__field-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0 16px;
-}
-
-
-// ========================================
-// FORM ERROR
-// ========================================
-
-.upgrade-page__form-error {
-  margin: 4px 0 20px;
-  padding: 12px 14px;
-
-  border: 1px solid $color-700;
-  border-radius: 10px;
-
-  background: $color-800;
-
-  color: $color-100;
+.upgrade-page__cta-content p {
+  margin: 10px 0 0;
 
   font-size: 13px;
-  line-height: 1.5;
-}
+  line-height: 1.6;
 
-.upgrade-page__form-error[hidden] {
-  display: none;
+  color: $color-300;
 }
 
 
 // ========================================
-// ACTIONS
+// CTA ACTIONS
 // ========================================
 
-.upgrade-page__actions {
+.upgrade-page__cta-actions {
   display: flex;
   flex-direction: column-reverse;
   gap: 10px;
-
-  margin-top: 8px;
 }
+
+
+// ========================================
+// BUTTONS
+// ========================================
 
 .upgrade-page__primary-button,
 .upgrade-page__secondary-button {
@@ -409,43 +496,65 @@
   border-radius: 10px;
 
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 
   cursor: pointer;
 
   transition:
-    opacity 160ms ease,
     background 160ms ease,
-    border-color 160ms ease;
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
+
+.upgrade-page__primary-button:active,
+.upgrade-page__secondary-button:active {
+  transform: translateY(1px);
+}
+
+
+// ========================================
+// PRIMARY
+// ========================================
 
 .upgrade-page__primary-button {
   border: 1px solid $color-white;
 
   background: $color-white;
+
   color: $color-black;
 }
 
 .upgrade-page__primary-button:hover {
-  opacity: 0.88;
+  background: $color-100;
+  border-color: $color-100;
 }
+
+.upgrade-page__primary-button i {
+  font-size: 11px;
+}
+
+
+// ========================================
+// SECONDARY
+// ========================================
 
 .upgrade-page__secondary-button {
   border: 1px solid $color-700;
 
   background: transparent;
+
   color: $color-100;
 }
 
 .upgrade-page__secondary-button:hover {
+  border-color: $color-500;
   background: $color-800;
 }
 
-.upgrade-page__primary-button:disabled,
-.upgrade-page__secondary-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.upgrade-page__secondary-button i {
+  font-size: 11px;
 }
 
 
@@ -461,19 +570,20 @@
   align-items: center;
   justify-content: center;
 
-  gap: 16px;
+  gap: 14px;
 
   color: $color-300;
-
-  p {
-    margin: 0;
-    font-size: 13px;
-  }
 }
 
 .upgrade-page__loading-icon {
-  font-size: 24px;
+  font-size: 22px;
   color: $color-white;
+}
+
+.upgrade-page__loading p {
+  margin: 0;
+
+  font-size: 13px;
 }
 
 
@@ -486,151 +596,130 @@
 
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
 
-  text-align: center;
+  max-width: 620px;
+  margin: 0 auto;
 }
 
 .upgrade-page__error-icon {
-  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  font-size: 32px;
-  color: $color-300;
+  width: 44px;
+  height: 44px;
+
+  margin-bottom: 20px;
+
+  border: 1px solid $color-700;
+  border-radius: 12px;
+
+  color: $color-100;
 }
 
 .upgrade-page__error h1 {
   margin: 0;
 
-  font-size: 24px;
+  font-size: 28px;
+  line-height: 1.1;
+
+  color: $color-white;
 }
 
 .upgrade-page__error p {
-  max-width: 520px;
   margin: 12px 0 24px;
 
-  color: $color-300;
-
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-
-// ========================================
-// SUCCESS
-// ========================================
-
-.upgrade-page__success {
-  min-height: 560px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  max-width: 620px;
-  margin: 0 auto;
-
-  text-align: center;
-}
-
-.upgrade-page__success-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 72px;
-  height: 72px;
-
-  margin-bottom: 24px;
-
-  border: 1px solid $color-700;
-  border-radius: 50%;
-
-  background: $color-900;
-
-  color: $color-white;
-
-  font-size: 24px;
-}
-
-.upgrade-page__success h1 {
-  margin: 0;
-
-  font-size: clamp(28px, 5vw, 40px);
-  line-height: 1.1;
-}
-
-.upgrade-page__success > p {
-  max-width: 540px;
-  margin: 16px auto 0;
+  font-size: 13px;
+  line-height: 1.65;
 
   color: $color-300;
-
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.upgrade-page__success-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-
-  margin: 24px 0;
-
-  padding: 11px 15px;
-
-  border: 1px solid $color-700;
-  border-radius: 10px;
-
-  background: $color-900;
-
-  color: $color-100;
-
-  font-size: 12px;
-  font-weight: 600;
 }
 
 
 // ========================================
-// RESPONSIVE
+// TABLET
 // ========================================
 
 @media (min-width: 640px) {
 
-  .upgrade-page {
-    padding: 44px 28px 80px;
+  .upgrade-page__container {
+    padding: 44px 28px 64px;
   }
 
-  .upgrade-page__field-grid {
-    grid-template-columns: repeat(2, 1fr);
+
+  .upgrade-page__comparison {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .upgrade-page__actions {
-    flex-direction: row;
+
+  .upgrade-page__value-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+
+  .upgrade-page__cta {
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
+    flex-direction: row;
+
+    padding: 28px;
   }
 
-  .upgrade-page__secondary-button,
-  .upgrade-page__primary-button {
-    width: auto;
-    min-width: 140px;
+
+  .upgrade-page__cta-actions {
+    flex-direction: row;
+    flex: 0 0 auto;
+  }
+
+
+  .upgrade-page__primary-button,
+  .upgrade-page__secondary-button {
+    min-width: 150px;
   }
 
 }
 
 
-@media (min-width: 900px) {
+// ========================================
+// DESKTOP
+// ========================================
 
-  .upgrade-page {
-    padding: 52px 40px 96px;
+@media (min-width: 1024px) {
+
+  .upgrade-page__container {
+    padding: 56px 36px 80px;
   }
 
-  .upgrade-page__pro-card,
-  .upgrade-page__instructions,
-  .upgrade-page__form {
-    padding: 28px;
+
+  .upgrade-page__header {
+    margin-bottom: 48px;
+  }
+
+
+  .upgrade-page__section {
+    margin-top: 48px;
+  }
+
+
+  .upgrade-page__plan-card {
+    padding: 30px;
+  }
+
+
+  .upgrade-page__plan-card:hover {
+    transform: translateY(-2px);
+  }
+
+
+  .upgrade-page__value-card {
+    padding: 24px;
+  }
+
+
+  .upgrade-page__cta {
+    padding: 32px;
   }
 
 }

@@ -18,6 +18,7 @@ import { CompetitionDetail } from "./pages/competitionDetail.js";
 import { Calendar } from "./pages/calendar.js";
 import { Billing } from "./pages/billing.js";
 import { Upgrade } from "./pages/upgrade.js";
+import { Payment } from "./pages/payment.js";
 
 // ========================================
 // SESSION
@@ -95,6 +96,9 @@ const routes = {
   "/dashboard/billing/upgrade":
     Upgrade,
 
+  "/dashboard/billing/payment":
+    Payment,
+
   "/calendar":
     Calendar,
 
@@ -133,7 +137,8 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
   "/dashboard/tournaments/new",
   "/dashboard/tournaments/edit",
   "/dashboard/billing",
-  "/dashboard/billing/upgrade"
+  "/dashboard/billing/upgrade",
+  "/dashboard/billing/payment"
 
 ]);
 
