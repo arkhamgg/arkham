@@ -22,6 +22,10 @@ import {
   requireAdminAccess
 } from "../services/adminAccess.js";
 
+import {
+  logout
+} from "../services/auth.js";
+
 
 // ========================================
 // ADMIN MODULES
@@ -168,6 +172,7 @@ export function Admin() {
 
         </div>
 
+
         <div class="admin__header-actions">
 
           <button
@@ -176,6 +181,24 @@ export function Admin() {
             data-admin-back
           >
             Volver al Dashboard
+          </button>
+
+
+          <button
+            type="button"
+            class="admin__logout"
+            data-admin-logout
+          >
+
+            <i
+              class="fa-solid fa-arrow-right-from-bracket"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              Cerrar sesión
+            </span>
+
           </button>
 
         </div>
@@ -205,10 +228,15 @@ export function Admin() {
   `;
 
 
+  // ========================================
+  // ELEMENTS
+  // ========================================
+
   const modulesContainer =
     page.querySelector(
       "[data-admin-modules]"
     );
+
 
   const statusContainer =
     page.querySelector(
@@ -414,7 +442,8 @@ export function Admin() {
       );
 
 
-      statusContainer.innerHTML = "";
+      statusContainer.innerHTML =
+        "";
 
 
       modulesContainer.innerHTML = `
@@ -458,7 +487,7 @@ export function Admin() {
 
   page.addEventListener(
     "click",
-    event => {
+    async event => {
 
       // ------------------------------------
       // BACK
@@ -473,6 +502,79 @@ export function Admin() {
       if (backButton) {
 
         window.history.back();
+
+        return;
+
+      }
+
+
+      // ------------------------------------
+      // LOGOUT
+      // ------------------------------------
+
+      const logoutButton =
+        event.target.closest(
+          "[data-admin-logout]"
+        );
+
+
+      if (logoutButton) {
+
+        try {
+
+          logoutButton.disabled =
+            true;
+
+
+          logoutButton.innerHTML = `
+
+            <i
+              class="fa-solid fa-spinner fa-spin"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              Cerrando sesión...
+            </span>
+
+          `;
+
+
+          await logout();
+
+
+          console.log(
+            "NEXUS — Sesión administrativa cerrada correctamente."
+          );
+
+
+        } catch (error) {
+
+          console.error(
+            "NEXUS — Error cerrando sesión administrativa:",
+            error
+          );
+
+
+          logoutButton.disabled =
+            false;
+
+
+          logoutButton.innerHTML = `
+
+            <i
+              class="fa-solid fa-arrow-right-from-bracket"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              Cerrar sesión
+            </span>
+
+          `;
+
+        }
+
 
         return;
 
