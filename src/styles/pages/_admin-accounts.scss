@@ -1,0 +1,519 @@
+// ========================================
+// NEXUS — Admin Accounts
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+
+// ----------------------------------------
+// PAGE
+// ----------------------------------------
+
+.admin-accounts-page {
+  min-height: 100vh;
+  background: $color-black;
+  color: $color-white;
+}
+
+
+// ----------------------------------------
+// CONTAINER
+// ----------------------------------------
+
+.admin-accounts {
+  width: min(100% - 2rem, $container-max-width);
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+
+// ----------------------------------------
+// HEADER
+// ----------------------------------------
+
+.admin-accounts__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  padding: 2rem 0 2.5rem;
+  border-bottom: 1px solid $color-700;
+}
+
+.admin-accounts__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: $color-red;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+
+  &::before {
+    content: "";
+    width: 1.5rem;
+    height: 2px;
+    background: $color-red;
+  }
+}
+
+.admin-accounts__header h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+}
+
+.admin-accounts__header p {
+  max-width: 650px;
+  margin: 1rem 0 0;
+  color: $color-300;
+  line-height: 1.7;
+}
+
+
+// ----------------------------------------
+// HEADER / ACTIONS
+// ----------------------------------------
+
+.admin-accounts__header-actions,
+.admin-accounts__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-accounts__header-actions button,
+.admin-accounts__actions button {
+  min-height: 2.5rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-900;
+  color: $color-100;
+  font: inherit;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  cursor: pointer;
+  transition: $transition-fast $ease-standard;
+
+  &:hover {
+    border-color: $color-500;
+    color: $color-white;
+    background: $color-800;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.admin-accounts__actions button.is-danger {
+  border-color: rgba(227, 6, 19, 0.35);
+
+  &:hover {
+    border-color: $color-red;
+    box-shadow: $glow-red-sm;
+  }
+}
+
+
+// ----------------------------------------
+// MESSAGE
+// ----------------------------------------
+
+.admin-accounts__message {
+  min-height: 1.5rem;
+  margin-top: 1rem;
+  color: $color-300;
+  font-size: $font-size-sm;
+}
+
+
+// ----------------------------------------
+// SUMMARY
+// ----------------------------------------
+
+.admin-accounts__summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-700;
+}
+
+.admin-accounts__summary article {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.25rem;
+  background: $color-900;
+}
+
+.admin-accounts__summary span,
+.admin-accounts__modal-body span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-accounts__summary strong {
+  font-size: 1.8rem;
+}
+
+
+// ----------------------------------------
+// TOOLBAR
+// ----------------------------------------
+
+.admin-accounts__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+}
+
+
+// ----------------------------------------
+// FILTERS
+// ----------------------------------------
+
+.admin-accounts__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.admin-accounts__filters button {
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  padding: 0.6rem 0.8rem;
+  background: transparent;
+  color: $color-300;
+  font: inherit;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &.is-active,
+  &:hover {
+    border-color: $color-700;
+    background: $color-800;
+    color: $color-white;
+  }
+}
+
+
+// ----------------------------------------
+// SEARCH
+// ----------------------------------------
+
+.admin-accounts__search {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: min(100%, 360px);
+  padding: 0 0.8rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-black;
+  color: $color-500;
+}
+
+.admin-accounts__search input {
+  width: 100%;
+  min-height: 2.7rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: $color-white;
+  font: inherit;
+}
+
+
+// ----------------------------------------
+// CONTENT
+// ----------------------------------------
+
+.admin-accounts__content {
+  margin-top: 1rem;
+}
+
+
+// ----------------------------------------
+// TABLE
+// ----------------------------------------
+
+.admin-accounts__table-wrapper {
+  overflow-x: auto;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+}
+
+.admin-accounts__table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.admin-accounts__table th,
+.admin-accounts__table td {
+  padding: 1rem;
+  border-bottom: 1px solid $color-800;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-accounts__table th {
+  color: $color-500;
+  font-size: $font-size-xs;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-accounts__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+
+// ----------------------------------------
+// ACCOUNT / SUBSCRIPTION
+// ----------------------------------------
+
+.admin-accounts__account,
+.admin-accounts__subscription {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-accounts__account strong,
+.admin-accounts__subscription strong {
+  color: $color-white;
+}
+
+.admin-accounts__account span,
+.admin-accounts__subscription span,
+.admin-accounts__account small {
+  color: $color-300;
+  font-size: $font-size-sm;
+}
+
+.admin-accounts__account small {
+  word-break: break-all;
+}
+
+
+// ----------------------------------------
+// BADGES / STATUS
+// ----------------------------------------
+
+.admin-accounts__badge,
+.admin-accounts__status {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: 700;
+}
+
+.admin-accounts__badge--plan {
+  border: 1px solid $color-700;
+  background: $color-800;
+}
+
+.admin-accounts__status--active {
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.08);
+  color: $color-success;
+}
+
+.admin-accounts__status--suspended {
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.08);
+  color: $color-error;
+}
+
+
+// ----------------------------------------
+// DATE
+// ----------------------------------------
+
+.admin-accounts__date {
+  color: $color-300;
+  font-size: $font-size-sm;
+}
+
+
+// ----------------------------------------
+// STATES
+// ----------------------------------------
+
+.admin-accounts__loading,
+.admin-accounts__empty,
+.admin-accounts__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 18rem;
+  padding: 2rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  text-align: center;
+}
+
+.admin-accounts__loading i,
+.admin-accounts__empty i,
+.admin-accounts__error i {
+  margin-bottom: 1rem;
+  font-size: 1.6rem;
+}
+
+.admin-accounts__loading span,
+.admin-accounts__empty p,
+.admin-accounts__error p {
+  max-width: 520px;
+  margin: 0.5rem 0 0;
+  color: $color-300;
+}
+
+
+// ----------------------------------------
+// MODAL
+// ----------------------------------------
+
+.admin-accounts__modal {
+  position: fixed;
+  z-index: $z-modal;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.admin-accounts__modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.admin-accounts__modal-card {
+  position: relative;
+  width: min(100%, 720px);
+  max-height: min(90vh, 760px);
+  overflow: auto;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  box-shadow: $shadow-lg;
+}
+
+.admin-accounts__modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid $color-700;
+}
+
+.admin-accounts__modal-header span {
+  color: $color-red;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.admin-accounts__modal-header h2 {
+  margin: 0.4rem 0 0;
+}
+
+.admin-accounts__modal-header button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: transparent;
+  color: $color-300;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $color-500;
+    color: $color-white;
+  }
+}
+
+
+// ----------------------------------------
+// MODAL BODY
+// ----------------------------------------
+
+.admin-accounts__modal-body {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: $color-700;
+}
+
+.admin-accounts__modal-body > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 1.2rem;
+  background: $color-900;
+}
+
+.admin-accounts__modal-body strong {
+  overflow-wrap: anywhere;
+  color: $color-white;
+}
+
+
+// ----------------------------------------
+// RESPONSIVE
+// ----------------------------------------
+
+@media (max-width: 760px) {
+  .admin-accounts__header,
+  .admin-accounts__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-accounts__header-actions {
+    width: 100%;
+  }
+
+  .admin-accounts__header-actions button {
+    flex: 1;
+  }
+
+  .admin-accounts__summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-accounts__search {
+    width: 100%;
+  }
+
+  .admin-accounts__modal-body {
+    grid-template-columns: 1fr;
+  }
+}
