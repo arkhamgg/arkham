@@ -273,6 +273,14 @@
   color: $color-warning;
 }
 
+.billing-page__status--rejected {
+  border-color: rgba(239, 68, 68, 0.35);
+
+  background: rgba(239, 68, 68, 0.08);
+
+  color: $color-error;
+}
+
 .billing-page__status--past-due,
 .billing-page__status--grace {
   border-color: rgba(245, 158, 11, 0.35);
@@ -535,6 +543,105 @@
     $space-4;
 }
 
+
+// ----------------------------------------
+// Payment Alert
+// ----------------------------------------
+
+.billing-page__payment-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-5;
+
+  padding: $space-6;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-xl;
+  background: $color-900;
+  box-shadow: $shadow-sm;
+}
+
+.billing-page__payment-alert--rejected {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: linear-gradient(145deg, $color-900 0%, $color-800 100%);
+}
+
+.billing-page__payment-alert-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: $radius-md;
+  background: rgba(239, 68, 68, 0.08);
+  color: $color-error;
+  font-size: $font-size-lg;
+}
+
+.billing-page__payment-alert-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.billing-page__payment-alert-eyebrow {
+  display: block;
+  margin-bottom: $space-2;
+  color: $color-error;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.billing-page__payment-alert h2 {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-xl;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.billing-page__payment-alert p {
+  max-width: 720px;
+  margin: $space-2 0 0;
+  color: $color-300;
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+.billing-page__payment-alert-reason {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  margin-top: $space-5;
+  padding: $space-4;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-950;
+}
+
+.billing-page__payment-alert-reason span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 600;
+}
+
+.billing-page__payment-alert-reason strong {
+  color: $color-100;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.billing-page__payment-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  margin-top: $space-5;
+}
 
 // ----------------------------------------
 // Information Grid
@@ -842,6 +949,19 @@
 // ----------------------------------------
 
 @media (max-width: 640px) {
+
+  .billing-page__payment-alert {
+    flex-direction: column;
+  }
+
+  .billing-page__payment-alert-actions {
+    width: 100%;
+  }
+
+  .billing-page__payment-alert-actions .billing-page__upgrade-button {
+    width: 100%;
+    justify-content: center;
+  }
 
   .billing-page__container {
     padding:

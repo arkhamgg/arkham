@@ -1079,13 +1079,13 @@ export default async function handler(
   // ========================================
 
   if (
-    req.method !==
-    "POST"
+    req.method !== "POST" &&
+    req.method !== "GET"
   ) {
 
     res.setHeader(
       "Allow",
-      "POST"
+      "GET, POST"
     );
 
     return errorResponse(
@@ -1107,6 +1107,60 @@ export default async function handler(
       await authenticateRequest(
         req
       );
+
+
+    // ======================================
+    // GET CURRENT ACCOUNT PAYMENT
+    // ======================================
+
+    if (req.method === "GET") {
+
+      const uid = decodedToken.uid;
+
+      const snapshot =
+        await adminDb
+          .collection("payments")
+          .where("accountId", "==", uid)
+          .get();
+
+      const payments =
+        snapshot.docs
+          .map((document) => ({
+            id: document.id,
+            ...document.data()
+          }))
+          .sort((a, b) => {
+
+            const getTime = (value) => {
+
+              if (!value) return 0;
+
+              if (typeof value.toMillis === "function") {
+                return value.toMillis();
+              }
+
+              if (typeof value.toDate === "function") {
+                return value.toDate().getTime();
+              }
+
+              const time = new Date(value).getTime();
+
+              return Number.isNaN(time) ? 0 : time;
+
+            };
+
+            return getTime(b.createdAt) - getTime(a.createdAt);
+
+          });
+
+      const payment = payments[0] || null;
+
+      return successResponse(
+        res,
+        { payment }
+      );
+
+    }
 
 
     // ======================================

@@ -81,6 +81,9 @@ function getBillingStatusLabel(status) {
     case BILLING_STATUS.PAYMENT_UNDER_REVIEW:
       return "Pago en revisión";
 
+    case BILLING_STATUS.PAYMENT_REJECTED:
+      return "Pago rechazado";
+
     case BILLING_STATUS.PAST_DUE:
       return "Pago vencido";
 
@@ -120,6 +123,9 @@ function getBillingStatusModifier(status) {
 
     case BILLING_STATUS.PAYMENT_UNDER_REVIEW:
       return "review";
+
+    case BILLING_STATUS.PAYMENT_REJECTED:
+      return "rejected";
 
     case BILLING_STATUS.PAST_DUE:
       return "past-due";
@@ -338,6 +344,28 @@ function renderFreePlan(
       planId
     );
 
+  const isRejected =
+    summary?.status ===
+    BILLING_STATUS.PAYMENT_REJECTED;
+
+  const isUnderReview =
+    summary?.status ===
+    BILLING_STATUS.PAYMENT_UNDER_REVIEW;
+
+  const statusLabel =
+    isRejected
+      ? "Pago rechazado"
+      : isUnderReview
+        ? "Pago en revisión"
+        : "Activo";
+
+  const statusModifier =
+    isRejected
+      ? "rejected"
+      : isUnderReview
+        ? "review"
+        : "active";
+
   return `
     <section class="billing-page">
 
@@ -412,10 +440,10 @@ function renderFreePlan(
               <span
                 class="
                   billing-page__status
-                  billing-page__status--active
+                  billing-page__status--${statusModifier}
                 "
               >
-                Activo
+                ${escapeHtml(statusLabel)}
               </span>
 
             </div>
@@ -459,6 +487,81 @@ function renderFreePlan(
           </article>
 
         </section>
+
+
+        ${
+          summary?.status === BILLING_STATUS.PAYMENT_REJECTED
+            ? `
+              <section class="billing-page__section">
+
+                <div class="billing-page__section-heading">
+
+                  <span>
+                    ESTADO DEL PAGO
+                  </span>
+
+                </div>
+
+                <article class="billing-page__payment-alert billing-page__payment-alert--rejected">
+
+                  <div class="billing-page__payment-alert-icon">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                  </div>
+
+                  <div class="billing-page__payment-alert-content">
+
+                    <span class="billing-page__payment-alert-eyebrow">
+                      PAGO RECHAZADO
+                    </span>
+
+                    <h2>
+                      No pudimos aprobar tu pago.
+                    </h2>
+
+                    <p>
+                      Tu solicitud para activar NEXUS Pro fue rechazada.
+                      Revisa el motivo y, si lo deseas, realiza un nuevo intento.
+                    </p>
+
+                    <div class="billing-page__payment-alert-reason">
+
+                      <span>
+                        Motivo del rechazo
+                      </span>
+
+                      <strong>
+                        ${escapeHtml(
+                          summary?.rejectionReason ||
+                          "No se proporcionó un motivo."
+                        )}
+                      </strong>
+
+                    </div>
+
+                    <div class="billing-page__payment-alert-actions">
+
+                      <button
+                        type="button"
+                        class="billing-page__upgrade-button"
+                        data-billing-retry-payment
+                      >
+                        <span>
+                          Intentar nuevamente
+                        </span>
+
+                        <i class="fa-solid fa-arrow-right"></i>
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                </article>
+
+              </section>
+            `
+            : ""
+        }
 
 
         <!-- PRO PREVIEW -->
@@ -925,6 +1028,37 @@ function bindEvents(
 
 
   // ----------------------------------------
+  // RETRY PAYMENT
+  // ----------------------------------------
+
+  const retryPaymentButton =
+    root.querySelector(
+      "[data-billing-retry-payment]"
+    );
+
+  if (retryPaymentButton) {
+
+    retryPaymentButton.addEventListener(
+      "click",
+      () => {
+
+        window.history.pushState(
+          {},
+          "",
+          "/dashboard/billing/payment"
+        );
+
+        window.dispatchEvent(
+          new PopStateEvent("popstate")
+        );
+
+      }
+    );
+
+  }
+
+
+  // ----------------------------------------
   // UPGRADE
   // ----------------------------------------
 
@@ -973,7 +1107,9 @@ async function renderBillingContent(
     // --------------------------------------
 
     const accountContext =
-      await getCurrentAccountContext();
+      await getCurrentAccountContext({
+        includePayment: true
+      });
 
     if (!accountContext) {
 

@@ -137,6 +137,22 @@ async function apiRequest(
 
 
 // ========================================
+// GET CURRENT ACCOUNT PAYMENT
+// ========================================
+
+export async function getCurrentAccountPayment() {
+
+  return await apiRequest(
+    BILLING_PAYMENT_API,
+    {
+      method: "GET"
+    }
+  );
+
+}
+
+
+// ========================================
 // CREATE BILLING PAYMENT
 // ========================================
 //

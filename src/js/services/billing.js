@@ -37,6 +37,9 @@ export const BILLING_STATUS = {
   PAYMENT_UNDER_REVIEW:
     "payment_under_review",
 
+  PAYMENT_REJECTED:
+    "payment_rejected",
+
   PAST_DUE:
     "past_due",
 
@@ -74,6 +77,48 @@ export function getBillingStatus(
 ) {
 
   // ----------------------------------------
+  // PAYMENT UNDER REVIEW
+  // ----------------------------------------
+
+  if (
+    payment &&
+    payment.status === PAYMENT_STATUS.UNDER_REVIEW
+  ) {
+
+    return BILLING_STATUS.PAYMENT_UNDER_REVIEW;
+
+  }
+
+
+  // ----------------------------------------
+  // PAYMENT REJECTED
+  // ----------------------------------------
+
+  if (
+    payment &&
+    payment.status === PAYMENT_STATUS.REJECTED
+  ) {
+
+    return BILLING_STATUS.PAYMENT_REJECTED;
+
+  }
+
+
+  // ----------------------------------------
+  // PAYMENT PENDING
+  // ----------------------------------------
+
+  if (
+    payment &&
+    payment.status === PAYMENT_STATUS.PENDING
+  ) {
+
+    return BILLING_STATUS.PAYMENT_PENDING;
+
+  }
+
+
+  // ----------------------------------------
   // NO SUBSCRIPTION
   // ----------------------------------------
 
@@ -108,36 +153,6 @@ export function getBillingStatus(
   ) {
 
     return BILLING_STATUS.SUSPENDED;
-
-  }
-
-
-  // ----------------------------------------
-  // PAYMENT UNDER REVIEW
-  // ----------------------------------------
-
-  if (
-    payment &&
-    payment.status ===
-    PAYMENT_STATUS.UNDER_REVIEW
-  ) {
-
-    return BILLING_STATUS.PAYMENT_UNDER_REVIEW;
-
-  }
-
-
-  // ----------------------------------------
-  // PAYMENT PENDING
-  // ----------------------------------------
-
-  if (
-    payment &&
-    payment.status ===
-    PAYMENT_STATUS.PENDING
-  ) {
-
-    return BILLING_STATUS.PAYMENT_PENDING;
 
   }
 
@@ -274,7 +289,10 @@ export function requiresPayment(
       BILLING_STATUS.PAYMENT_PENDING ||
 
     billingStatus ===
-      BILLING_STATUS.PAYMENT_UNDER_REVIEW
+      BILLING_STATUS.PAYMENT_UNDER_REVIEW ||
+
+    billingStatus ===
+      BILLING_STATUS.PAYMENT_REJECTED
   );
 
 }
@@ -628,7 +646,19 @@ export function getBillingSummary(
     paymentAmount:
       getBillingPaymentAmount(
         payment
-      )
+      ),
+
+    paymentId:
+      payment?.id ||
+      null,
+
+    paymentStatus:
+      payment?.status ||
+      null,
+
+    rejectionReason:
+      payment?.rejectionReason ||
+      null
 
   };
 

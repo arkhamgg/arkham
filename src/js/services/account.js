@@ -19,6 +19,10 @@ import {
   getAccountSubscription
 } from "./subscription.js";
 
+import {
+  getCurrentAccountPayment
+} from "./billingPayment.js";
+
 
 // ========================================
 // GET CURRENT ACCOUNT
@@ -139,7 +143,9 @@ export async function getCurrentAccountSubscription() {
 // GET CURRENT ACCOUNT CONTEXT
 // ========================================
 
-export async function getCurrentAccountContext() {
+export async function getCurrentAccountContext(
+  options = {}
+) {
 
   const account =
     await getCurrentAccountData();
@@ -167,11 +173,40 @@ export async function getCurrentAccountContext() {
   }
 
 
+  let payment =
+    null;
+
+
+  if (options.includePayment) {
+
+    try {
+
+      const paymentResponse =
+        await getCurrentAccountPayment();
+
+      payment =
+        paymentResponse?.payment ||
+        null;
+
+    } catch (error) {
+
+      console.warn(
+        "NEXUS — No fue posible obtener el último pago de la cuenta.",
+        error
+      );
+
+    }
+
+  }
+
+
   return {
 
     account,
 
-    subscription
+    subscription,
+
+    payment
 
   };
 
