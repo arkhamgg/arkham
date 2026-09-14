@@ -1280,7 +1280,7 @@ async function handlePaymentConfirmation(
      * cuándo NEXUS recibió la solicitud.
      */
 
-    const payment =
+    const paymentResponse =
       await createBillingPayment({
 
         subscriptionId:
@@ -1310,9 +1310,19 @@ async function handlePaymentConfirmation(
       });
 
 
-    if (!payment) {
+    const payment =
+      paymentResponse?.payment ||
+      paymentResponse;
+
+
+    const paymentId =
+      payment?.id ||
+      paymentResponse?.id;
+
+
+    if (!paymentId) {
       throw new Error(
-        "No fue posible crear la solicitud de pago."
+        "El pago fue creado, pero no recibimos su identificador."
       );
     }
 
@@ -1332,7 +1342,7 @@ async function handlePaymentConfirmation(
 
     await uploadBillingPaymentProof(
       validation.proofFile,
-      payment.id
+      paymentId
     );
 
 
@@ -1351,7 +1361,7 @@ async function handlePaymentConfirmation(
 
     const submittedPayment =
       await submitBillingPayment(
-        payment.id
+        paymentId
       );
 
 
