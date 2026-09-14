@@ -62,22 +62,16 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
   const isEditMode =
     Boolean(tournamentId && eventId);
 
-  /*
-   * --------------------------------------------------
-   * CONTEXT INITIALIZATION
-   * --------------------------------------------------
-   * El Builder debe resolver el Tournament ID antes
-   * de permitir cualquier operación de guardado.
-   */
-  let nexusContextReady = false;
+  let nexusContextReady =
+    Boolean(tournamentId);
 
-  let nexusContextInitialization = null;
+  let nexusContextInitialization =
+    null;
 
-  /*
-   * --------------------------------------------------
-   * PAGE STRUCTURE
-   * --------------------------------------------------
-   */
+   //--------------------------------------------------
+   //PAGE STRUCTURE
+   //--------------------------------------------------
+   //
 
   page.innerHTML = `
     <div class="dashboard-layout">
@@ -1430,7 +1424,13 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       if (!nexusContextReady || !tournamentId) {
         console.error(
-          "NEXUS — No se puede guardar: el Tournament ID actual todavía no está disponible."
+          "NEXUS — No se puede guardar: el Tournament ID actual todavía no está disponible.",
+          {
+            urlTournamentId:
+              new URLSearchParams(window.location.search).get("tournamentId"),
+            resolvedTournamentId:
+              tournamentId
+          }
         );
         return;
       }
@@ -1635,11 +1635,22 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       const entityContext =
         await getCurrentEntityContext();
 
-      if (
-        entityContext?.type === "tournament" &&
-        entityContext?.id
-      ) {
-        tournamentId = entityContext.id;
+      /*
+       * SOURCE OF TRUTH FOR THIS BUILDER INSTANCE
+       *
+       * 1. tournamentId de la URL, cuando existe.
+       * 2. Entity Context como fallback para /new.
+       *
+       * En /edit la URL siempre conserva el ID del
+       * Tournament padre.
+       */
+      if (!tournamentId) {
+        if (
+          entityContext?.type === "tournament" &&
+          entityContext?.id
+        ) {
+          tournamentId = entityContext.id;
+        }
       }
 
       /*
@@ -1647,7 +1658,8 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
        * conocemos el Tournament ID que será el documento
        * padre de events.
        */
-      nexusContextReady = Boolean(tournamentId);
+      nexusContextReady =
+        Boolean(tournamentId);
 
       if (!nexusContextReady) {
         console.error(

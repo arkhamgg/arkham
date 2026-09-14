@@ -1213,17 +1213,38 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
   createTournamentButton.addEventListener(
     "click",
-    () => {
+    async () => {
 
       console.log(
         "NEXUS — Crear torneo"
       );
 
+      /*
+       * El Dashboard ya conoce el Tournament actual.
+       * Lo enviamos explícitamente al Builder para que
+       * la creación de una competencia no dependa de
+       * una segunda lectura asíncrona del contexto.
+       */
+
+      if (!currentTournamentId) {
+
+        console.error(
+          "NEXUS — No se puede abrir el Builder: no hay Tournament ID actual."
+        );
+
+        return;
+
+      }
+
+      const builderUrl =
+        `/dashboard/tournaments/new?tournamentId=${encodeURIComponent(
+          currentTournamentId
+        )}`;
 
       window.history.pushState(
         {},
         "",
-        "/dashboard/tournaments/new"
+        builderUrl
       );
 
 
@@ -1241,7 +1262,8 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
   // LOAD
   // ========================================
 
-  loadNexusContext();
+  const nexusContextInitialization =
+    loadNexusContext();
 
 
   // ========================================
