@@ -23,6 +23,7 @@
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "../firebaseAdmin.js";
+import { writeAdminAudit } from "./auditWriter.js";
 
 const ADMIN_USERS_COLLECTION = "adminUsers";
 const ACCOUNTS_COLLECTION = "accounts";
@@ -311,6 +312,18 @@ async function handlePatch(req, res) {
     await accountRef.update({
       accountStatus: nextStatus,
       updatedAt: FieldValue.serverTimestamp()
+    });
+
+    await writeAdminAudit({
+      firestore: access.firestore,
+      actorId: access.uid,
+      actorRole: access.roleId,
+      action: "account_status_updated",
+      targetType: "account",
+      targetId: uid,
+      previousState: { accountStatus: accountSnapshot.data()?.accountStatus || null },
+      newState: { accountStatus: nextStatus },
+      metadata: { authDisabled: suspended }
     });
 
     return successResponse(res, {

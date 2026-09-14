@@ -14,6 +14,8 @@ import {
   getFirebaseAdminApp
 } from "../firebaseAdmin.js";
 
+import { writeAdminAudit } from "./auditWriter.js";
+
 
 // ========================================
 // FIREBASE ADMIN
@@ -421,6 +423,24 @@ async function rejectPayment(
 
       }
     );
+
+
+  // ========================================
+  // AUDIT
+  // ========================================
+
+  await writeAdminAudit({
+    firestore: adminDb,
+    actorId: adminUid,
+    actorRole: "administrator",
+    action: "payment_rejected",
+    targetType: "payment",
+    targetId: paymentId,
+    previousState: { status: "under_review" },
+    newState: { status: "rejected" },
+    reason: normalizedReason,
+    metadata: { subscriptionId: result.subscriptionId || null }
+  });
 
 
   // ========================================

@@ -51,4 +51,6 @@
 @use "./pages/admin-products";
 @use "./pages/admin-plans";
 @use "./pages/admin-capabilities";
-@use "./pages/admin-subscriptions"
+@use "./pages/admin-subscriptions";
+@use "./pages/admin-billing";
+@use "./pages/admin-audit";

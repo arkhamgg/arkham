@@ -31,6 +31,7 @@ import {
 import {
   getFirebaseAdminApp
 } from "../firebaseAdmin.js";
+import { writeAdminAudit } from "./auditWriter.js";
 
 // ========================================
 // CONSTANTES
@@ -877,6 +878,9 @@ async function handlePatch(
       }
 
 
+      const previousRoleId =
+        adminSnapshot.data()?.roleId || null;
+
       await adminRef.update({
 
         roleId,
@@ -884,6 +888,18 @@ async function handlePatch(
         updatedAt:
           new Date()
 
+      });
+
+      await writeAdminAudit({
+        firestore: access.firestore,
+        actorId: access.uid,
+        actorRole: access.roleId,
+        action: "staff_role_updated",
+        targetType: "adminUser",
+        targetId: uid,
+        previousState: { roleId: previousRoleId },
+        newState: { roleId },
+        metadata: { targetUid: uid }
       });
 
 
@@ -953,6 +969,9 @@ async function handlePatch(
       }
 
 
+      const previousStatus =
+        adminSnapshot.data()?.status || null;
+
       await adminRef.update({
 
         status,
@@ -960,6 +979,18 @@ async function handlePatch(
         updatedAt:
           new Date()
 
+      });
+
+      await writeAdminAudit({
+        firestore: access.firestore,
+        actorId: access.uid,
+        actorRole: access.roleId,
+        action: "staff_status_updated",
+        targetType: "adminUser",
+        targetId: uid,
+        previousState: { status: previousStatus },
+        newState: { status },
+        metadata: { targetUid: uid }
       });
 
 

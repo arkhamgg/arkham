@@ -53,6 +53,8 @@ import { AdminPlans } from "./pages/adminPlans.js";
 import { AdminCapabilities } from "./pages/adminCapabilities.js";
 import { AdminPayments } from "./pages/adminPayments.js";
 import { AdminSubscriptions } from "./pages/adminSubscriptions.js";
+import { AdminBilling } from "./pages/adminBilling.js";
+import { AdminAudit } from "./pages/adminAudit.js";
 
 
 // ========================================
@@ -137,7 +139,13 @@ const routes = {
     AdminPayments,
 
   "/dashboard/admin/subscriptions":
-    AdminSubscriptions
+    AdminSubscriptions,
+
+  "/dashboard/admin/billing":
+    AdminBilling,
+
+  "/dashboard/admin/audit":
+    AdminAudit
 
 };
 
@@ -155,7 +163,9 @@ const ADMIN_ROUTES = new Set([
   "/dashboard/admin/capabilities",
   "/dashboard/admin/staff",
   "/dashboard/admin/payments",
-  "/dashboard/admin/subscriptions"
+  "/dashboard/admin/subscriptions",
+  "/dashboard/admin/billing",
+  "/dashboard/admin/audit"
 
 ]);
 

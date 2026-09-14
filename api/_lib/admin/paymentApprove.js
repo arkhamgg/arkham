@@ -15,6 +15,8 @@ import {
   getFirebaseAdminApp
 } from "../firebaseAdmin.js";
 
+import { writeAdminAudit } from "./auditWriter.js";
+
 
 // ========================================
 // FIREBASE ADMIN
@@ -1133,6 +1135,28 @@ async function approvePayment(
 
       }
     );
+
+
+  // ========================================
+  // AUDIT
+  // ========================================
+
+  await writeAdminAudit({
+    firestore: adminDb,
+    actorId: adminUid,
+    actorRole: "administrator",
+    action: "payment_approved",
+    targetType: "payment",
+    targetId: paymentId,
+    previousState: { status: "under_review" },
+    newState: { status: "approved" },
+    metadata: {
+      accountId: result.accountId || null,
+      subscriptionId: result.subscriptionId || null,
+      planId: result.planId || null,
+      amount: result.amount || null
+    }
+  });
 
 
   // ========================================

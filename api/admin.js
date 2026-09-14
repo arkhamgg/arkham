@@ -21,6 +21,8 @@ import { handle as handleSubscriptions } from "./_lib/admin/subscriptions.js";
 import { handle as handlePayments } from "./_lib/admin/payments.js";
 import { handle as handlePaymentApprove } from "./_lib/admin/paymentApprove.js";
 import { handle as handlePaymentReject } from "./_lib/admin/paymentReject.js";
+import { handle as handleBilling } from "./_lib/admin/billing.js";
+import { handle as handleAudit } from "./_lib/admin/audit.js";
 
 const HANDLERS = {
   accounts: handleAccounts,
@@ -28,7 +30,9 @@ const HANDLERS = {
   subscriptions: handleSubscriptions,
   payments: handlePayments,
   "payment-approve": handlePaymentApprove,
-  "payment-reject": handlePaymentReject
+  "payment-reject": handlePaymentReject,
+  billing: handleBilling,
+  audit: handleAudit
 };
 
 function errorResponse(res, message, status = 400) {
