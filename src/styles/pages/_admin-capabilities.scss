@@ -1,0 +1,513 @@
+// ========================================
+// NEXUS — Admin Capabilities
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+.admin-capabilities-page {
+  min-height: 100vh;
+  background: $color-black;
+  color: $color-white;
+}
+
+.admin-capabilities {
+  width: min(100% - 2rem, $container-max-width);
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.admin-capabilities__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  padding: 2rem 0 2.5rem;
+  border-bottom: 1px solid $color-700;
+}
+
+.admin-capabilities__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .75rem;
+  color: $color-red;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.admin-capabilities__eyebrow::before {
+  content: "";
+  width: 1.5rem;
+  height: 2px;
+  background: $color-red;
+}
+
+.admin-capabilities__header h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: .95;
+  letter-spacing: -.045em;
+}
+
+.admin-capabilities__header p {
+  max-width: 720px;
+  margin: 1rem 0 0;
+  color: $color-300;
+  line-height: 1.7;
+}
+
+.admin-capabilities__back {
+  min-height: 2.5rem;
+  padding: .65rem .9rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-900;
+  color: $color-100;
+  font: inherit;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-capabilities__back:hover {
+  border-color: $color-500;
+  background: $color-800;
+  color: $color-white;
+}
+
+.admin-capabilities__message {
+  min-height: 1.5rem;
+  margin-top: 1rem;
+  color: $color-300;
+  font-size: $font-size-sm;
+}
+
+.admin-capabilities__summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-700;
+}
+
+.admin-capabilities__summary article {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  padding: 1.25rem;
+  background: $color-900;
+}
+
+.admin-capabilities__summary span,
+.admin-capabilities__modal-summary span,
+.admin-capability-card__meta span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.admin-capabilities__summary strong {
+  font-size: 1.8rem;
+}
+
+.admin-capabilities__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+}
+
+.admin-capabilities__search {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  width: min(100%, 380px);
+  padding: 0 .8rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-black;
+  color: $color-500;
+}
+
+.admin-capabilities__search input {
+  width: 100%;
+  min-height: 2.7rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: $color-white;
+  font: inherit;
+}
+
+.admin-capabilities__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+
+.admin-capabilities__filters button {
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  padding: .6rem .8rem;
+  background: transparent;
+  color: $color-300;
+  font: inherit;
+  font-size: $font-size-sm;
+  cursor: pointer;
+}
+
+.admin-capabilities__filters button:hover,
+.admin-capabilities__filters button.is-active {
+  border-color: $color-700;
+  background: $color-800;
+  color: $color-white;
+}
+
+.admin-capabilities__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-capability-card {
+  display: flex;
+  min-height: 280px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  transition: border-color $transition-fast $ease-standard, transform $transition-fast $ease-standard;
+}
+
+.admin-capability-card:hover {
+  border-color: $color-500;
+  transform: translateY(-2px);
+}
+
+.admin-capability-card__top {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: 1rem 1.1rem;
+}
+
+.admin-capability-card__indicator {
+  width: .55rem;
+  height: .55rem;
+  flex: 0 0 auto;
+  border-radius: $radius-full;
+  background: $color-red;
+  box-shadow: $glow-red-sm;
+}
+
+.admin-capability-card__group {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-capability-card__status {
+  margin-left: auto;
+  padding: .3rem .55rem;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: 700;
+}
+
+.admin-capability-card__status--active {
+  border: 1px solid rgba(34, 197, 94, .25);
+  background: rgba(34, 197, 94, .08);
+  color: $color-success;
+}
+
+.admin-capability-card__status--inactive {
+  border: 1px solid rgba(239, 68, 68, .25);
+  background: rgba(239, 68, 68, .08);
+  color: $color-error;
+}
+
+.admin-capability-card__status--undefined {
+  border: 1px solid $color-700;
+  background: $color-800;
+  color: $color-300;
+}
+
+.admin-capability-card__body {
+  flex: 1;
+  padding: 1.1rem;
+}
+
+.admin-capability-card__id {
+  color: $color-500;
+  font-family: monospace;
+  font-size: $font-size-xs;
+  word-break: break-word;
+}
+
+.admin-capability-card h2 {
+  margin: .6rem 0 0;
+  font-size: 1.25rem;
+}
+
+.admin-capability-card__meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  border-top: 1px solid $color-700;
+  background: $color-700;
+}
+
+.admin-capability-card__meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: .9rem 1.1rem;
+  background: $color-900;
+}
+
+.admin-capability-card__meta strong {
+  font-size: 1.1rem;
+}
+
+.admin-capability-card__action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 1rem 1.1rem;
+  border: 0;
+  border-top: 1px solid $color-700;
+  background: transparent;
+  color: $color-100;
+  font: inherit;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-capability-card__action:hover {
+  background: $color-800;
+  color: $color-white;
+}
+
+.admin-capabilities__empty {
+  margin-top: 1rem;
+  padding: 4rem 2rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  text-align: center;
+}
+
+.admin-capabilities__empty h2 {
+  margin: 0;
+}
+
+.admin-capabilities__empty p {
+  margin: .75rem 0 0;
+  color: $color-300;
+}
+
+.admin-capabilities__modal {
+  position: fixed;
+  z-index: $z-modal;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.admin-capabilities__modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .78);
+}
+
+.admin-capabilities__modal-card {
+  position: relative;
+  width: min(100%, 760px);
+  max-height: 90vh;
+  overflow: auto;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  box-shadow: $shadow-lg;
+}
+
+.admin-capabilities__modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid $color-700;
+}
+
+.admin-capabilities__modal-header .admin-capabilities__eyebrow {
+  margin-bottom: .4rem;
+}
+
+.admin-capabilities__modal-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.admin-capabilities__modal-header code {
+  display: block;
+  margin-top: .5rem;
+  color: $color-500;
+  font-size: $font-size-sm;
+  overflow-wrap: anywhere;
+}
+
+.admin-capabilities__modal-close {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: transparent;
+  color: $color-300;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.admin-capabilities__modal-close:hover {
+  border-color: $color-500;
+  color: $color-white;
+}
+
+.admin-capabilities__modal-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: $color-700;
+}
+
+.admin-capabilities__modal-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  padding: 1.1rem 1.25rem;
+  background: $color-900;
+}
+
+.admin-capabilities__modal-status--active {
+  color: $color-success;
+}
+
+.admin-capabilities__modal-status--inactive {
+  color: $color-error;
+}
+
+.admin-capabilities__modal-status--undefined {
+  color: $color-300;
+}
+
+.admin-capabilities__modal-content {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.admin-capabilities__modal-content section {
+  padding: 1.1rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-black;
+}
+
+.admin-capabilities__section-label {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.admin-capabilities__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: .8rem;
+}
+
+.admin-capabilities__chips span {
+  padding: .45rem .6rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-full;
+  background: $color-800;
+  color: $color-100;
+  font-size: $font-size-sm;
+}
+
+.admin-capabilities__chips em {
+  color: $color-500;
+  font-size: $font-size-sm;
+}
+
+.admin-capabilities__modal-note {
+  margin: 0 1.5rem 1.5rem;
+  padding: 1rem 1.1rem;
+  border-left: 2px solid $color-red;
+  background: $color-black;
+}
+
+.admin-capabilities__modal-note strong {
+  font-size: $font-size-sm;
+}
+
+.admin-capabilities__modal-note p {
+  margin: .45rem 0 0;
+  color: $color-300;
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+@media (max-width: 1050px) {
+  .admin-capabilities__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-capabilities__header,
+  .admin-capabilities__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-capabilities__summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-capabilities__search {
+    width: 100%;
+  }
+
+  .admin-capabilities__list,
+  .admin-capabilities__modal-content {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-capabilities__modal-summary {
+    grid-template-columns: 1fr;
+  }
+}
