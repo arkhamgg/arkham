@@ -571,9 +571,6 @@ export function DashboardSidebar({
         }
       );
 
-  }
-
-
 
     // --------------------------------------
     // LOGOUT
@@ -640,6 +637,9 @@ export function DashboardSidebar({
 
         }
       );
+  }
+
+
 
   // ========================================
   // SELECT VIEW
