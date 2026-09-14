@@ -322,31 +322,37 @@ export function DashboardSidebar({
             .join("")}
 
 
-          <!-- LOGOUT -->
-
-          <button
-            type="button"
-            class="
-              dashboard-sidebar__link
-              dashboard-sidebar__link--logout
-            "
-            data-dashboard-logout
-          >
-
-            <i
-              class="fa-solid ${LOGOUT_NAVIGATION.icon}"
-              aria-hidden="true"
-            ></i>
-
-            <span>
-              ${LOGOUT_NAVIGATION.label}
-            </span>
-
-          </button>
-
         </div>
 
       </nav>
+
+
+      <!-- ================================= -->
+      <!-- DESKTOP LOGOUT -->
+      <!-- ================================= -->
+
+      <div class="dashboard-sidebar__footer">
+
+        <button
+          type="button"
+          class="
+            dashboard-sidebar__logout
+          "
+          data-dashboard-logout
+        >
+
+          <i
+            class="fa-solid ${LOGOUT_NAVIGATION.icon}"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            ${LOGOUT_NAVIGATION.label}
+          </span>
+
+        </button>
+
+      </div>
 
 
       <!-- ================================= -->

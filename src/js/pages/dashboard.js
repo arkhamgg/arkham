@@ -19,10 +19,6 @@ import {
 } from "../services/planService.js";
 
 import {
-  DashboardSidebar
-} from "../components/dashboardSidebar.js";
-
-import {
   getEntity,
   deleteMapEntity
 } from "../services/firestore.js";
@@ -32,7 +28,7 @@ import {
 // PAGE
 // ========================================
 
-export function Dashboard() {
+export function Dashboard({ dashboardSidebar = null } = {}) {
 
   const page =
     document.createElement("main");
@@ -87,9 +83,7 @@ export function Dashboard() {
 
   page.innerHTML = `
 
-    <div class="dashboard-layout">
-
-      <section class="dashboard-main">
+    <section class="dashboard-main">
 
         <!-- ================================= -->
         <!-- HEADER -->
@@ -300,9 +294,7 @@ export function Dashboard() {
 
         </div>
 
-      </section>
-
-    </div>
+    </section>
 
   `;
 
@@ -346,96 +338,11 @@ export function Dashboard() {
 
 
   // ========================================
-  // SIDEBAR
+  // DASHBOARD NAVIGATION
   // ========================================
 
   const sidebar =
-    DashboardSidebar({
-      onNavigate: view => {
-
-        console.log(
-          "NEXUS — Dashboard view:",
-          view
-        );
-
-
-        // ====================================
-        // DASHBOARD ROUTES
-        // ====================================
-
-        const routes = {
-
-          overview:
-            "/dashboard",
-
-          billing:
-            "/dashboard/billing",
-
-          "upgrade-plan":
-            "/dashboard/billing/upgrade"
-
-        };
-
-
-        const route =
-          routes[view];
-
-
-        // ====================================
-        // UNKNOWN VIEW
-        // ====================================
-
-        if (!route) {
-
-          console.warn(
-            "NEXUS — Vista de Dashboard no configurada:",
-            view
-          );
-
-          return;
-
-        }
-
-
-        // ====================================
-        // CURRENT ROUTE
-        // ====================================
-
-        if (
-          window.location.pathname ===
-          route
-        ) {
-
-          return;
-
-        }
-
-
-        // ====================================
-        // NAVIGATION
-        // ====================================
-
-        window.history.pushState(
-          {},
-          "",
-          route
-        );
-
-
-        window.dispatchEvent(
-          new PopStateEvent(
-            "popstate"
-          )
-        );
-
-      }
-    });
-
-
-  main.parentElement.prepend(
-    sidebar.element
-  );
-
+    dashboardSidebar;
 
   // ========================================
   // COMPETITIONS
@@ -1222,6 +1129,8 @@ export function Dashboard() {
           "Mi NEXUS";
 
 
+        if (sidebar) {
+
         sidebar.setContext({
 
           type:
@@ -1235,6 +1144,8 @@ export function Dashboard() {
 
         });
 
+      }
+
 
         headerDescription.textContent =
           `Gestionando ${entityName}.`;
@@ -1247,18 +1158,22 @@ export function Dashboard() {
 
       } else {
 
-        sidebar.setContext({
+        if (sidebar) {
 
-          type:
-            null,
+          sidebar.setContext({
 
-          name:
-            "Mi NEXUS",
+            type:
+              null,
 
-          accessContext:
-            access
+            name:
+              "Mi NEXUS",
 
-        });
+            accessContext:
+              access
+
+          });
+
+        }
 
 
         headerDescription.textContent =

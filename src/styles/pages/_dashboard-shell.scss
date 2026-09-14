@@ -1,0 +1,155 @@
+// ========================================
+// NEXUS — Dashboard Shell
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+
+// ========================================
+// SHELL
+// ========================================
+
+.dashboard-shell {
+
+  display: flex;
+
+  width: 100%;
+  min-height: 100vh;
+
+  background: $color-black;
+  color: $color-white;
+
+}
+
+
+.dashboard-shell__content {
+
+  flex: 1;
+
+  min-width: 0;
+  min-height: 100vh;
+
+}
+
+
+// ========================================
+// SIDEBAR WITHOUT PUBLIC NAVBAR
+// ========================================
+
+.dashboard-shell > .dashboard-sidebar {
+
+  top: 0;
+
+  height: 100vh;
+
+}
+
+
+// ========================================
+// DASHBOARD SIDEBAR FOOTER
+// ========================================
+
+.dashboard-shell > .dashboard-sidebar {
+
+  overflow: hidden;
+
+}
+
+.dashboard-shell > .dashboard-sidebar .dashboard-sidebar__nav {
+
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+
+}
+
+.dashboard-shell > .dashboard-sidebar .dashboard-sidebar__footer {
+
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: $space-4;
+
+}
+
+.dashboard-shell > .dashboard-sidebar .dashboard-sidebar__logout {
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: $space-3;
+
+  width: 100%;
+  min-height: 44px;
+  padding: 0 $space-3;
+
+  border: 1px solid $color-800;
+  background: transparent;
+  color: $color-300;
+
+  font-family: $font-family-base;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+
+  transition:
+    color $transition-base $ease-standard,
+    border-color $transition-base $ease-standard,
+    background $transition-base $ease-standard;
+
+}
+
+.dashboard-shell > .dashboard-sidebar .dashboard-sidebar__logout:hover {
+
+  border-color: $color-red;
+  background: rgba(227, 6, 19, 0.05);
+  color: $color-white;
+
+}
+
+
+// ========================================
+// MOBILE
+// ========================================
+
+@media (max-width: 700px) {
+
+  .dashboard-shell {
+
+    display: block;
+
+  }
+
+  .dashboard-shell > .dashboard-sidebar {
+
+    position: relative;
+
+    top: auto;
+
+    height: auto;
+    overflow: visible;
+
+  }
+
+  .dashboard-shell > .dashboard-sidebar .dashboard-sidebar__nav {
+
+    flex: none;
+    overflow: visible;
+
+  }
+
+  .dashboard-shell > .dashboard-sidebar .dashboard-sidebar__footer {
+
+    display: none;
+
+  }
+
+  .dashboard-shell__content {
+
+    min-height: auto;
+
+  }
+
+}

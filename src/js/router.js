@@ -20,6 +20,10 @@ import { Billing } from "./pages/billing.js";
 import { Upgrade } from "./pages/upgrade.js";
 import { Payment } from "./pages/payment.js";
 
+import { PublicShell } from "./components/publicShell.js";
+
+import { DashboardShell } from "./components/dashboardShell.js";
+
 // ========================================
 // SESSION
 // ========================================
@@ -457,6 +461,22 @@ export function Router(app) {
 
 
       // ====================================
+      // SHELL
+      // ====================================
+
+      const isClientDashboardRoute =
+        CLIENT_DASHBOARD_ROUTES.has(
+          resolvedPath
+        );
+
+
+      const shell =
+        isClientDashboardRoute
+          ? DashboardShell(Page)
+          : PublicShell(Page);
+
+
+      // ====================================
       // RENDER
       // ====================================
 
@@ -464,12 +484,18 @@ export function Router(app) {
         "";
 
 
-      const page =
-        Page();
-
-
       app.appendChild(
-        page
+        shell
+      );
+
+
+      // ====================================
+      // RESET SCROLL POSITION
+      // ====================================
+
+      window.scrollTo(
+        0,
+        0
       );
 
     } catch (error) {

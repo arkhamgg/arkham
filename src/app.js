@@ -6,8 +6,6 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 
 import "./styles/main.scss";
 
-import { Navbar } from "./js/components/navbar.js";
-
 import { Router } from "./js/router.js";
 
 import { initializeSession } from "./js/services/session.js";
@@ -19,18 +17,6 @@ import { initializeSession } from "./js/services/session.js";
 
 const app =
   document.querySelector("#app");
-
-
-// ========================================
-// GLOBAL UI
-// ========================================
-
-const navbar =
-  Navbar();
-
-app.appendChild(
-  navbar
-);
 
 
 // ========================================
@@ -127,7 +113,8 @@ initializeSession(
 
     if (
       !session &&
-      window.location.pathname === "/dashboard"
+      window.location.pathname ===
+        "/dashboard"
     ) {
 
       window.history.pushState(
