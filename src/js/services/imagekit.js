@@ -325,7 +325,7 @@ export async function uploadPaymentProof(
 
   // ======================================
   // RETURN NORMALIZED DATA
-  // ======================================
+  // ========================================
 
   return {
 
@@ -348,8 +348,16 @@ export async function uploadPaymentProof(
       result.name ||
       file.name,
 
+    // ====================================
+    // IMPORTANT:
+    // Use the browser MIME type.
+    //
+    // ImageKit's `fileType` is not guaranteed
+    // to be the MIME type expected by the
+    // billing-payment-proof API.
+    // ====================================
+
     contentType:
-      result.fileType ||
       file.type ||
       null,
 
