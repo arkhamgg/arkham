@@ -3,9 +3,40 @@
 // ========================================
 
 import {
-  adminAuth,
-  adminDb
+  getAuth
+} from "firebase-admin/auth";
+
+import {
+  getFirestore
+} from "firebase-admin/firestore";
+
+import {
+  getFirebaseAdminApp
 } from "./_lib/firebaseAdmin.js";
+
+
+// ========================================
+// FIREBASE ADMIN
+// ========================================
+
+const firebaseAdminApp =
+  getFirebaseAdminApp();
+
+const adminAuth =
+  getAuth(firebaseAdminApp);
+
+const adminDb =
+  getFirestore(firebaseAdminApp);
+
+
+// ========================================
+// CONSTANTS
+// ========================================
+
+const PAYMENT_STATUS = {
+  UNDER_REVIEW: "under_review",
+  REJECTED: "rejected"
+};
 
 
 // ========================================
@@ -86,7 +117,7 @@ async function authenticateRequest(
   if (!token) {
 
     throw new Error(
-      "No se proporcionó un token de autenticación."
+      "AUTH_TOKEN_MISSING"
     );
 
   }
@@ -141,23 +172,12 @@ function getRequestBody(
 
 
 // ========================================
-// VERIFY ADMINISTRATOR
+// ADMIN AUTHORIZATION
 // ========================================
 
-async function verifyAdministrator(
-  decodedToken
+async function requireAdministrator(
+  uid
 ) {
-
-  const uid =
-    decodedToken.uid;
-
-
-  if (!uid) {
-
-    return false;
-
-  }
-
 
   const adminRef =
     adminDb
@@ -173,7 +193,9 @@ async function verifyAdministrator(
     !adminSnapshot.exists
   ) {
 
-    return false;
+    throw new Error(
+      "ADMIN_NOT_FOUND"
+    );
 
   }
 
@@ -182,13 +204,31 @@ async function verifyAdministrator(
     adminSnapshot.data();
 
 
-  return (
-    adminUser.status ===
-      "active" &&
+  if (
+    adminUser.roleId !==
+    "administrator"
+  ) {
 
-    adminUser.roleId ===
-      "administrator"
-  );
+    throw new Error(
+      "ADMIN_ROLE_INVALID"
+    );
+
+  }
+
+
+  if (
+    adminUser.status !==
+    "active"
+  ) {
+
+    throw new Error(
+      "ADMIN_INACTIVE"
+    );
+
+  }
+
+
+  return adminUser;
 
 }
 
@@ -203,25 +243,17 @@ async function rejectPayment(
   decodedToken
 ) {
 
+  const adminUid =
+    decodedToken.uid;
+
+
   // ========================================
   // ADMIN AUTHORIZATION
   // ========================================
 
-  const isAdministrator =
-    await verifyAdministrator(
-      decodedToken
-    );
-
-
-  if (!isAdministrator) {
-
-    return errorResponse(
-      res,
-      "No tienes autorización para rechazar pagos.",
-      403
-    );
-
-  }
+  await requireAdministrator(
+    adminUid
+  );
 
 
   // ========================================
@@ -244,11 +276,8 @@ async function rejectPayment(
 
 
   const {
-
     paymentId,
-
     reason
-
   } = body;
 
 
@@ -256,7 +285,9 @@ async function rejectPayment(
   // REQUIRED FIELDS
   // ========================================
 
-  if (!paymentId) {
+  if (
+    !paymentId
+  ) {
 
     return errorResponse(
       res,
@@ -268,7 +299,6 @@ async function rejectPayment(
 
 
   if (
-    !reason ||
     typeof reason !== "string" ||
     !reason.trim()
   ) {
@@ -304,12 +334,10 @@ async function rejectPayment(
 
   const result =
     await adminDb.runTransaction(
-      async (
-        transaction
-      ) => {
+      async transaction => {
 
         // ==================================
-        // READ PAYMENT
+        // PAYMENT
         // ==================================
 
         const paymentSnapshot =
@@ -334,23 +362,23 @@ async function rejectPayment(
 
 
         // ==================================
-        // VERIFY STATUS
+        // STATUS
         // ==================================
 
         if (
           payment.status !==
-          "under_review"
+          PAYMENT_STATUS.UNDER_REVIEW
         ) {
 
           throw new Error(
-            "INVALID_PAYMENT_STATUS"
+            "PAYMENT_NOT_UNDER_REVIEW"
           );
 
         }
 
 
         // ==================================
-        // REJECT PAYMENT
+        // REJECT
         // ==================================
 
         transaction.update(
@@ -358,10 +386,10 @@ async function rejectPayment(
           {
 
             status:
-              "rejected",
+              PAYMENT_STATUS.REJECTED,
 
             reviewedBy:
-              decodedToken.uid,
+              adminUid,
 
             reviewedAt:
               new Date(),
@@ -410,7 +438,7 @@ async function rejectPayment(
             result.paymentId,
 
           status:
-            "rejected",
+            PAYMENT_STATUS.REJECTED,
 
           rejectionReason:
             normalizedReason
@@ -421,7 +449,8 @@ async function rejectPayment(
         {
 
           id:
-            result.subscriptionId,
+            result.subscriptionId ||
+            null,
 
           status:
             "unchanged"
@@ -536,12 +565,12 @@ export default async function handler(
 
     if (
       error.message ===
-      "No se proporcionó un token de autenticación."
+      "AUTH_TOKEN_MISSING"
     ) {
 
       return errorResponse(
         res,
-        error.message,
+        "No se proporcionó un token de autenticación.",
         401
       );
 
@@ -549,12 +578,43 @@ export default async function handler(
 
 
     // ======================================
-    // BUSINESS ERRORS
+    // ADMIN ERRORS
     // ======================================
 
     switch (
       error.message
     ) {
+
+      case "ADMIN_NOT_FOUND":
+
+        return errorResponse(
+          res,
+          "No tienes autorización administrativa.",
+          403
+        );
+
+
+      case "ADMIN_ROLE_INVALID":
+
+        return errorResponse(
+          res,
+          "El usuario administrativo no tiene el rol requerido.",
+          403
+        );
+
+
+      case "ADMIN_INACTIVE":
+
+        return errorResponse(
+          res,
+          "El usuario administrativo está inactivo.",
+          403
+        );
+
+
+      // ====================================
+      // PAYMENT ERRORS
+      // ====================================
 
       case "PAYMENT_NOT_FOUND":
 
@@ -565,7 +625,7 @@ export default async function handler(
         );
 
 
-      case "INVALID_PAYMENT_STATUS":
+      case "PAYMENT_NOT_UNDER_REVIEW":
 
         return errorResponse(
           res,
@@ -573,6 +633,10 @@ export default async function handler(
           409
         );
 
+
+      // ====================================
+      // DEFAULT
+      // ====================================
 
       default:
 
