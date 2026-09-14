@@ -64,6 +64,17 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   /*
    * --------------------------------------------------
+   * CONTEXT INITIALIZATION
+   * --------------------------------------------------
+   * El Builder debe resolver el Tournament ID antes
+   * de permitir cualquier operación de guardado.
+   */
+  let nexusContextReady = false;
+
+  let nexusContextInitialization = null;
+
+  /*
+   * --------------------------------------------------
    * PAGE STRUCTURE
    * --------------------------------------------------
    */
@@ -1407,7 +1418,22 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   saveButton.addEventListener(
     "click",
-    () => {
+    async () => {
+
+      /*
+       * El contexto debe estar completamente resuelto
+       * antes de construir/guardar la configuración.
+       */
+      if (nexusContextInitialization) {
+        await nexusContextInitialization;
+      }
+
+      if (!nexusContextReady || !tournamentId) {
+        console.error(
+          "NEXUS — No se puede guardar: el Tournament ID actual todavía no está disponible."
+        );
+        return;
+      }
 
       const tournamentConfiguration = {
 
@@ -1469,7 +1495,16 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   async function saveTournament(tournamentConfiguration) {
 
-    if (!tournamentId) {
+    /*
+     * Protección adicional: incluso si esta función es
+     * invocada desde otro flujo, no debe intentar escribir
+     * hasta que el contexto haya terminado de resolverse.
+     */
+    if (nexusContextInitialization) {
+      await nexusContextInitialization;
+    }
+
+    if (!nexusContextReady || !tournamentId) {
       console.error(
         "NEXUS — No se encontró el Tournament ID actual."
       );
@@ -1607,6 +1642,19 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         tournamentId = entityContext.id;
       }
 
+      /*
+       * El Builder queda listo únicamente cuando ya
+       * conocemos el Tournament ID que será el documento
+       * padre de events.
+       */
+      nexusContextReady = Boolean(tournamentId);
+
+      if (!nexusContextReady) {
+        console.error(
+          "NEXUS — El contexto actual no contiene un Tournament ID."
+        );
+      }
+
       let access = null;
 
       if (
@@ -1623,18 +1671,20 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       }
 
-      sidebar.setContext({
+      if (sidebar) {
+        sidebar.setContext({
 
-        type:
-          entityContext?.type || null,
+          type:
+            entityContext?.type || null,
 
-        name:
-          "Nuevo torneo",
+          name:
+            "Nuevo torneo",
 
-        accessContext:
-          access
+          accessContext:
+            access
 
-      });
+        });
+      }
 
 
       console.log(
@@ -1648,11 +1698,18 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       );
 
       console.log(
+        "NEXUS — Builder Tournament ID:",
+        tournamentId
+      );
+
+      console.log(
         "NEXUS — Builder Access:",
         access
       );
 
     } catch (error) {
+
+      nexusContextReady = false;
 
       console.error(
         "NEXUS — Error cargando contexto del Builder:",
@@ -1825,7 +1882,10 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     }
   }
 
-  loadNexusContext().then(
+  nexusContextInitialization =
+    loadNexusContext();
+
+  nexusContextInitialization.then(
     loadExistingEvent
   );
 
