@@ -1179,3 +1179,605 @@
   }
 
 }
+
+// ========================================
+// ACTION BUTTON
+// ========================================
+
+.admin-payments__action-button {
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+
+  min-height: 34px;
+  padding: 0 $space-3;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-sm;
+
+  background: $color-800;
+  color: $color-100;
+
+  font-family: $font-family-base;
+  font-size: $font-size-xs;
+  font-weight: 600;
+
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    background $transition-base $ease-standard,
+    border-color $transition-base $ease-standard,
+    color $transition-base $ease-standard,
+    transform $transition-base $ease-standard;
+
+}
+
+
+.admin-payments__action-button:hover {
+
+  border-color: $color-500;
+  background: $color-700;
+  color: $color-white;
+
+}
+
+
+.admin-payments__action-button--primary {
+
+  border-color: $color-red;
+  background: $color-red;
+  color: $color-white;
+
+}
+
+
+.admin-payments__action-button--primary:hover {
+
+  border-color: $color-red-light;
+  background: $color-red-light;
+
+}
+
+
+.admin-payments__action-button:focus-visible,
+.admin-payments__modal-button:focus-visible,
+.admin-payments__modal-close:focus-visible,
+.admin-payments__proof-link:focus-visible {
+
+  outline: 2px solid $color-red;
+  outline-offset: 2px;
+
+}
+
+
+// ========================================
+// MESSAGE SUCCESS
+// ========================================
+
+.admin-payments__message-box--success {
+
+  border-color: $color-success;
+  color: $color-white;
+
+}
+
+
+.admin-payments__message-box--success i {
+
+  color: $color-success;
+
+}
+
+
+// ========================================
+// MODAL
+// ========================================
+
+.admin-payments__modal[hidden] {
+
+  display: none;
+
+}
+
+
+.admin-payments__modal {
+
+  position: fixed;
+  inset: 0;
+
+  z-index: $z-modal;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: $space-5;
+
+}
+
+
+.admin-payments__modal-backdrop {
+
+  position: absolute;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(4px);
+
+}
+
+
+.admin-payments__modal-card {
+
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  width: min(920px, 100%);
+  max-height: min(88vh, 900px);
+
+  overflow: hidden;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+
+  background: $color-950;
+  box-shadow: $shadow-lg;
+
+}
+
+
+.admin-payments__modal-header {
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-5;
+
+  padding: $space-6;
+
+  border-bottom: 1px solid $color-800;
+
+}
+
+
+.admin-payments__modal-header h2 {
+
+  margin: 0;
+
+  color: $color-white;
+  font-size: $font-size-2xl;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+
+}
+
+
+.admin-payments__modal-close {
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width: 38px;
+  height: 38px;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-sm;
+
+  background: $color-900;
+  color: $color-300;
+
+  cursor: pointer;
+
+  transition:
+    background $transition-base $ease-standard,
+    border-color $transition-base $ease-standard,
+    color $transition-base $ease-standard;
+
+}
+
+
+.admin-payments__modal-close:hover {
+
+  border-color: $color-500;
+  background: $color-800;
+  color: $color-white;
+
+}
+
+
+.admin-payments__modal-body {
+
+  overflow-y: auto;
+  padding: $space-6;
+
+}
+
+
+.admin-payments__detail-grid {
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+
+  overflow: hidden;
+
+  border: 1px solid $color-800;
+  background: $color-800;
+
+}
+
+
+.admin-payments__detail-item {
+
+  min-width: 0;
+  padding: $space-4;
+
+  background: $color-900;
+
+}
+
+
+.admin-payments__detail-item--wide {
+
+  grid-column: 1 / -1;
+
+}
+
+
+.admin-payments__detail-item > span {
+
+  display: block;
+  margin-bottom: $space-2;
+
+  color: $color-500;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+}
+
+
+.admin-payments__detail-item > strong {
+
+  display: block;
+
+  overflow-wrap: anywhere;
+
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: 600;
+
+}
+
+
+.admin-payments__detail-item > small {
+
+  display: block;
+  margin-top: $space-1;
+
+  color: $color-500;
+  font-size: $font-size-xs;
+
+}
+
+
+.admin-payments__proof-link {
+
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+
+  min-height: 38px;
+  padding: 0 $space-4;
+
+  border: 1px solid $color-red;
+  border-radius: $radius-sm;
+
+  background: $color-red;
+  color: $color-white;
+
+  font-size: $font-size-xs;
+  font-weight: 700;
+  text-decoration: none;
+
+  transition:
+    background $transition-base $ease-standard,
+    border-color $transition-base $ease-standard;
+
+}
+
+
+.admin-payments__proof-link:hover {
+
+  border-color: $color-red-light;
+  background: $color-red-light;
+
+}
+
+
+.admin-payments__proof-missing {
+
+  color: $color-warning;
+  font-size: $font-size-xs;
+  font-weight: 600;
+
+}
+
+
+.admin-payments__rejection-field {
+
+  margin-top: $space-5;
+
+}
+
+
+.admin-payments__rejection-field label {
+
+  display: block;
+  margin-bottom: $space-2;
+
+  color: $color-100;
+  font-size: $font-size-xs;
+  font-weight: 600;
+
+}
+
+
+.admin-payments__rejection-field textarea {
+
+  display: block;
+
+  width: 100%;
+  min-height: 100px;
+  padding: $space-3;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+
+  outline: none;
+  resize: vertical;
+
+  background: $color-900;
+  color: $color-white;
+
+  font-family: $font-family-base;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+
+  transition:
+    border-color $transition-base $ease-standard,
+    background $transition-base $ease-standard;
+
+}
+
+
+.admin-payments__rejection-field textarea::placeholder {
+
+  color: $color-500;
+
+}
+
+
+.admin-payments__rejection-field textarea:focus {
+
+  border-color: $color-500;
+  background: $color-800;
+
+}
+
+
+.admin-payments__modal-actions {
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $space-3;
+  flex-wrap: wrap;
+
+  padding: $space-5 $space-6;
+
+  border-top: 1px solid $color-800;
+  background: $color-950;
+
+}
+
+
+.admin-payments__modal-button {
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+
+  min-height: 42px;
+  padding: 0 $space-4;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-sm;
+
+  font-family: $font-family-base;
+  font-size: $font-size-xs;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background $transition-base $ease-standard,
+    border-color $transition-base $ease-standard,
+    color $transition-base $ease-standard,
+    opacity $transition-base $ease-standard;
+
+}
+
+
+.admin-payments__modal-button:disabled {
+
+  opacity: 0.5;
+  cursor: not-allowed;
+
+}
+
+
+.admin-payments__modal-button--secondary {
+
+  background: $color-800;
+  color: $color-100;
+
+}
+
+
+.admin-payments__modal-button--secondary:hover:not(:disabled) {
+
+  border-color: $color-500;
+  background: $color-700;
+  color: $color-white;
+
+}
+
+
+.admin-payments__modal-button--primary {
+
+  border-color: $color-red;
+  background: $color-red;
+  color: $color-white;
+
+}
+
+
+.admin-payments__modal-button--primary:hover:not(:disabled) {
+
+  border-color: $color-red-light;
+  background: $color-red-light;
+
+}
+
+
+.admin-payments__modal-button--danger {
+
+  background: transparent;
+  color: $color-100;
+
+}
+
+
+.admin-payments__modal-button--danger:hover:not(:disabled) {
+
+  border-color: $color-error;
+  background: $color-error;
+  color: $color-white;
+
+}
+
+
+// ========================================
+// MODAL BODY SCROLLBAR
+// ========================================
+
+.admin-payments__modal-body::-webkit-scrollbar {
+
+  width: 8px;
+
+}
+
+
+.admin-payments__modal-body::-webkit-scrollbar-track {
+
+  background: $color-950;
+
+}
+
+
+.admin-payments__modal-body::-webkit-scrollbar-thumb {
+
+  border-radius: $radius-full;
+  background: $color-700;
+
+}
+
+
+// ========================================
+// RESPONSIVE — MOBILE ACTIONS
+// ========================================
+
+@media (max-width: 700px) {
+
+  .admin-payments__detail-grid {
+
+    grid-template-columns: 1fr;
+
+  }
+
+
+  .admin-payments__detail-item--wide {
+
+    grid-column: auto;
+
+  }
+
+
+  .admin-payments__modal {
+
+    padding: $space-3;
+
+  }
+
+
+  .admin-payments__modal-card {
+
+    max-height: 94vh;
+
+    border-radius: $radius-md;
+
+  }
+
+
+  .admin-payments__modal-header,
+  .admin-payments__modal-body {
+
+    padding: $space-4;
+
+  }
+
+
+  .admin-payments__modal-actions {
+
+    padding: $space-4;
+
+  }
+
+
+  .admin-payments__modal-button {
+
+    flex: 1 1 100%;
+
+  }
+
+}
+
+
+// ========================================
+// REDUCED MOTION
+// ========================================
+
+@media (prefers-reduced-motion: reduce) {
+
+  .admin-payments__action-button,
+  .admin-payments__modal-button,
+  .admin-payments__modal-close,
+  .admin-payments__proof-link {
+
+    transition: none;
+
+  }
+
+}

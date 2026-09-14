@@ -770,9 +770,10 @@ async function approvePayment(
         // FREE → PRO
         // ==================================
         //
-        // Si es una activación inicial,
-        // la cuenta puede no tener
-        // subscriptionId.
+        // La activación inicial debe llegar
+        // sin subscriptionId.
+        // La suscripción Pro se crea aquí,
+        // de forma atómica con la aprobación.
         //
 
         if (
@@ -780,103 +781,87 @@ async function approvePayment(
         ) {
 
           if (
-            subscription
+            payment.subscriptionId
           ) {
 
-            /*
-             * Si ya existe una subscription
-             * para una cuenta Free, verificamos
-             * que todavía represente Free.
-             */
-
-            if (
-              subscription.planId !==
-              "free"
-            ) {
-
-              throw new Error(
-                "SUBSCRIPTION_PLAN_CHANGED"
-              );
-
-            }
-
-          } else {
-
-            /*
-             * Creamos la referencia antes
-             * de realizar cualquier escritura.
-             *
-             * La transacción garantiza que
-             * la creación de la subscription
-             * y la activación del pago sean
-             * atómicas.
-             */
-
-            subscriptionRef =
-              adminDb
-                .collection("subscriptions")
-                .doc();
-
-
-            subscriptionId =
-              subscriptionRef.id;
-
-
-            subscription = {
-
-              accountId:
-                payment.accountId,
-
-              planId:
-                "free",
-
-              status:
-                SUBSCRIPTION_STATUS.PENDING,
-
-              period,
-
-              currency:
-                payment.currency ||
-                "GTQ",
-
-              billingDate:
-                null,
-
-              paymentDeadline:
-                null,
-
-              gracePeriodDays:
-                0,
-
-              currentPeriodStart:
-                null,
-
-              currentPeriodEnd:
-                null,
-
-              nextBillingAt:
-                null,
-
-              createdAt:
-                null,
-
-              activatedAt:
-                null,
-
-              cancelledAt:
-                null,
-
-              suspendedAt:
-                null,
-
-              expiredAt:
-                null
-
-            };
+            throw new Error(
+              "INITIAL_PAYMENT_HAS_SUBSCRIPTION"
+            );
 
           }
 
+          if (
+            account.subscriptionId
+          ) {
+
+            throw new Error(
+              "ACCOUNT_SUBSCRIPTION_EXISTS"
+            );
+
+          }
+
+          subscriptionRef =
+            adminDb
+              .collection("subscriptions")
+              .doc();
+
+          subscriptionId =
+            subscriptionRef.id;
+
+          subscription = {
+
+            accountId:
+              payment.accountId,
+
+            planId:
+              "free",
+
+            status:
+              SUBSCRIPTION_STATUS.PENDING,
+
+            period,
+
+            currency:
+              payment.currency ||
+              "GTQ",
+
+            billingDate:
+              null,
+
+            paymentDeadline:
+              null,
+
+            gracePeriodDays:
+              0,
+
+            currentPeriodStart:
+              null,
+
+            currentPeriodEnd:
+              null,
+
+            nextBillingAt:
+              null,
+
+            createdAt:
+              null,
+
+            activatedAt:
+              null,
+
+            cancelledAt:
+              null,
+
+            suspendedAt:
+              null,
+
+            expiredAt:
+              null
+
+          };
+
         }
+
 
 
         // ==================================
@@ -1373,6 +1358,24 @@ export default async function handler(
         return errorResponse(
           res,
           "El pago no tiene registrado el plan objetivo.",
+          409
+        );
+
+
+      case "INITIAL_PAYMENT_HAS_SUBSCRIPTION":
+
+        return errorResponse(
+          res,
+          "El pago inicial Free → Pro no debe tener una suscripción asociada.",
+          409
+        );
+
+
+      case "ACCOUNT_SUBSCRIPTION_EXISTS":
+
+        return errorResponse(
+          res,
+          "La cuenta ya tiene una suscripción asociada y el pago inicial no puede crear otra.",
           409
         );
 
