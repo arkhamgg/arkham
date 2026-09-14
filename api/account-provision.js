@@ -122,192 +122,81 @@ export async function POST(request) {
             );
 
 
+          // ======================================
+          // EXISTING ACCOUNT
+          // ======================================
+
           if (accountSnapshot.exists) {
 
             const accountData =
               accountSnapshot.data();
 
-            const existingSubscriptionId =
-              accountData.subscriptionId ||
-              null;
-
-
-            // ========================================
-            // EXISTING SUBSCRIPTION
-            // ========================================
-
-            if (existingSubscriptionId) {
-
-              const subscriptionRef =
-                firestore
-                  .collection("subscriptions")
-                  .doc(existingSubscriptionId);
-
-              const subscriptionSnapshot =
-                await transaction.get(
-                  subscriptionRef
-                );
-
-
-              if (
-                subscriptionSnapshot.exists &&
-                subscriptionSnapshot.data()?.accountId === uid
-              ) {
-
-                return {
-                  created: false,
-                  repaired: false,
-                  accountId: uid,
-                  subscriptionId:
-                    existingSubscriptionId,
-                  planId:
-                    accountData.planId ||
-                    "free"
-                };
-
-              }
-
-            }
-
-
-            // ========================================
-            // REPAIR / CREATE SUBSCRIPTION
-            // ========================================
-
-            const subscriptionRef =
-              firestore
-                .collection("subscriptions")
-                .doc();
-
-            const planId =
-              accountData.planId ||
-              "free";
-
-
-            transaction.create(
-              subscriptionRef,
-              {
-                accountId:
-                  uid,
-
-                planId,
-
-                status:
-                  "active",
-
-                createdAt:
-                  FieldValue.serverTimestamp(),
-
-                activatedAt:
-                  FieldValue.serverTimestamp(),
-
-                expiresAt:
-                  null
-              }
-            );
-
-
-            transaction.update(
-              accountRef,
-              {
-                subscriptionId:
-                  subscriptionRef.id,
-
-                accountStatus:
-                  accountData.accountStatus ||
-                  "active",
-
-                updatedAt:
-                  FieldValue.serverTimestamp()
-              }
-            );
-
 
             return {
               created: false,
-              repaired: true,
               accountId: uid,
+              planId:
+                accountData.planId ||
+                "free",
+              accountStatus:
+                accountData.accountStatus ||
+                "active",
               subscriptionId:
-                subscriptionRef.id,
-              planId
+                accountData.subscriptionId ||
+                null
             };
 
           }
 
 
-          // ========================================
-          // CREATE ACCOUNT + SUBSCRIPTION
-          // ========================================
+          // ======================================
+          // CREATE FREE ACCOUNT
+          // ======================================
 
-          const subscriptionRef =
-            firestore
-              .collection("subscriptions")
-              .doc();
+          const accountData = {
 
+            planId:
+              "free",
 
-          transaction.create(
-            subscriptionRef,
-            {
-              accountId:
-                uid,
+            accountStatus:
+              "active",
 
-              planId:
-                "free",
+            createdAt:
+              FieldValue.serverTimestamp(),
 
-              status:
-                "active",
+            updatedAt:
+              FieldValue.serverTimestamp()
 
-              createdAt:
-                FieldValue.serverTimestamp(),
-
-              activatedAt:
-                FieldValue.serverTimestamp(),
-
-              expiresAt:
-                null
-            }
-          );
+          };
 
 
           transaction.create(
             accountRef,
-            {
-              planId:
-                "free",
-
-              subscriptionId:
-                subscriptionRef.id,
-
-              accountStatus:
-                "active",
-
-              createdAt:
-                FieldValue.serverTimestamp(),
-
-              updatedAt:
-                FieldValue.serverTimestamp()
-            }
+            accountData
           );
 
 
           return {
             created: true,
-            repaired: false,
             accountId: uid,
-            subscriptionId:
-              subscriptionRef.id,
-            planId:
-              "free"
+            planId: "free",
+            accountStatus: "active",
+            subscriptionId: null
           };
 
         }
       );
 
 
+    // ========================================
+    // RESPONSE
+    // ========================================
+
     return Response.json({
       success: true,
       ...result
     });
+
 
   } catch (error) {
 
@@ -316,6 +205,10 @@ export async function POST(request) {
       error
     );
 
+
+    // ========================================
+    // AUTH ERRORS
+    // ========================================
 
     if (
       error?.code ===
@@ -338,6 +231,10 @@ export async function POST(request) {
 
     }
 
+
+    // ========================================
+    // GENERIC ERROR
+    // ========================================
 
     return Response.json(
       {
