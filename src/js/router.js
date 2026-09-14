@@ -52,6 +52,7 @@ import { AdminProducts } from "./pages/adminProducts.js";
 import { AdminPlans } from "./pages/adminPlans.js";
 import { AdminCapabilities } from "./pages/adminCapabilities.js";
 import { AdminPayments } from "./pages/adminPayments.js";
+import { AdminSubscriptions } from "./pages/adminSubscriptions.js";
 
 
 // ========================================
@@ -133,7 +134,10 @@ const routes = {
     AdminStaff,
 
   "/dashboard/admin/payments":
-    AdminPayments
+    AdminPayments,
+
+  "/dashboard/admin/subscriptions":
+    AdminSubscriptions
 
 };
 
@@ -150,7 +154,8 @@ const ADMIN_ROUTES = new Set([
   "/dashboard/admin/plans",
   "/dashboard/admin/capabilities",
   "/dashboard/admin/staff",
-  "/dashboard/admin/payments"
+  "/dashboard/admin/payments",
+  "/dashboard/admin/subscriptions"
 
 ]);
 
@@ -645,4 +650,3 @@ export function Router(app) {
   };
 
 }
-console.log("test")
