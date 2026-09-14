@@ -43,6 +43,7 @@ import {
 
 import { Admin } from "./pages/admin.js";
 import { AdminStaff } from "./pages/adminStaff.js";
+import { AdminPayments } from "./pages/adminPayments.js";
 
 
 // ========================================
@@ -110,7 +111,10 @@ const routes = {
     Admin,
 
   "/dashboard/admin/staff":
-    AdminStaff
+    AdminStaff,
+
+  "/dashboard/admin/payments":
+    AdminPayments
 
 };
 
@@ -122,7 +126,8 @@ const routes = {
 const ADMIN_ROUTES = new Set([
 
   "/dashboard/admin",
-  "/dashboard/admin/staff"
+  "/dashboard/admin/staff",
+  "/dashboard/admin/payments"
 
 ]);
 

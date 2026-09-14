@@ -1,0 +1,593 @@
+// ========================================
+// NEXUS — Admin Dashboard
+// ========================================
+@use "../abstracts/variables" as *;
+.admin-page {
+  min-height: 100vh;
+  background: $color-black;
+  color: $color-white;
+}
+
+.admin {
+  width: min(100% - 2rem, $container-max-width);
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+// ========================================
+// HEADER
+// ========================================
+
+.admin__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem 0 2.5rem;
+  border-bottom: 1px solid $color-700;
+}
+
+.admin__header-content {
+  max-width: 760px;
+}
+
+.admin__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+
+  font-size: $font-size-xs;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+
+  color: $color-red;
+
+  &::before {
+    content: "";
+    width: 1.5rem;
+    height: 2px;
+    background: $color-red;
+  }
+}
+
+.admin__title {
+  margin: 0;
+
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+
+  color: $color-white;
+}
+
+.admin__description {
+  max-width: 680px;
+  margin: 1.25rem 0 0;
+
+  font-size: $font-size-md;
+  line-height: 1.7;
+
+  color: $color-300;
+}
+
+// ========================================
+// HEADER ACTIONS
+// ========================================
+
+.admin__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin__back,
+.admin__logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+
+  background: $color-900;
+
+  color: $color-100;
+
+  font: inherit;
+  font-size: $font-size-sm;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color $transition-base $ease-standard,
+    border-color $transition-base $ease-standard,
+    color $transition-base $ease-standard,
+    transform $transition-base $ease-standard;
+
+  &:hover {
+    background: $color-800;
+    border-color: $color-500;
+    color: $color-white;
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-red;
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.admin__logout {
+  border-color: rgba(227, 6, 19, 0.35);
+
+  &:hover {
+    border-color: $color-red;
+    color: $color-white;
+    box-shadow: $glow-red-sm;
+  }
+}
+
+// ========================================
+// ADMIN STATUS
+// ========================================
+
+.admin__status {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+
+  margin-top: 1.5rem;
+
+  overflow: hidden;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+
+  background: $color-700;
+}
+
+.admin__identity,
+.admin__role {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  min-height: 6rem;
+  padding: 1.25rem;
+
+  background: $color-900;
+}
+
+.admin__identity-label,
+.admin__role-label {
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  color: $color-500;
+}
+
+.admin__identity strong,
+.admin__role strong {
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: $color-white;
+}
+
+// ========================================
+// MODULES
+// ========================================
+
+.admin__modules {
+  padding-top: 2rem;
+}
+
+.admin__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+// ========================================
+// ADMIN CARD
+// ========================================
+
+.admin-card {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  min-height: 15rem;
+  padding: 1.25rem;
+
+  overflow: hidden;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.025),
+      transparent 45%
+    ),
+    $color-900;
+
+  cursor: pointer;
+
+  transition:
+    transform $transition-base $ease-smooth,
+    border-color $transition-base $ease-standard,
+    background-color $transition-base $ease-standard,
+    box-shadow $transition-base $ease-standard;
+
+  &::after {
+    content: "";
+
+    position: absolute;
+    inset: auto 0 0 0;
+
+    height: 2px;
+
+    background: $color-red;
+
+    transform: scaleX(0);
+    transform-origin: left;
+
+    transition: transform $transition-smooth $ease-smooth;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+
+    border-color: rgba(227, 6, 19, 0.5);
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(227, 6, 19, 0.06),
+        transparent 45%
+      ),
+      $color-900;
+
+    box-shadow: $shadow-md, $glow-red-sm;
+
+    &::after {
+      transform: scaleX(1);
+    }
+
+    .admin-card__arrow {
+      color: $color-red;
+      transform: translateX(5px);
+    }
+
+    .admin-card__indicator {
+      box-shadow: $glow-red-sm;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-red;
+    outline-offset: 3px;
+  }
+}
+
+// ========================================
+// CARD TOP
+// ========================================
+
+.admin-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-card__indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+
+  flex: 0 0 auto;
+
+  border-radius: $radius-full;
+
+  background: $color-red;
+
+  transition: box-shadow $transition-base $ease-standard;
+}
+
+.admin-card__status {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  color: $color-500;
+}
+
+// ========================================
+// CARD BODY
+// ========================================
+
+.admin-card__body {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  padding: 2rem 0;
+}
+
+.admin-card__title {
+  margin: 0;
+
+  font-size: $font-size-2xl;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+
+  color: $color-white;
+}
+
+.admin-card__description {
+  max-width: 34rem;
+  margin: 0.75rem 0 0;
+
+  font-size: $font-size-sm;
+  line-height: 1.6;
+
+  color: $color-300;
+}
+
+// ========================================
+// CARD FOOTER
+// ========================================
+
+.admin-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-top: 1rem;
+
+  border-top: 1px solid $color-800;
+
+  font-size: $font-size-sm;
+  font-weight: 600;
+
+  color: $color-100;
+}
+
+.admin-card__arrow {
+  display: inline-flex;
+  align-items: center;
+
+  font-size: 1.25rem;
+  line-height: 1;
+
+  color: $color-300;
+
+  transition:
+    color $transition-base $ease-standard,
+    transform $transition-base $ease-smooth;
+}
+
+// ========================================
+// LOADING
+// ========================================
+
+.admin__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 12rem;
+  padding: 2rem;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+
+  background: $color-900;
+
+  font-size: $font-size-sm;
+  color: $color-300;
+}
+
+// ========================================
+// EMPTY / ERROR
+// ========================================
+
+.admin__empty,
+.admin__error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  padding: 2rem;
+
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+
+  background: $color-900;
+}
+
+.admin__empty-icon,
+.admin__error-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 1rem;
+
+  border: 1px solid rgba(227, 6, 19, 0.35);
+  border-radius: $radius-md;
+
+  background: rgba(227, 6, 19, 0.08);
+
+  color: $color-red;
+  font-weight: 700;
+}
+
+.admin__empty h2,
+.admin__error h2 {
+  margin: 0;
+
+  font-size: $font-size-xl;
+  color: $color-white;
+}
+
+.admin__empty p,
+.admin__error p {
+  margin: 0.75rem 0 0;
+
+  font-size: $font-size-sm;
+  line-height: 1.6;
+
+  color: $color-300;
+}
+
+.admin__error button {
+  margin-top: 1.5rem;
+
+  padding: 0.75rem 1rem;
+
+  border: 1px solid $color-red;
+  border-radius: $radius-md;
+
+  background: $color-red;
+
+  color: $color-white;
+
+  font: inherit;
+  font-size: $font-size-sm;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background-color $transition-base $ease-standard,
+    transform $transition-base $ease-standard;
+
+  &:hover {
+    background: $color-red-dark;
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-white;
+    outline-offset: 3px;
+  }
+}
+
+// ========================================
+// TABLET
+// ========================================
+
+@media (min-width: 640px) {
+
+  .admin {
+    width: min(100% - 3rem, $container-max-width);
+    padding-top: 3rem;
+  }
+
+  .admin__header-actions {
+    align-self: flex-start;
+  }
+
+  .admin__status {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+// ========================================
+// DESKTOP
+// ========================================
+
+@media (min-width: 1024px) {
+
+  .admin {
+    width: min(100% - 4rem, $container-max-width);
+    padding-top: 4rem;
+  }
+
+  .admin__header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 3rem;
+  }
+
+  .admin__header-actions {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+  }
+
+  .admin__status {
+    grid-template-columns: 2fr 1fr;
+  }
+
+  .admin__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+}
+
+// ========================================
+// LARGE DESKTOP
+// ========================================
+
+@media (min-width: 1280px) {
+
+  .admin__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+
+  .admin-card {
+    min-height: 17rem;
+    padding: 1.5rem;
+  }
+
+}
+
+// ========================================
+// REDUCED MOTION
+// ========================================
+
+@media (prefers-reduced-motion: reduce) {
+
+  .admin-card,
+  .admin-card::after,
+  .admin-card__arrow,
+  .admin-card__indicator,
+  .admin__back,
+  .admin__logout,
+  .admin__error button {
+    transition: none;
+  }
+
+}
