@@ -1,123 +1,625 @@
 // ========================================
-// NEXUS — Admin Billing Payment Service
+// NEXUS — Admin Billing Payments API
+// ========================================
+//
+// GET /api/admin-billing-payments
+//
+// Arquitectura:
+//
+// Admin UI
+//    ↓
+// Firebase ID Token
+//    ↓
+// /api/admin-billing-payments
+//    ↓
+// Firebase Admin SDK
+//    ↓
+// adminUsers
+//    ↓
+// payments
+//
 // ========================================
 
 import {
   getAuth
-} from "firebase/auth";
+} from "firebase-admin/auth";
+
+import {
+  getFirestore
+} from "firebase-admin/firestore";
+
+import {
+  getFirebaseAdminApp
+} from "./_lib/firebaseAdmin.js";
 
 
 // ========================================
-// API
+// CONSTANTS
 // ========================================
 
-const ADMIN_BILLING_PAYMENTS_API =
-  "/api/admin-billing-payments";
+const ADMIN_USERS_COLLECTION =
+  "adminUsers";
 
-const ADMIN_BILLING_PAYMENT_APPROVE_API =
-  "/api/admin-billing-payment-approve";
+const PAYMENTS_COLLECTION =
+  "payments";
 
-const ADMIN_BILLING_PAYMENT_REJECT_API =
-  "/api/admin-billing-payment-reject";
+const SUBSCRIPTIONS_COLLECTION =
+  "subscriptions";
+
+const ACCOUNTS_COLLECTION =
+  "accounts";
 
 
 // ========================================
-// AUTH TOKEN
+// ADMIN ROLES
 // ========================================
 
-async function getFirebaseIdToken() {
+const ADMIN_ROLES = {
 
-  const auth =
-    getAuth();
+  ADMINISTRATOR:
+    "administrator",
 
-  const user =
-    auth.currentUser;
+  AGENT:
+    "agent"
 
-  if (!user) {
+};
 
-    throw new Error(
-      "Debes iniciar sesión para realizar esta operación."
-    );
 
-  }
+// ========================================
+// ADMIN STATUS
+// ========================================
 
-  return await user.getIdToken();
+const ADMIN_USER_STATUS = {
+
+  ACTIVE:
+    "active",
+
+  INACTIVE:
+    "inactive"
+
+};
+
+
+// ========================================
+// ROLE PERMISSIONS
+// ========================================
+
+const ROLE_PERMISSIONS = {
+
+  administrator: [
+
+    "accounts.view",
+    "accounts.manage",
+
+    "staff.view",
+    "staff.manage",
+
+    "products.view",
+    "products.manage",
+
+    "plans.view",
+    "plans.manage",
+
+    "capabilities.view",
+    "capabilities.manage",
+
+    "subscriptions.view",
+    "subscriptions.manage",
+
+    "payments.view",
+    "payments.review",
+    "payments.approve",
+    "payments.reject",
+
+    "billing.view",
+    "billing.manage",
+
+    "audit.view"
+
+  ],
+
+  agent: [
+
+    "accounts.view",
+
+    "staff.view",
+
+    "products.view",
+
+    "plans.view",
+
+    "capabilities.view",
+
+    "subscriptions.view",
+
+    "payments.view",
+    "payments.review",
+
+    "billing.view"
+
+  ]
+
+};
+
+
+// ========================================
+// RESPONSE HELPERS
+// ========================================
+
+function successResponse(
+  res,
+  data = {},
+  status = 200
+) {
+
+  return res.status(
+    status
+  ).json({
+
+    success:
+      true,
+
+    ...data
+
+  });
+
+}
+
+
+function errorResponse(
+  res,
+  message,
+  status = 400
+) {
+
+  return res.status(
+    status
+  ).json({
+
+    success:
+      false,
+
+    error:
+      message
+
+  });
 
 }
 
 
 // ========================================
-// API REQUEST
+// BEARER TOKEN
 // ========================================
 
-async function apiRequest(
-  url,
-  options = {}
+function getBearerToken(
+  req
 ) {
 
+  const authorization =
+    req.headers.authorization;
+
+  if (
+    !authorization ||
+    !authorization.startsWith(
+      "Bearer "
+    )
+  ) {
+
+    return null;
+
+  }
+
   const token =
-    await getFirebaseIdToken();
+    authorization
+      .slice(7)
+      .trim();
 
-  const response =
-    await fetch(
-      url,
-      {
-        ...options,
+  return token ||
+    null;
 
-        headers: {
+}
 
-          Accept:
-            "application/json",
 
-          "Content-Type":
-            "application/json",
+// ========================================
+// AUTHENTICATED ADMIN
+// ========================================
 
-          Authorization:
-            `Bearer ${token}`,
+async function getAuthenticatedAdmin(
+  req
+) {
 
-          ...(options.headers || {})
-
-        }
-
-      }
+  const idToken =
+    getBearerToken(
+      req
     );
 
-  let data =
-    null;
+  if (!idToken) {
+
+    const error =
+      new Error(
+        "No se proporcionó un token de autenticación."
+      );
+
+    error.status =
+      401;
+
+    throw error;
+
+  }
+
+  const app =
+    getFirebaseAdminApp();
+
+  const adminAuth =
+    getAuth(
+      app
+    );
+
+  const firestore =
+    getFirestore(
+      app
+    );
+
+
+  // ----------------------------------------
+  // VERIFY FIREBASE TOKEN
+  // ----------------------------------------
+
+  let decodedToken;
 
   try {
 
-    data =
-      await response.json();
+    decodedToken =
+      await adminAuth.verifyIdToken(
+        idToken
+      );
 
   } catch {
 
-    data =
-      null;
+    const error =
+      new Error(
+        "El token de autenticación no es válido."
+      );
+
+    error.status =
+      401;
+
+    throw error;
 
   }
 
-  if (!response.ok) {
 
-    throw new Error(
-      data?.error ||
-      "La solicitud administrativa no pudo completarse."
-    );
+  const uid =
+    decodedToken.uid;
 
-  }
+
+  // ----------------------------------------
+  // GET ADMIN USER
+  // ----------------------------------------
+
+  const adminSnapshot =
+    await firestore
+      .collection(
+        ADMIN_USERS_COLLECTION
+      )
+      .doc(
+        uid
+      )
+      .get();
+
 
   if (
-    data?.success === false
+    !adminSnapshot.exists
   ) {
 
-    throw new Error(
-      data.error ||
-      "La solicitud administrativa no pudo completarse."
-    );
+    const error =
+      new Error(
+        "El usuario no tiene acceso administrativo."
+      );
+
+    error.status =
+      403;
+
+    throw error;
 
   }
 
-  return data;
+
+  const adminUser =
+    adminSnapshot.data();
+
+
+  const roleId =
+    adminUser.roleId;
+
+
+  const status =
+    adminUser.status ||
+    ADMIN_USER_STATUS.ACTIVE;
+
+
+  // ----------------------------------------
+  // STATUS
+  // ----------------------------------------
+
+  if (
+    status !==
+    ADMIN_USER_STATUS.ACTIVE
+  ) {
+
+    const error =
+      new Error(
+        "El usuario administrativo está inactivo."
+      );
+
+    error.status =
+      403;
+
+    throw error;
+
+  }
+
+
+  // ----------------------------------------
+  // ROLE
+  // ----------------------------------------
+
+  if (
+    !ROLE_PERMISSIONS[
+      roleId
+    ]
+  ) {
+
+    const error =
+      new Error(
+        "El rol administrativo no es válido."
+      );
+
+    error.status =
+      403;
+
+    throw error;
+
+  }
+
+
+  const permissions =
+    ROLE_PERMISSIONS[
+      roleId
+    ] || [];
+
+
+  return {
+
+    uid,
+
+    roleId,
+
+    status,
+
+    permissions,
+
+    adminUser,
+
+    firestore,
+
+    adminAuth
+
+  };
+
+}
+
+
+// ========================================
+// REQUIRE PERMISSION
+// ========================================
+
+function requirePermission(
+  access,
+  permission
+) {
+
+  if (
+    !access.permissions.includes(
+      permission
+    )
+  ) {
+
+    const error =
+      new Error(
+        "No tienes permisos para consultar los pagos."
+      );
+
+    error.status =
+      403;
+
+    throw error;
+
+  }
+
+}
+
+
+// ========================================
+// DATE NORMALIZER
+// ========================================
+
+function normalizeDate(
+  value
+) {
+
+  if (!value) {
+
+    return null;
+
+  }
+
+
+  if (
+    typeof value.toDate ===
+    "function"
+  ) {
+
+    return value
+      .toDate()
+      .toISOString();
+
+  }
+
+
+  if (
+    value instanceof Date
+  ) {
+
+    return value.toISOString();
+
+  }
+
+
+  if (
+    typeof value ===
+    "string"
+  ) {
+
+    return value;
+
+  }
+
+
+  return null;
+
+}
+
+
+// ========================================
+// PAYMENT NORMALIZER
+// ========================================
+
+function normalizePayment(
+  document
+) {
+
+  const data =
+    document.data();
+
+
+  return {
+
+    id:
+      document.id,
+
+    accountId:
+      data.accountId ||
+      null,
+
+    subscriptionId:
+      data.subscriptionId ||
+      null,
+
+    planId:
+      data.planId ||
+      null,
+
+    currentPlanId:
+      data.currentPlanId ||
+      null,
+
+    amount:
+      Number(
+        data.amount || 0
+      ),
+
+    currency:
+      data.currency ||
+      "GTQ",
+
+    method:
+      data.method ||
+      null,
+
+    status:
+      data.status ||
+      null,
+
+    paymentDate:
+      data.paymentDate ||
+      null,
+
+    paymentTime:
+      data.paymentTime ||
+      null,
+
+    reference:
+      data.reference ||
+      null,
+
+    proof:
+      data.proof ||
+      null,
+
+    notes:
+      data.notes ||
+      null,
+
+    submittedAt:
+      normalizeDate(
+        data.submittedAt
+      ),
+
+    reviewedBy:
+      data.reviewedBy ||
+      null,
+
+    reviewedAt:
+      normalizeDate(
+        data.reviewedAt
+      ),
+
+    rejectionReason:
+      data.rejectionReason ||
+      null,
+
+    createdAt:
+      normalizeDate(
+        data.createdAt
+      ),
+
+    updatedAt:
+      normalizeDate(
+        data.updatedAt
+      )
+
+  };
+
+}
+
+
+// ========================================
+// SORT VALUE
+// ========================================
+
+function getTimestampValue(
+  value
+) {
+
+  if (!value) {
+
+    return 0;
+
+  }
+
+
+  const timestamp =
+    new Date(
+      value
+    ).getTime();
+
+
+  return Number.isFinite(
+    timestamp
+  )
+    ? timestamp
+    : 0;
 
 }
 
@@ -126,97 +628,435 @@ async function apiRequest(
 // GET PAYMENTS
 // ========================================
 
-export async function getAdminBillingPayments() {
-
-  return await apiRequest(
-    ADMIN_BILLING_PAYMENTS_API,
-    {
-      method:
-        "GET"
-    }
-  );
-
-}
-
-
-// ========================================
-// APPROVE PAYMENT
-// ========================================
-
-export async function approveAdminBillingPayment(
-  paymentId
+async function handleGet(
+  req,
+  res
 ) {
 
-  if (!paymentId) {
+  try {
 
-    throw new Error(
-      "paymentId es obligatorio."
+    console.log(
+      "NEXUS — Admin Billing Payments: GET recibido."
     );
 
-  }
 
-  return await apiRequest(
-    ADMIN_BILLING_PAYMENT_APPROVE_API,
-    {
-      method:
-        "POST",
+    // ------------------------------------
+    // AUTH
+    // ------------------------------------
 
-      body:
-        JSON.stringify({
-          paymentId
-        })
+    const access =
+      await getAuthenticatedAdmin(
+        req
+      );
+
+
+    console.log(
+      "NEXUS — Admin Billing Payments: autenticación OK.",
+      {
+        uid:
+          access.uid,
+
+        role:
+          access.roleId
+      }
+    );
+
+
+    // ------------------------------------
+    // PERMISSION
+    // ------------------------------------
+
+    requirePermission(
+      access,
+      "payments.view"
+    );
+
+
+    // ------------------------------------
+    // PAYMENTS
+    // ------------------------------------
+
+    const paymentsSnapshot =
+      await access.firestore
+        .collection(
+          PAYMENTS_COLLECTION
+        )
+        .get();
+
+
+    const payments =
+      paymentsSnapshot.docs
+        .map(
+          normalizePayment
+        );
+
+
+    // ------------------------------------
+    // RELATED IDS
+    // ------------------------------------
+
+    const accountIds =
+      [
+        ...new Set(
+          payments
+            .map(
+              payment =>
+                payment.accountId
+            )
+            .filter(
+              Boolean
+            )
+        )
+      ];
+
+
+    const subscriptionIds =
+      [
+        ...new Set(
+          payments
+            .map(
+              payment =>
+                payment.subscriptionId
+            )
+            .filter(
+              Boolean
+            )
+        )
+      ];
+
+
+    // ------------------------------------
+    // ACCOUNTS
+    // ------------------------------------
+
+    const accounts =
+      new Map();
+
+
+    for (
+      const accountId
+      of accountIds
+    ) {
+
+      const accountSnapshot =
+        await access.firestore
+          .collection(
+            ACCOUNTS_COLLECTION
+          )
+          .doc(
+            accountId
+          )
+          .get();
+
+
+      if (
+        accountSnapshot.exists
+      ) {
+
+        const data =
+          accountSnapshot.data();
+
+
+        accounts.set(
+          accountId,
+          {
+
+            id:
+              accountSnapshot.id,
+
+            name:
+              data.name ||
+              data.displayName ||
+              null,
+
+            email:
+              data.email ||
+              null,
+
+            planId:
+              data.planId ||
+              null
+
+          }
+        );
+
+      }
 
     }
-  );
-
-}
 
 
-// ========================================
-// REJECT PAYMENT
-// ========================================
+    // ------------------------------------
+    // SUBSCRIPTIONS
+    // ------------------------------------
 
-export async function rejectAdminBillingPayment(
-  paymentId,
-  reason
-) {
+    const subscriptions =
+      new Map();
 
-  if (!paymentId) {
 
-    throw new Error(
-      "paymentId es obligatorio."
+    for (
+      const subscriptionId
+      of subscriptionIds
+    ) {
+
+      const subscriptionSnapshot =
+        await access.firestore
+          .collection(
+            SUBSCRIPTIONS_COLLECTION
+          )
+          .doc(
+            subscriptionId
+          )
+          .get();
+
+
+      if (
+        subscriptionSnapshot.exists
+      ) {
+
+        const data =
+          subscriptionSnapshot.data();
+
+
+        subscriptions.set(
+          subscriptionId,
+          {
+
+            id:
+              subscriptionSnapshot.id,
+
+            accountId:
+              data.accountId ||
+              null,
+
+            planId:
+              data.planId ||
+              null,
+
+            status:
+              data.status ||
+              null,
+
+            period:
+              data.period ||
+              null,
+
+            currentPeriodStart:
+              normalizeDate(
+                data.currentPeriodStart
+              ),
+
+            currentPeriodEnd:
+              normalizeDate(
+                data.currentPeriodEnd
+              ),
+
+            nextBillingAt:
+              normalizeDate(
+                data.nextBillingAt
+              )
+
+          }
+        );
+
+      }
+
+    }
+
+
+    // ------------------------------------
+    // ENRICH PAYMENTS
+    // ------------------------------------
+
+    const enrichedPayments =
+      payments.map(
+        payment => {
+
+          const account =
+            accounts.get(
+              payment.accountId
+            ) ||
+            null;
+
+
+          const subscription =
+            subscriptions.get(
+              payment.subscriptionId
+            ) ||
+            null;
+
+
+          return {
+
+            ...payment,
+
+            account,
+
+            subscription
+
+          };
+
+        }
+      );
+
+
+    // ------------------------------------
+    // SORT
+    // ------------------------------------
+
+    enrichedPayments.sort(
+      (
+        a,
+        b
+      ) => {
+
+        return (
+          getTimestampValue(
+            b.createdAt
+          ) -
+          getTimestampValue(
+            a.createdAt
+          )
+        );
+
+      }
     );
 
-  }
 
-  if (
-    !reason ||
-    !String(reason).trim()
+    // ------------------------------------
+    // SUMMARY
+    // ------------------------------------
+
+    const summary = {
+
+      total:
+        enrichedPayments.length,
+
+      pending:
+        enrichedPayments.filter(
+          payment =>
+            payment.status ===
+            "pending"
+        ).length,
+
+      underReview:
+        enrichedPayments.filter(
+          payment =>
+            payment.status ===
+            "under_review"
+        ).length,
+
+      approved:
+        enrichedPayments.filter(
+          payment =>
+            payment.status ===
+            "approved"
+        ).length,
+
+      rejected:
+        enrichedPayments.filter(
+          payment =>
+            payment.status ===
+            "rejected"
+        ).length,
+
+      expired:
+        enrichedPayments.filter(
+          payment =>
+            payment.status ===
+            "expired"
+        ).length
+
+    };
+
+
+    // ------------------------------------
+    // RESPONSE
+    // ------------------------------------
+
+    console.log(
+      "NEXUS — Admin Billing Payments: pagos cargados.",
+      {
+
+        actorUid:
+          access.uid,
+
+        actorRole:
+          access.roleId,
+
+        count:
+          enrichedPayments.length
+
+      }
+    );
+
+
+    return successResponse(
+      res,
+      {
+
+        payments:
+          enrichedPayments,
+
+        summary
+
+      }
+    );
+
+
+  } catch (
+    error
   ) {
 
-    throw new Error(
-      "Debes indicar el motivo del rechazo."
+    console.error(
+      "NEXUS — Admin Billing Payments GET:",
+      error
+    );
+
+
+    return errorResponse(
+      res,
+      error.message ||
+        "No fue posible cargar los pagos.",
+      error.status ||
+        500
     );
 
   }
 
-  return await apiRequest(
-    ADMIN_BILLING_PAYMENT_REJECT_API,
-    {
-      method:
-        "POST",
+}
 
-      body:
-        JSON.stringify({
 
-          paymentId,
+// ========================================
+// METHOD ROUTER
+// ========================================
 
-          reason:
-            String(reason).trim()
+export default async function handler(
+  req,
+  res
+) {
 
-        })
+  if (
+    req.method !==
+    "GET"
+  ) {
 
-    }
+    res.setHeader(
+      "Allow",
+      "GET"
+    );
+
+    return errorResponse(
+      res,
+      "Método no permitido.",
+      405
+    );
+
+  }
+
+
+  return handleGet(
+    req,
+    res
   );
 
 }
