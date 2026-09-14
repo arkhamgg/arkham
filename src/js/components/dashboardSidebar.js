@@ -3,6 +3,8 @@
 // ========================================
 
 
+import { logout } from "../services/auth.js";
+
 // ========================================
 // GLOBAL NAVIGATION
 // ========================================
@@ -571,6 +573,73 @@ export function DashboardSidebar({
 
   }
 
+
+
+    // --------------------------------------
+    // LOGOUT
+    // --------------------------------------
+
+    container
+      .querySelectorAll(
+        "[data-dashboard-logout]"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            async () => {
+
+              if (button.disabled) {
+                return;
+              }
+
+              button.disabled = true;
+
+              try {
+
+                console.log(
+                  "NEXUS — Cerrando sesión..."
+                );
+
+                await logout();
+
+                console.log(
+                  "NEXUS — Sesión cerrada correctamente."
+                );
+
+                window.history.pushState(
+                  {},
+                  "",
+                  "/login"
+                );
+
+                window.dispatchEvent(
+                  new PopStateEvent(
+                    "popstate"
+                  )
+                );
+
+              } catch (error) {
+
+                console.error(
+                  "NEXUS — Error cerrando sesión:",
+                  error
+                );
+
+                button.disabled = false;
+
+                window.alert(
+                  "No pudimos cerrar la sesión. Intenta nuevamente."
+                );
+
+              }
+
+            }
+          );
+
+        }
+      );
 
   // ========================================
   // SELECT VIEW
