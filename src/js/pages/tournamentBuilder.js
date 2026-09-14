@@ -62,16 +62,22 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
   const isEditMode =
     Boolean(tournamentId && eventId);
 
-  let nexusContextReady =
-    Boolean(tournamentId);
+  /*
+   * --------------------------------------------------
+   * CONTEXT INITIALIZATION
+   * --------------------------------------------------
+   * El Builder debe resolver el Tournament ID antes
+   * de permitir cualquier operación de guardado.
+   */
+  let nexusContextReady = false;
 
-  let nexusContextInitialization =
-    null;
+  let nexusContextInitialization = null;
 
-   //--------------------------------------------------
-   //PAGE STRUCTURE
-   //--------------------------------------------------
-   //
+  /*
+   * --------------------------------------------------
+   * PAGE STRUCTURE
+   * --------------------------------------------------
+   */
 
   page.innerHTML = `
     <div class="dashboard-layout">
@@ -1424,13 +1430,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       if (!nexusContextReady || !tournamentId) {
         console.error(
-          "NEXUS — No se puede guardar: el Tournament ID actual todavía no está disponible.",
-          {
-            urlTournamentId:
-              new URLSearchParams(window.location.search).get("tournamentId"),
-            resolvedTournamentId:
-              tournamentId
-          }
+          "NEXUS — No se puede guardar: el Tournament ID actual todavía no está disponible."
         );
         return;
       }
@@ -1512,6 +1512,17 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     }
 
     try {
+
+      console.log(
+        "NEXUS — Firestore Tournament Save Target:",
+        {
+          collection: "tournaments",
+          tournamentId,
+          mapField: "events",
+          eventId,
+          mode: isEditMode ? "edit" : "new"
+        }
+      );
 
       saveButton.disabled = true;
 
@@ -1636,15 +1647,14 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         await getCurrentEntityContext();
 
       /*
-       * SOURCE OF TRUTH FOR THIS BUILDER INSTANCE
+       * Para CREAR una competencia (/new), el Entity Context
+       * es la fuente de verdad del Tournament padre.
        *
-       * 1. tournamentId de la URL, cuando existe.
-       * 2. Entity Context como fallback para /new.
-       *
-       * En /edit la URL siempre conserva el ID del
-       * Tournament padre.
+       * El tournamentId de la URL se conserva únicamente para
+       * el modo edición, donde la URL identifica explícitamente
+       * el Tournament + Event que se está editando.
        */
-      if (!tournamentId) {
+      if (!isEditMode) {
         if (
           entityContext?.type === "tournament" &&
           entityContext?.id
@@ -1658,8 +1668,18 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
        * conocemos el Tournament ID que será el documento
        * padre de events.
        */
-      nexusContextReady =
-        Boolean(tournamentId);
+      nexusContextReady = Boolean(tournamentId);
+
+      console.log(
+        "NEXUS — Builder Tournament Context:",
+        {
+          mode: isEditMode ? "edit" : "new",
+          tournamentId,
+          eventId,
+          entityContextType: entityContext?.type || null,
+          entityContextId: entityContext?.id || null
+        }
+      );
 
       if (!nexusContextReady) {
         console.error(
