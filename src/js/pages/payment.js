@@ -11,7 +11,9 @@ import {
 } from "../services/plans.js";
 
 import {
-  createBillingPayment
+  createBillingPayment,
+  uploadBillingPaymentProof,
+  submitBillingPayment
 } from "../services/billingPayment.js";
 
 
@@ -24,6 +26,15 @@ const PAYMENT_METHODS = {
   BANK_DEPOSIT: "bank_deposit",
   CARD: "card"
 };
+
+const MAX_PROOF_SIZE = 5 * 1024 * 1024;
+
+const ALLOWED_PROOF_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf"
+];
 
 
 // ========================================
@@ -62,31 +73,6 @@ function formatCurrency(
 }
 
 
-function formatDateForDisplay(
-  dateValue
-) {
-  if (!dateValue) {
-    return "—";
-  }
-
-  const date =
-    new Date(dateValue);
-
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat(
-    "es-GT",
-    {
-      day: "2-digit",
-      month: "long",
-      year: "numeric"
-    }
-  ).format(date);
-}
-
-
 function getTodayDateInputValue() {
   const now =
     new Date();
@@ -105,6 +91,36 @@ function getTodayDateInputValue() {
     ).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+
+function formatFileSize(bytes) {
+  const size =
+    Number(bytes);
+
+  if (!Number.isFinite(size) || size < 0) {
+    return "—";
+  }
+
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+
+function getProofFile(root) {
+  const input =
+    root.querySelector(
+      "#paymentProof"
+    );
+
+  return input?.files?.[0] || null;
 }
 
 
@@ -222,12 +238,12 @@ function renderSuccess(
           </span>
 
           <h1>
-            Solicitud creada
+            Solicitud enviada
           </h1>
 
           <p class="payment-page__success-description">
-            Tu solicitud de pago fue registrada correctamente.
-            Ahora podrás continuar con el proceso de revisión.
+            Tu solicitud de pago y comprobante fueron enviados
+            correctamente. Ahora serán revisados por NEXUS.
           </p>
 
           <div class="payment-page__success-card">
@@ -287,7 +303,7 @@ function renderSuccess(
               </span>
 
               <strong>
-                Pendiente
+                En revisión
               </strong>
 
             </div>
@@ -320,7 +336,7 @@ function renderSuccess(
 
 
 // ========================================
-// PAYMENT PAGE
+// PAYMENT FORM
 // ========================================
 
 function renderPaymentForm(
@@ -364,8 +380,8 @@ function renderPaymentForm(
           </h1>
 
           <p>
-            Completa la información de tu pago para
-            enviar la solicitud de activación.
+            Completa la información de tu pago y adjunta
+            el comprobante para enviar la solicitud.
           </p>
 
         </div>
@@ -447,7 +463,6 @@ function renderPaymentForm(
 
 
           <div class="payment-page__methods">
-
 
             <!-- BANK TRANSFER -->
 
@@ -593,7 +608,6 @@ function renderPaymentForm(
 
           <div class="payment-page__form">
 
-
             <!-- DATE -->
 
             <div class="payment-page__field">
@@ -680,6 +694,114 @@ function renderPaymentForm(
 
 
         <!-- ================================== -->
+        <!-- PROOF -->
+        <!-- ================================== -->
+
+        <div class="payment-page__section">
+
+          <div class="payment-page__section-header">
+
+            <span class="payment-page__section-number">
+              03
+            </span>
+
+            <div>
+
+              <h2>
+                Comprobante de pago
+              </h2>
+
+              <p>
+                Adjunta el comprobante de la transferencia
+                o depósito realizado.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div class="payment-page__proof">
+
+            <label
+              class="payment-page__proof-upload"
+              for="paymentProof"
+            >
+
+              <div class="payment-page__proof-icon">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+              </div>
+
+              <div class="payment-page__proof-content">
+
+                <strong>
+                  Adjunta tu comprobante
+                </strong>
+
+                <span>
+                  JPG, PNG, WEBP o PDF · Máximo 5 MB
+                </span>
+
+              </div>
+
+              <span class="payment-page__proof-button">
+                Seleccionar archivo
+              </span>
+
+              <input
+                id="paymentProof"
+                name="paymentProof"
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+                hidden
+              />
+
+            </label>
+
+
+            <div
+              class="payment-page__proof-file"
+              data-payment-proof-file
+              hidden
+            >
+
+              <div class="payment-page__proof-file-icon">
+                <i class="fa-solid fa-file"></i>
+              </div>
+
+              <div class="payment-page__proof-file-info">
+
+                <strong
+                  data-payment-proof-name
+                >
+                  —
+                </strong>
+
+                <span
+                  data-payment-proof-size
+                >
+                  —
+                </span>
+
+              </div>
+
+              <button
+                type="button"
+                class="payment-page__proof-remove"
+                data-payment-proof-remove
+                aria-label="Eliminar comprobante"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ================================== -->
         <!-- PROCESS -->
         <!-- ================================== -->
 
@@ -727,8 +849,9 @@ function renderPaymentForm(
           </button>
 
           <p>
-            Al continuar se creará una solicitud
-            pendiente de revisión.
+            Al continuar se creará la solicitud,
+            se adjuntará el comprobante y se enviará
+            a revisión.
           </p>
 
         </div>
@@ -869,6 +992,44 @@ function validatePaymentForm(
   }
 
 
+  const proofFile =
+    getProofFile(root);
+
+
+  if (!proofFile) {
+    return {
+      valid: false,
+      message:
+        "Adjunta el comprobante de pago para continuar."
+    };
+  }
+
+
+  if (
+    !ALLOWED_PROOF_TYPES.includes(
+      proofFile.type
+    )
+  ) {
+    return {
+      valid: false,
+      message:
+        "El comprobante debe ser JPG, PNG, WEBP o PDF."
+    };
+  }
+
+
+  if (
+    proofFile.size >
+    MAX_PROOF_SIZE
+  ) {
+    return {
+      valid: false,
+      message:
+        "El comprobante no puede superar los 5 MB."
+    };
+  }
+
+
   return {
     valid: true,
     method:
@@ -876,8 +1037,87 @@ function validatePaymentForm(
     paymentDate,
     paymentTime,
     reference:
-      reference || null
+      reference || null,
+    proofFile
   };
+}
+
+
+// ========================================
+// PROOF UI
+// ========================================
+
+function updateProofFileUI(
+  root,
+  file
+) {
+  const fileContainer =
+    root.querySelector(
+      "[data-payment-proof-file]"
+    );
+
+  const nameElement =
+    root.querySelector(
+      "[data-payment-proof-name]"
+    );
+
+  const sizeElement =
+    root.querySelector(
+      "[data-payment-proof-size]"
+    );
+
+  if (
+    !fileContainer ||
+    !nameElement ||
+    !sizeElement
+  ) {
+    return;
+  }
+
+
+  if (!file) {
+    fileContainer.hidden =
+      true;
+
+    nameElement.textContent =
+      "—";
+
+    sizeElement.textContent =
+      "—";
+
+    return;
+  }
+
+
+  nameElement.textContent =
+    file.name;
+
+  sizeElement.textContent =
+    formatFileSize(
+      file.size
+    );
+
+  fileContainer.hidden =
+    false;
+}
+
+
+function clearProofFile(
+  root
+) {
+  const input =
+    root.querySelector(
+      "#paymentProof"
+    );
+
+  if (input) {
+    input.value = "";
+  }
+
+  updateProofFileUI(
+    root,
+    null
+  );
 }
 
 
@@ -936,7 +1176,8 @@ function showError(
 
 function setSubmittingState(
   root,
-  isSubmitting
+  isSubmitting,
+  step = "creating"
 ) {
   const confirmButton =
     root.querySelector(
@@ -952,32 +1193,41 @@ function setSubmittingState(
     isSubmitting;
 
 
-  if (isSubmitting) {
-
+  if (!isSubmitting) {
     confirmButton.innerHTML = `
-      <i class="fa-solid fa-spinner fa-spin"></i>
-
       <span>
-        Creando solicitud...
+        Enviar solicitud de pago
       </span>
+
+      <i class="fa-solid fa-arrow-right"></i>
     `;
 
     return;
   }
 
 
-  confirmButton.innerHTML = `
-    <span>
-      Enviar solicitud de pago
-    </span>
+  const messages = {
+    creating:
+      "Creando solicitud...",
+    uploading:
+      "Subiendo comprobante...",
+    submitting:
+      "Enviando a revisión..."
+  };
 
-    <i class="fa-solid fa-arrow-right"></i>
+
+  confirmButton.innerHTML = `
+    <i class="fa-solid fa-spinner fa-spin"></i>
+
+    <span>
+      ${messages[step] || "Procesando..."}
+    </span>
   `;
 }
 
 
 // ========================================
-// CREATE PAYMENT
+// CREATE + PROOF + SUBMIT
 // ========================================
 
 async function handlePaymentConfirmation(
@@ -1002,7 +1252,8 @@ async function handlePaymentConfirmation(
 
   setSubmittingState(
     root,
-    true
+    true,
+    "creating"
   );
 
 
@@ -1066,9 +1317,54 @@ async function handlePaymentConfirmation(
     }
 
 
+    /*
+     * ======================================
+     * UPLOAD PROOF
+     * ======================================
+     */
+
+    setSubmittingState(
+      root,
+      true,
+      "uploading"
+    );
+
+
+    await uploadBillingPaymentProof(
+      validation.proofFile,
+      payment.id
+    );
+
+
+    /*
+     * ======================================
+     * SUBMIT PAYMENT
+     * ======================================
+     */
+
+    setSubmittingState(
+      root,
+      true,
+      "submitting"
+    );
+
+
+    const submittedPayment =
+      await submitBillingPayment(
+        payment.id
+      );
+
+
+    if (!submittedPayment) {
+      throw new Error(
+        "El pago fue creado pero no pudo enviarse a revisión."
+      );
+    }
+
+
     root.innerHTML =
       renderSuccess(
-        payment
+        submittedPayment
       );
 
 
@@ -1079,7 +1375,7 @@ async function handlePaymentConfirmation(
   } catch (error) {
 
     console.error(
-      "NEXUS — Payment Page: error creando payment.",
+      "NEXUS — Payment Page: error procesando payment.",
       error
     );
 
@@ -1093,14 +1389,14 @@ async function handlePaymentConfirmation(
     showError(
       root,
       error?.message ||
-        "No fue posible crear la solicitud de pago."
+        "No fue posible enviar la solicitud de pago."
     );
   }
 }
 
 
 // ========================================
-// EVENTS
+// PAYMENT METHOD EVENTS
 // ========================================
 
 function bindPaymentMethodEvents(
@@ -1162,6 +1458,130 @@ function bindPaymentMethodEvents(
 }
 
 
+// ========================================
+// PROOF EVENTS
+// ========================================
+
+function bindProofEvents(
+  root
+) {
+  const input =
+    root.querySelector(
+      "#paymentProof"
+    );
+
+  if (input) {
+
+    input.addEventListener(
+      "change",
+      () => {
+
+        const file =
+          input.files?.[0] ||
+          null;
+
+        if (!file) {
+          updateProofFileUI(
+            root,
+            null
+          );
+
+          return;
+        }
+
+
+        if (
+          !ALLOWED_PROOF_TYPES.includes(
+            file.type
+          )
+        ) {
+
+          input.value =
+            "";
+
+          updateProofFileUI(
+            root,
+            null
+          );
+
+          showError(
+            root,
+            "El comprobante debe ser JPG, PNG, WEBP o PDF."
+          );
+
+          return;
+        }
+
+
+        if (
+          file.size >
+          MAX_PROOF_SIZE
+        ) {
+
+          input.value =
+            "";
+
+          updateProofFileUI(
+            root,
+            null
+          );
+
+          showError(
+            root,
+            "El comprobante no puede superar los 5 MB."
+          );
+
+          return;
+        }
+
+
+        const existingError =
+          root.querySelector(
+            "[data-payment-error]"
+          );
+
+        if (existingError) {
+          existingError.remove();
+        }
+
+
+        updateProofFileUI(
+          root,
+          file
+        );
+
+      }
+    );
+
+  }
+
+
+  const removeButton =
+    root.querySelector(
+      "[data-payment-proof-remove]"
+    );
+
+  if (removeButton) {
+
+    removeButton.addEventListener(
+      "click",
+      () => {
+
+        clearProofFile(
+          root
+        );
+
+      }
+    );
+
+  }
+}
+
+
+// ========================================
+// PAYMENT EVENTS
+// ========================================
+
 function bindPaymentEvents(
   root,
   billingData
@@ -1183,6 +1603,11 @@ function bindPaymentEvents(
 
 
   bindPaymentMethodEvents(
+    root
+  );
+
+
+  bindProofEvents(
     root
   );
 
@@ -1365,17 +1790,6 @@ async function renderPaymentContent(
         }
       );
   }
-}
-
-
-// ========================================
-// BACK FROM ERROR
-// ========================================
-
-function goBackToBilling() {
-  navigateTo(
-    "/dashboard/billing"
-  );
 }
 
 

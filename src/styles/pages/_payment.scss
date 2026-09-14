@@ -27,6 +27,7 @@
   margin: 0 auto;
 }
 
+
 // ========================================
 // HEADER
 // ========================================
@@ -55,7 +56,8 @@
 
   i {
     font-size: 0.8rem;
-    transition: transform $transition-fast $ease-standard;
+    transition:
+      transform $transition-fast $ease-standard;
   }
 
   &:hover {
@@ -102,6 +104,7 @@
   font-size: $font-size-md;
   line-height: 1.7;
 }
+
 
 // ========================================
 // SUMMARY
@@ -170,6 +173,7 @@
   line-height: 1.6;
 }
 
+
 // ========================================
 // SECTIONS
 // ========================================
@@ -221,6 +225,7 @@
   line-height: 1.5;
 }
 
+
 // ========================================
 // PAYMENT METHODS
 // ========================================
@@ -255,7 +260,8 @@
 
   &:focus-within:not(.payment-page__method--disabled) {
     border-color: $color-red;
-    box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.12);
+    box-shadow:
+      0 0 0 3px rgba(227, 6, 19, 0.12);
   }
 }
 
@@ -357,6 +363,7 @@
   font-weight: 600;
 }
 
+
 // ========================================
 // FORM
 // ========================================
@@ -415,7 +422,8 @@
   &:focus {
     border-color: $color-red;
     background: $color-900;
-    box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.12);
+    box-shadow:
+      0 0 0 3px rgba(227, 6, 19, 0.12);
   }
 }
 
@@ -429,6 +437,197 @@
   font-size: $font-size-xs;
   line-height: 1.5;
 }
+
+
+// ========================================
+// PAYMENT PROOF
+// ========================================
+
+.payment-page__proof {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.payment-page__proof-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $space-4;
+  min-height: 220px;
+  padding: $space-8;
+  border: 1px dashed $color-500;
+  border-radius: $radius-lg;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(227, 6, 19, 0.05),
+      rgba(32, 32, 36, 0.7)
+    );
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color $transition-fast $ease-standard,
+    background $transition-fast $ease-standard,
+    box-shadow $transition-fast $ease-standard,
+    transform $transition-fast $ease-standard;
+}
+
+.payment-page__proof-upload:hover {
+  border-color: $color-red;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(227, 6, 19, 0.1),
+      rgba(32, 32, 36, 0.9)
+    );
+  box-shadow: $glow-red-sm;
+  transform: translateY(-1px);
+}
+
+.payment-page__proof-upload:focus-within {
+  border-color: $color-red;
+  box-shadow:
+    0 0 0 3px rgba(227, 6, 19, 0.12);
+}
+
+.payment-page__proof-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 1px solid rgba(227, 6, 19, 0.3);
+  border-radius: $radius-lg;
+  background: rgba(227, 6, 19, 0.08);
+  color: $color-red;
+  font-size: $font-size-xl;
+}
+
+.payment-page__proof-content {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.payment-page__proof-content strong {
+  color: $color-white;
+  font-size: $font-size-md;
+  font-weight: 700;
+}
+
+.payment-page__proof-content span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+}
+
+.payment-page__proof-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: $space-2 $space-4;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-800;
+  color: $color-100;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  transition:
+    background $transition-fast $ease-standard,
+    border-color $transition-fast $ease-standard,
+    color $transition-fast $ease-standard;
+}
+
+.payment-page__proof-upload:hover .payment-page__proof-button {
+  border-color: $color-red;
+  background: $color-red;
+  color: $color-white;
+}
+
+.payment-page__proof-file {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  min-width: 0;
+  padding: $space-4;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: $radius-lg;
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.payment-page__proof-file[hidden] {
+  display: none;
+}
+
+.payment-page__proof-file-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: $radius-md;
+  background: rgba(34, 197, 94, 0.1);
+  color: $color-success;
+  font-size: $font-size-lg;
+}
+
+.payment-page__proof-file-info {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.payment-page__proof-file-info strong {
+  overflow: hidden;
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payment-page__proof-file-info span {
+  color: $color-500;
+  font-size: $font-size-xs;
+}
+
+.payment-page__proof-remove {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid $color-700;
+  border-radius: $radius-full;
+  background: $color-800;
+  color: $color-300;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition:
+    background $transition-fast $ease-standard,
+    border-color $transition-fast $ease-standard,
+    color $transition-fast $ease-standard;
+}
+
+.payment-page__proof-remove:hover {
+  border-color: $color-error;
+  background: rgba(239, 68, 68, 0.1);
+  color: $color-error;
+}
+
+.payment-page__proof-remove:focus-visible {
+  outline: 2px solid $color-red;
+  outline-offset: 3px;
+}
+
 
 // ========================================
 // INFO / PROCESS
@@ -472,6 +671,7 @@
   line-height: 1.6;
 }
 
+
 // ========================================
 // CTA
 // ========================================
@@ -490,6 +690,7 @@
   line-height: 1.5;
   text-align: center;
 }
+
 
 // ========================================
 // BUTTONS
@@ -556,6 +757,7 @@
   }
 }
 
+
 // ========================================
 // FORM ERROR
 // ========================================
@@ -578,6 +780,7 @@
     margin-top: 0.15rem;
   }
 }
+
 
 // ========================================
 // LOADING
@@ -611,6 +814,7 @@
   color: $color-300;
   font-size: $font-size-sm;
 }
+
 
 // ========================================
 // ERROR STATE
@@ -651,6 +855,7 @@
   font-size: $font-size-md;
   line-height: 1.7;
 }
+
 
 // ========================================
 // SUCCESS STATE
@@ -730,6 +935,7 @@
   width: 100%;
 }
 
+
 // ========================================
 // RESPONSIVE — TABLET
 // ========================================
@@ -765,6 +971,10 @@
     grid-column: 1 / -1;
   }
 
+  .payment-page__proof-upload {
+    min-height: 240px;
+  }
+
   .payment-page__cta {
     align-items: flex-end;
   }
@@ -781,6 +991,7 @@
     width: auto;
   }
 }
+
 
 // ========================================
 // RESPONSIVE — DESKTOP
@@ -846,10 +1057,15 @@
     grid-column: 1 / -1;
   }
 
+  .payment-page__proof-upload {
+    min-height: 260px;
+  }
+
   .payment-page__info {
     padding: $space-6;
   }
 }
+
 
 // ========================================
 // REDUCED MOTION
@@ -862,6 +1078,9 @@
   .payment-page__method-icon,
   .payment-page__method-check,
   .payment-page__field input,
+  .payment-page__proof-upload,
+  .payment-page__proof-button,
+  .payment-page__proof-remove,
   .payment-page__button {
     transition: none;
   }
