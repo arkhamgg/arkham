@@ -645,3 +645,4 @@ export function Router(app) {
   };
 
 }
+console.log("test")
