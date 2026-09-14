@@ -11,8 +11,6 @@ import { PrizeEditor } from "../components/prizeEditor.js";
 import { RegistrationCostSelector } from "../components/registrationCostSelector.js";
 import { ContactSupportSelector } from "../components/contactSupportSelector.js";
 
-import { DashboardSidebar } from "../components/dashboardSidebar.js";
-
 import { getCurrentAccountContext } from "../services/account.js";
 import { getCurrentEntityContext } from "../services/entityContext.js";
 import { createSubscriptionAccess } from "../services/planService.js";
@@ -26,7 +24,7 @@ import {
   syncCalendarEvent
 } from "../services/calendarService.js";
 
-export function TournamentBuilder() {
+export function TournamentBuilder({ dashboardSidebar = null } = {}) {
   const page = document.createElement("main");
 
   page.className = "tournament-builder-page";
@@ -577,30 +575,14 @@ export function TournamentBuilder() {
   `;
 
 
-  /*
-   * --------------------------------------------------
-   * DASHBOARD SIDEBAR
-   * --------------------------------------------------
-   */
+  // ========================================
+  // DASHBOARD SIDEBAR
+  // ========================================
+  // El Sidebar es responsabilidad de DashboardShell.
+  // El Builder solo recibe la referencia para actualizar
+  // su contexto cuando corresponde.
 
-  const dashboardMain = page.querySelector(
-    ".dashboard-main"
-  );
-
-  const sidebar = DashboardSidebar({
-    activeView: "competitions",
-
-    onNavigate: (view) => {
-      console.log(
-        "NEXUS — Dashboard view:",
-        view
-      );
-    }
-  });
-
-  dashboardMain.parentElement.prepend(
-    sidebar.element
-  );
+  const sidebar = dashboardSidebar;
 
 
   /*
