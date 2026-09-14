@@ -1,0 +1,352 @@
+// ========================================
+// NEXUS — Admin Staff
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+.admin-staff-page {
+  min-height: 100vh;
+  background: $color-black;
+  color: $color-white;
+}
+
+.admin-staff {
+  width: min(100% - 2rem, $container-max-width);
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+// ----------------------------------------
+// HEADER
+// ----------------------------------------
+
+.admin-staff__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  padding: 2rem 0 2.5rem;
+  border-bottom: 1px solid $color-700;
+}
+
+.admin-staff__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: $color-red;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+
+  &::before {
+    content: "";
+    width: 1.5rem;
+    height: 2px;
+    background: $color-red;
+  }
+}
+
+.admin-staff__header h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+}
+
+.admin-staff__header p {
+  max-width: 650px;
+  margin: 1rem 0 0;
+  color: $color-300;
+  line-height: 1.7;
+}
+
+.admin-staff__header > button {
+  min-height: 2.6rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-900;
+  color: $color-100;
+  font: inherit;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  cursor: pointer;
+  transition: $transition-fast $ease-standard;
+
+  &:hover {
+    border-color: $color-500;
+    background: $color-800;
+    color: $color-white;
+  }
+}
+
+// ----------------------------------------
+// MESSAGE
+// ----------------------------------------
+
+.admin-staff__message {
+  min-height: 1.5rem;
+  margin-top: 1rem;
+  color: $color-300;
+  font-size: $font-size-sm;
+}
+
+// ----------------------------------------
+// CONTENT / TABLE
+// ----------------------------------------
+
+.admin-staff__content {
+  margin-top: 1rem;
+}
+
+.admin-staff__table-wrapper {
+  overflow-x: auto;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  box-shadow: $shadow-md;
+}
+
+.admin-staff__table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+
+.admin-staff__table th,
+.admin-staff__table td {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid $color-800;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-staff__table th {
+  background: $color-950;
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-staff__table tbody tr {
+  transition: background $transition-fast $ease-standard;
+
+  &:hover {
+    background: $color-950;
+  }
+
+  &:last-child td {
+    border-bottom: 0;
+  }
+}
+
+// ----------------------------------------
+// USER
+// ----------------------------------------
+
+.admin-staff__table td:first-child {
+  min-width: 280px;
+}
+
+.admin-staff__table td:first-child strong,
+.admin-staff__table td:first-child small {
+  display: block;
+}
+
+.admin-staff__table td:first-child strong {
+  margin-bottom: 0.3rem;
+  color: $color-white;
+  font-size: $font-size-md;
+}
+
+.admin-staff__table td:first-child small {
+  margin-top: 0.2rem;
+  color: $color-300;
+  font-size: $font-size-sm;
+}
+
+.admin-staff__table td:first-child small:last-child {
+  color: $color-500;
+  font-size: $font-size-xs;
+  word-break: break-all;
+}
+
+// ----------------------------------------
+// ROLE SELECT
+// ----------------------------------------
+
+.admin-staff__table select {
+  min-width: 150px;
+  min-height: 2.5rem;
+  padding: 0.55rem 2rem 0.55rem 0.75rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  outline: 0;
+  background: $color-950;
+  color: $color-100;
+  font: inherit;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: $transition-fast $ease-standard;
+
+  &:hover,
+  &:focus {
+    border-color: $color-500;
+  }
+}
+
+// ----------------------------------------
+// STATUS
+// ----------------------------------------
+
+.admin-staff__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: $radius-full;
+  background: rgba(34, 197, 94, 0.08);
+  color: $color-success;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  white-space: nowrap;
+
+  &::before {
+    content: "";
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+// ----------------------------------------
+// ACTIONS
+// ----------------------------------------
+
+.admin-staff__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-staff__actions button {
+  min-height: 2.4rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-950;
+  color: $color-100;
+  font: inherit;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  cursor: pointer;
+  transition: $transition-fast $ease-standard;
+
+  &:hover {
+    border-color: $color-500;
+    background: $color-800;
+    color: $color-white;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.admin-staff__actions button[data-deactivate] {
+  border-color: rgba(239, 68, 68, 0.25);
+  color: $color-error;
+
+  &:hover {
+    border-color: $color-error;
+    background: rgba(239, 68, 68, 0.08);
+  }
+}
+
+.admin-staff__actions button[data-activate] {
+  border-color: rgba(34, 197, 94, 0.25);
+  color: $color-success;
+
+  &:hover {
+    border-color: $color-success;
+    background: rgba(34, 197, 94, 0.08);
+  }
+}
+
+// ----------------------------------------
+// STATES
+// ----------------------------------------
+
+.admin-staff__loading,
+.admin-staff__empty,
+.admin-staff__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 20rem;
+  padding: 2rem;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  text-align: center;
+}
+
+.admin-staff__loading {
+  color: $color-300;
+}
+
+.admin-staff__empty h2,
+.admin-staff__error h2 {
+  margin: 0;
+  font-size: $font-size-xl;
+}
+
+.admin-staff__empty p,
+.admin-staff__error p {
+  max-width: 520px;
+  margin: 0.6rem 0 0;
+  color: $color-300;
+  line-height: 1.6;
+}
+
+.admin-staff__error {
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.admin-staff__error h2 {
+  color: $color-error;
+}
+
+// ----------------------------------------
+// RESPONSIVE
+// ----------------------------------------
+
+@media (max-width: 760px) {
+  .admin-staff {
+    width: min(100% - 1.25rem, $container-max-width);
+    padding-top: 1rem;
+  }
+
+  .admin-staff__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+    padding-bottom: 1.75rem;
+  }
+
+  .admin-staff__header > button {
+    width: 100%;
+  }
+
+  .admin-staff__table {
+    min-width: 760px;
+  }
+}
