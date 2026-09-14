@@ -8,7 +8,7 @@
 //    ↓
 // Firebase ID Token
 //    ↓
-// /api/admin-staff
+// /api/admin?resource=staff
 //    ↓
 // Firebase Admin SDK
 //    ↓
@@ -30,7 +30,7 @@ import {
 
 import {
   getFirebaseAdminApp
-} from "./_lib/firebaseAdmin.js";
+} from "../firebaseAdmin.js";
 
 // ========================================
 // CONSTANTES
@@ -1040,7 +1040,7 @@ async function handlePatch(
 //
 // ========================================
 
-export default async function handler(
+export async function handle(
   req,
   res
 ) {

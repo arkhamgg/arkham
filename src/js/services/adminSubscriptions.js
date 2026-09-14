@@ -5,7 +5,7 @@
 import { auth } from "./firebase.js";
 import { requireAdminPermission } from "./adminAccess.js";
 
-const API = "/api/admin-subscriptions";
+const API = "/api/admin?resource=subscriptions";
 
 async function request() {
   const user = auth.currentUser;
@@ -50,4 +50,3 @@ export function getPlanLabel(planId) {
   };
   return labels[planId] || planId || "Sin plan";
 }
-console.log("app success")

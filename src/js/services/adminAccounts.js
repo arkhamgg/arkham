@@ -17,7 +17,7 @@
 import { auth } from "./firebase.js";
 import { requireAdminPermission } from "./adminAccess.js";
 
-const ADMIN_ACCOUNTS_API = "/api/admin-accounts";
+const ADMIN_ACCOUNTS_API = "/api/admin?resource=accounts";
 
 async function getAuthToken() {
   const user = auth.currentUser;

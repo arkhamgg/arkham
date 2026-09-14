@@ -8,7 +8,7 @@
 //    ↓
 // Firebase ID Token
 //    ↓
-// /api/admin-accounts
+// /api/admin?resource=accounts
 //    ↓
 // Firebase Admin SDK
 //    ↓
@@ -22,7 +22,7 @@
 
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getFirebaseAdminApp } from "./_lib/firebaseAdmin.js";
+import { getFirebaseAdminApp } from "../firebaseAdmin.js";
 
 const ADMIN_USERS_COLLECTION = "adminUsers";
 const ACCOUNTS_COLLECTION = "accounts";
@@ -330,7 +330,7 @@ async function handlePatch(req, res) {
   }
 }
 
-export default async function handler(req, res) {
+export async function handle(req, res) {
   if (req.method === "GET") {
     return handleGet(req, res);
   }

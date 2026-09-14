@@ -42,7 +42,7 @@ import {
 // ========================================
 
 const ADMIN_STAFF_API =
-  "/api/admin-staff";
+  "/api/admin?resource=staff";
 
 
 // ========================================

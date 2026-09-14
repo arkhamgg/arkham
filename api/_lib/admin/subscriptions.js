@@ -4,7 +4,7 @@
 
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
-import { getFirebaseAdminApp } from "./_lib/firebaseAdmin.js";
+import { getFirebaseAdminApp } from "../firebaseAdmin.js";
 
 const ADMIN_USERS_COLLECTION = "adminUsers";
 const ACCOUNTS_COLLECTION = "accounts";
@@ -56,7 +56,7 @@ async function getAccess(req) {
   return { uid: decoded.uid, permissions: PERMISSIONS[roleId], firestore, adminAuth };
 }
 
-export default async function handler(req, res) {
+export async function handle(req, res) {
   try {
     const access = await getAccess(req);
     if (!access.permissions.includes("subscriptions.view")) {
