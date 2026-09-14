@@ -12,13 +12,13 @@ import {
 // ========================================
 
 const ADMIN_BILLING_PAYMENTS_API =
-  "/api/admin-billing-payments";
+  "/api/admin?resource=payments";
 
 const ADMIN_BILLING_PAYMENT_APPROVE_API =
-  "/api/admin-billing-payment-approve";
+  "/api/admin?resource=payment-approve";
 
 const ADMIN_BILLING_PAYMENT_REJECT_API =
-  "/api/admin-billing-payment-reject";
+  "/api/admin?resource=payment-reject";
 
 
 // ========================================

@@ -13,7 +13,7 @@ import {
 
 import {
   getFirebaseAdminApp
-} from "./_lib/firebaseAdmin.js";
+} from "../firebaseAdmin.js";
 
 
 // ========================================
@@ -1159,7 +1159,7 @@ async function approvePayment(
 // HANDLER
 // ========================================
 
-export default async function handler(
+export async function handle(
   req,
   res
 ) {

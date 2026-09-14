@@ -30,7 +30,7 @@ import {
 
 import {
   getFirebaseAdminApp
-} from "./_lib/firebaseAdmin.js";
+} from "../firebaseAdmin.js";
 
 
 // ========================================
@@ -1030,7 +1030,7 @@ async function handleGet(
 // METHOD ROUTER
 // ========================================
 
-export default async function handler(
+export async function handle(
   req,
   res
 ) {
