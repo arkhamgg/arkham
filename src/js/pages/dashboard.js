@@ -358,6 +358,76 @@ export function Dashboard() {
           view
         );
 
+
+        // ====================================
+        // DASHBOARD ROUTES
+        // ====================================
+
+        const routes = {
+
+          overview:
+            "/dashboard",
+
+          billing:
+            "/dashboard/billing",
+
+          "upgrade-plan":
+            "/dashboard/billing/upgrade"
+
+        };
+
+
+        const route =
+          routes[view];
+
+
+        // ====================================
+        // UNKNOWN VIEW
+        // ====================================
+
+        if (!route) {
+
+          console.warn(
+            "NEXUS — Vista de Dashboard no configurada:",
+            view
+          );
+
+          return;
+
+        }
+
+
+        // ====================================
+        // CURRENT ROUTE
+        // ====================================
+
+        if (
+          window.location.pathname ===
+          route
+        ) {
+
+          return;
+
+        }
+
+
+        // ====================================
+        // NAVIGATION
+        // ====================================
+
+        window.history.pushState(
+          {},
+          "",
+          route
+        );
+
+
+        window.dispatchEvent(
+          new PopStateEvent(
+            "popstate"
+          )
+        );
+
       }
     });
 

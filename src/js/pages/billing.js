@@ -15,6 +15,10 @@ import {
   PLAN_IDS
 } from "../services/plans.js";
 
+import {
+  Navbar
+} from "../components/navbar.js";
+
 
 // ========================================
 // HELPERS
@@ -1105,6 +1109,14 @@ export function Billing() {
 
   root.className =
     "billing-page-root";
+
+  // ========================================
+  // HOME NAVIGATION
+  // ========================================
+
+  const navbar = Navbar();
+
+  root.appendChild(navbar);
 
   /*
    * La página devuelve inmediatamente

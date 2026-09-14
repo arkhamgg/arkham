@@ -2,8 +2,8 @@
 // NEXUS — Dashboard Sidebar Component
 // ========================================
 
-
 import { logout } from "../services/auth.js";
+
 
 // ========================================
 // GLOBAL NAVIGATION
@@ -29,16 +29,19 @@ const GLOBAL_NAVIGATION = [
         label: "Competencias",
         icon: "fa-trophy"
       },
+
       {
         id: "teams",
         label: "Equipos",
         icon: "fa-users"
       },
+
       {
         id: "players",
         label: "Jugadores",
         icon: "fa-user"
       },
+
       {
         id: "calendar",
         label: "Calendario",
@@ -58,6 +61,12 @@ const ACCOUNT_NAVIGATION = [
     id: "profile",
     label: "Perfil",
     icon: "fa-user-circle"
+  },
+
+  {
+    id: "billing",
+    label: "Facturación",
+    icon: "fa-credit-card"
   },
 
   {
@@ -119,6 +128,7 @@ export function DashboardSidebar({
       ...globalItems,
       ...ACCOUNT_NAVIGATION
     ];
+
   }
 
 
@@ -134,6 +144,7 @@ export function DashboardSidebar({
       ) ||
       items[0]
     );
+
   }
 
 
@@ -482,6 +493,7 @@ export function DashboardSidebar({
 
 
     bindEvents();
+
   }
 
 
@@ -599,11 +611,14 @@ export function DashboardSidebar({
                   "NEXUS — Cerrando sesión..."
                 );
 
+
                 await logout();
+
 
                 console.log(
                   "NEXUS — Sesión cerrada correctamente."
                 );
+
 
                 window.history.pushState(
                   {},
@@ -611,11 +626,13 @@ export function DashboardSidebar({
                   "/login"
                 );
 
+
                 window.dispatchEvent(
                   new PopStateEvent(
                     "popstate"
                   )
                 );
+
 
               } catch (error) {
 
@@ -624,7 +641,9 @@ export function DashboardSidebar({
                   error
                 );
 
+
                 button.disabled = false;
+
 
                 window.alert(
                   "No pudimos cerrar la sesión. Intenta nuevamente."
@@ -637,8 +656,8 @@ export function DashboardSidebar({
 
         }
       );
-  }
 
+  }
 
 
   // ========================================
