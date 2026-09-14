@@ -70,7 +70,7 @@ function escapeHtml(value = "") {
 // PAGE
 // ========================================
 
-export async function AdminPlans() {
+export function AdminPlans() {
   const page = document.createElement("main");
   page.className = "admin-plans-page";
 
@@ -298,17 +298,22 @@ export async function AdminPlans() {
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
 
-  try {
-    await requireAdminPermission("plans.view");
-  } catch (error) {
-    message.textContent = error.message || "No tienes acceso a este módulo.";
-    page.querySelector("[data-admin-plans]").innerHTML = `
-      <div class="admin-plans__error">
-        <strong>Acceso no autorizado</strong>
-        <p>No tienes permisos para consultar los planes.</p>
-      </div>
-    `;
+  async function loadAccess() {
+    try {
+      await requireAdminPermission("plans.view");
+    } catch (error) {
+      console.error("NEXUS — Admin Plans:", error);
+      message.textContent = error?.message || "No tienes acceso a este módulo.";
+      page.querySelector("[data-admin-plans]").innerHTML = `
+        <div class="admin-plans__error">
+          <strong>Acceso no autorizado</strong>
+          <p>No tienes permisos para consultar los planes.</p>
+        </div>
+      `;
+    }
   }
+
+  loadAccess();
 
   return page;
 }
