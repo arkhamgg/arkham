@@ -13,7 +13,7 @@ import {
 
 import {
   getFirebaseAdminApp
-} from "./_lib/firebaseAdmin.js";
+} from "../firebaseAdmin.js";
 
 
 // ========================================

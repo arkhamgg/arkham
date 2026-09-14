@@ -13,11 +13,11 @@ import {
 
 import {
   getFirebaseAdminApp
-} from "./_lib/firebaseAdmin.js";
+} from "../firebaseAdmin.js";
 
 import {
   getPlanPrice
-} from "./_lib/billingConfig.js";
+} from "../billingConfig.js";
 
 
 // ========================================

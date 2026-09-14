@@ -12,13 +12,13 @@ import {
 // ========================================
 
 const BILLING_PAYMENT_API =
-  "/api/billing-payment";
+  "/api/billing?resource=payment";
 
 const BILLING_PAYMENT_PROOF_API =
-  "/api/billing-payment-proof";
+  "/api/billing?resource=proof";
 
 const BILLING_PAYMENT_SUBMIT_API =
-  "/api/billing-payment-submit";
+  "/api/billing?resource=submit";
 
 
 // ========================================
