@@ -50,3 +50,4 @@ export function getPlanLabel(planId) {
   };
   return labels[planId] || planId || "Sin plan";
 }
+console.log("app success")
