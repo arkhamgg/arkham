@@ -93,12 +93,8 @@ export async function addParticipantToSlot({
   if (!pro.bracket?.generated) {
     throw new Error("Primero prepara el bracket del torneo.");
   }
-  if ([TOURNAMENT_EVENT_STATUS.LIVE, TOURNAMENT_EVENT_STATUS.FINISHED].includes(pro.status)) {
-    throw new Error("La competencia ya está en curso o finalizada.");
-  }
-  if (pro.checkIn?.completed && pro.status !== TOURNAMENT_EVENT_STATUS.CHECK_IN) {
-    // Los cambios posteriores al check-in solo son reemplazos de asientos liberados.
-    // Se permite aquí mientras el evento aún no esté en vivo.
+  if (pro.checkIn?.completed) {
+    throw new Error("El check-in ya fue finalizado. Los nombres y posiciones del bracket están bloqueados.");
   }
 
   const slot = pro.bracket.slots?.[slotId];
@@ -130,7 +126,7 @@ export async function addParticipantToSlot({
     manual
   });
 
-  participant.status = pro.checkIn?.completed ? PARTICIPANT_STATUS.APPROVED : PARTICIPANT_STATUS.APPROVED;
+  participant.status = PARTICIPANT_STATUS.APPROVED;
   participant.seed = slot.seed;
   participant.slotIds = [slotId];
   participant.updatedAt = new Date().toISOString();
@@ -140,6 +136,67 @@ export async function addParticipantToSlot({
   pro.registration.status = "open";
 
   syncFirstRoundFromSlots(pro);
+
+  return savePro(tournamentId, eventId, event, pro);
+}
+
+export async function replaceParticipantInSlot({
+  tournamentId,
+  eventId,
+  event,
+  slotId,
+  participantId,
+  entityType,
+  entityId = null,
+  displayName,
+  manual = false
+}) {
+  const pro = ensureTournamentProState(event);
+  if (!pro.checkIn?.opened || pro.checkIn?.completed) {
+    throw new Error("El reemplazo solo puede hacerse mientras el check-in está abierto.");
+  }
+
+  const slot = pro.bracket?.slots?.[slotId];
+  if (!slot) throw new Error("La posición seleccionada no existe.");
+
+  const currentParticipant = pro.participants?.[participantId];
+  if (!currentParticipant) throw new Error("El participante que será reemplazado no existe.");
+  if (slot.participantId !== participantId) {
+    throw new Error("La posición ya no corresponde al participante seleccionado.");
+  }
+
+  const newParticipantId = `${entityType}_${entityId || crypto.randomUUID()}`;
+  if (pro.participants[newParticipantId]) {
+    throw new Error("El participante ya está agregado al torneo.");
+  }
+
+  const replacement = createParticipant({
+    participantId: newParticipantId,
+    entityType,
+    entityId,
+    displayName,
+    manual
+  });
+
+  replacement.status = PARTICIPANT_STATUS.APPROVED;
+  replacement.checkIn = false;
+  replacement.seed = slot.seed;
+  replacement.slotIds = [slotId];
+  replacement.updatedAt = new Date().toISOString();
+
+  currentParticipant.status = currentParticipant.status === PARTICIPANT_STATUS.NO_SHOW
+    ? PARTICIPANT_STATUS.NO_SHOW
+    : PARTICIPANT_STATUS.WITHDRAWN;
+  currentParticipant.checkIn = false;
+  currentParticipant.replacedAt = new Date().toISOString();
+  currentParticipant.replacedByParticipantId = newParticipantId;
+  currentParticipant.updatedAt = new Date().toISOString();
+
+  pro.participants[newParticipantId] = replacement;
+  slot.participantId = newParticipantId;
+
+  syncFirstRoundFromSlots(pro);
+  applyBracketByes(pro.bracket);
 
   return savePro(tournamentId, eventId, event, pro);
 }
@@ -154,6 +211,9 @@ export async function addParticipant({
   manual = false
 }) {
   const pro = ensureTournamentProState(event);
+  if (pro.checkIn?.completed) {
+    throw new Error("El check-in ya fue finalizado. No puedes agregar ni cambiar participantes.");
+  }
   const participantId = `${entityType}_${entityId || crypto.randomUUID()}`;
   if (pro.participants[participantId]) {
     throw new Error("El participante ya está agregado al torneo.");
@@ -221,50 +281,35 @@ export async function setParticipantCheckIn({ tournamentId, eventId, event, part
     : PARTICIPANT_STATUS.NO_SHOW;
   participant.updatedAt = new Date().toISOString();
 
-  if (!present && pro.bracket?.generated) releaseNoShowFromBracket(pro.bracket, participantId);
+  if (!present && pro.bracket?.generated) {
+    releaseNoShowFromBracket(pro.bracket, participantId);
+    syncFirstRoundFromSlots(pro);
+    applyBracketByes(pro.bracket);
+  }
   return savePro(tournamentId, eventId, event, pro);
 }
 
-export async function approveParticipationRequest({ tournamentId, eventId, event, requestId, approve = true, rejectionReason = "" }) {
+export async function approveParticipationRequest({ tournamentId, eventId, event, requestId, approve = true }) {
   const pro = ensureTournamentProState(event);
+  if (pro.checkIn?.completed) {
+    throw new Error("El check-in ya fue finalizado. La lista de participantes está bloqueada.");
+  }
   const request = pro.registration.requests?.[requestId];
   if (!request) throw new Error("Solicitud no encontrada.");
-  if (["approved", "rejected"].includes(request.status)) throw new Error("Esta solicitud ya fue revisada.");
 
   request.status = approve ? "approved" : "rejected";
   request.reviewedAt = new Date().toISOString();
-  request.rejectionReason = approve ? null : String(rejectionReason || "Solicitud rechazada por la organización.").trim();
 
   if (approve) {
-    const capacity = Number(pro.capacity?.value || pro.capacity || event.capacity?.value || event.capacity || 0);
-    const activeCount = Object.values(pro.participants || {})
-      .filter((participant) => ![PARTICIPANT_STATUS.REJECTED, PARTICIPANT_STATUS.WITHDRAWN, PARTICIPANT_STATUS.NO_SHOW].includes(participant.status)).length;
-    if (capacity > 0 && activeCount >= capacity) throw new Error("No hay cupos disponibles para otorgar este asiento.");
-
     const participantId = request.participantId || `request_${requestId}`;
-    if (pro.participants[participantId]) throw new Error("El participante ya está dentro del torneo.");
-
-    const participant = createParticipant({
+    pro.participants[participantId] = createParticipant({
       participantId,
       entityType: request.entityType || "manual",
       entityId: request.entityId || null,
       displayName: request.displayName,
       manual: !request.entityId
     });
-    participant.status = PARTICIPANT_STATUS.APPROVED;
-    pro.participants[participantId] = participant;
     request.participantId = participantId;
-
-    if (pro.bracket?.generated) {
-      const availableSlot = Object.values(pro.bracket.slots || {})
-        .filter((slot) => !slot.participantId)
-        .sort((a, b) => Number(a.seed) - Number(b.seed))[0];
-      if (!availableSlot) throw new Error("No existe una posición disponible en el bracket.");
-      availableSlot.participantId = participantId;
-      participant.seed = availableSlot.seed;
-      participant.slotIds = [availableSlot.id || `seed-${availableSlot.seed}`];
-      syncFirstRoundFromSlots(pro);
-    }
   }
 
   return savePro(tournamentId, eventId, event, pro);
@@ -345,6 +390,7 @@ export async function setEventStatus({ tournamentId, eventId, event, status }) {
   }
   if (status === TOURNAMENT_EVENT_STATUS.LIVE) {
     validateCanStartEvent(pro);
+    prepareLiveParticipants(pro);
   }
   if (status === TOURNAMENT_EVENT_STATUS.CHECK_IN) {
     if (!pro.bracket.generated) throw new Error("Prepara el bracket antes de abrir el check-in.");
@@ -449,36 +495,53 @@ function syncFirstRoundFromSlots(pro) {
 }
 
 function applyBracketByes(bracket) {
-  const stages = bracket?.stages || [];
-  let changed = true;
+  if (!bracket?.stages) return;
 
-  while (changed) {
-    changed = false;
-    for (const stage of stages) {
-      for (const match of stage.matches || []) {
-        if (match.status !== MATCH_STATUS.BYE || !match.winnerId || !match.nextMatchId) continue;
-        const next = findMatch(bracket, match.nextMatchId);
-        if (!next || next.status === MATCH_STATUS.COMPLETED) continue;
-        const beforeA = next.participantAId;
-        const beforeB = next.participantBId;
-        if (match.nextSlot === "A") next.participantAId = match.winnerId;
-        else if (match.nextSlot === "B") next.participantBId = match.winnerId;
-        else if (!next.participantAId) next.participantAId = match.winnerId;
-        else if (!next.participantBId) next.participantBId = match.winnerId;
-        refreshMatchStatus(next);
-        if (beforeA !== next.participantAId || beforeB !== next.participantBId) changed = true;
-      }
+  // Un BYE solo resuelve el match inmediatamente siguiente.
+  // Un match de una ronda posterior NO puede convertirse en BYE
+  // simplemente porque todavía tenga un solo participante: puede estar
+  // esperando al ganador de otro match anterior.
+  const matches = bracket.stages.flatMap((stage) => stage.matches || []);
+
+  matches.forEach((match) => {
+    if (match.status !== MATCH_STATUS.BYE || !match.winnerId || !match.nextMatchId) return;
+
+    const nextMatch = matches.find((candidate) => candidate.id === match.nextMatchId);
+    if (!nextMatch || nextMatch.status === MATCH_STATUS.COMPLETED || nextMatch.status === MATCH_STATUS.LIVE) {
+      return;
     }
-  }
-}
 
-function refreshMatchStatus(match) {
-  if (match.status === MATCH_STATUS.COMPLETED || match.status === MATCH_STATUS.LIVE) return;
-  match.status = match.participantAId && match.participantBId
-    ? MATCH_STATUS.PENDING
-    : match.participantAId || match.participantBId
-      ? MATCH_STATUS.BYE
-      : MATCH_STATUS.PENDING;
+    const slot = match.nextSlot === "B" ? "B" : "A";
+    const key = slot === "B" ? "participantBId" : "participantAId";
+    nextMatch[key] = match.winnerId;
+
+    // No declaramos BYE en la siguiente ronda automáticamente.
+    // Primero verificamos si todavía existe algún match predecesor
+    // pendiente que deba aportar al otro slot.
+    const predecessors = matches.filter((candidate) => candidate.nextMatchId === nextMatch.id);
+    const hasPendingPredecessor = predecessors.some(
+      (candidate) => candidate.status === MATCH_STATUS.PENDING || candidate.status === MATCH_STATUS.LIVE
+    );
+
+    if (hasPendingPredecessor) {
+      nextMatch.status = MATCH_STATUS.PENDING;
+      nextMatch.winnerId = null;
+      return;
+    }
+
+    if (nextMatch.participantAId && nextMatch.participantBId) {
+      nextMatch.status = MATCH_STATUS.PENDING;
+      nextMatch.winnerId = null;
+    } else if (nextMatch.participantAId || nextMatch.participantBId) {
+      // Solo cuando todos los predecesores ya están resueltos puede
+      // determinarse que el otro lado no llegará.
+      nextMatch.status = MATCH_STATUS.BYE;
+      nextMatch.winnerId = nextMatch.participantAId || nextMatch.participantBId;
+    } else {
+      nextMatch.status = MATCH_STATUS.PENDING;
+      nextMatch.winnerId = null;
+    }
+  });
 }
 
 function findMatch(bracket, matchId) {
@@ -497,20 +560,10 @@ function validateMatchParticipants(pro, match) {
 }
 
 function completeCheckInState(pro) {
-  if (!pro.bracket?.generated) {
-    throw new Error("Prepara el bracket antes de finalizar el check-in.");
+  if (pro.bracket?.generated) {
+    syncFirstRoundFromSlots(pro);
+    applyBracketByes(pro.bracket);
   }
-
-  const presentParticipants = Object.values(pro.participants || {})
-    .filter((participant) => participant.checkIn === true && participant.status !== PARTICIPANT_STATUS.NO_SHOW);
-
-  if (presentParticipants.length < 1) {
-    throw new Error("Debe existir al menos un participante presente para cerrar el check-in.");
-  }
-
-  // El check-in no crea ni regenera otro bracket: actualiza el bracket existente.
-  syncFirstRoundFromSlots(pro);
-  applyBracketByes(pro.bracket);
 
   pro.checkIn.status = "completed";
   pro.checkIn.opened = true;
@@ -520,12 +573,19 @@ function completeCheckInState(pro) {
 
 function validateCanStartEvent(pro) {
   if (!pro.bracket?.generated) throw new Error("Prepara el bracket antes de iniciar el evento.");
-  if (!pro.checkIn?.completed) throw new Error("Debes finalizar el check-in antes de iniciar el evento.");
-  const participants = Object.values(pro.participants || {})
-    .filter((participant) => participant.checkIn === true && participant.status !== PARTICIPANT_STATUS.NO_SHOW);
-  if (participants.length < 2) {
-    throw new Error("Se necesitan al menos 2 participantes presentes para iniciar la competencia.");
+  if (!pro.checkIn?.completed) throw new Error("Debes cerrar el check-in antes de iniciar el evento.");
+  const participants = Object.values(pro.participants || {});
+  if (!participants.some((participant) => participant.checkIn === true)) {
+    throw new Error("Debe existir al menos un participante presente.");
   }
+}
+
+function prepareLiveParticipants(pro) {
+  Object.values(pro.participants || {}).forEach((participant) => {
+    if (participant.checkIn === true && participant.status !== PARTICIPANT_STATUS.NO_SHOW) {
+      participant.status = PARTICIPANT_STATUS.APPROVED;
+    }
+  });
 }
 
 function setParticipantsCompeting(pro, match) {

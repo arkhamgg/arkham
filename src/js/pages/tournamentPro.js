@@ -7,6 +7,7 @@ import {
   searchTournamentEntities,
   prepareBracket,
   addParticipantToSlot,
+  replaceParticipantInSlot,
   setParticipantCheckIn,
   setCheckInOpen,
   completeCheckIn,
@@ -90,6 +91,7 @@ export function TournamentPro() {
       }
 
       let selectedSlotId = null;
+      let replacementParticipantId = null;
       let modalOpen = false;
 
       const refresh = async () => {
@@ -162,7 +164,6 @@ export function TournamentPro() {
         const eventLive = pro.status === "live";
         const eventFinished = pro.status === "finished";
         const canStart = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && assigned >= 2;
-        const canAddLate = checkInCompleted && !eventLive && !eventFinished;
         const selectedSlot = slots.find((slot) => slot.seed && `seed-${slot.seed}` === selectedSlotId);
         const selectedParticipantName = selectedSlot?.participantId
           ? getParticipantName(selectedSlot.participantId)
@@ -229,15 +230,12 @@ export function TournamentPro() {
               ` : checkInOpen ? `
                 <div>
                   <strong>Check-in en curso</strong>
-                  <span>Marca quién está presente y libera los asientos de quienes no asistieron.</span>
+                  <span>Marca quién está presente, libera asientos o reemplaza directamente a un participante que no asistió.</span>
                 </div>
-                <button type="button" data-action="complete-checkin">
-                  <i class="fa-solid fa-flag-checkered" aria-hidden="true"></i> Finalizar check-in
-                </button>
               ` : checkInCompleted && !eventLive && !eventFinished ? `
                 <div>
                   <strong>Bracket listo para iniciar</strong>
-                  <span>${present} presentes · ${noShows} asientos liberados${canAddLate ? " · Puedes agregar reemplazos antes del primer match." : ""}</span>
+                  <span>${present} presentes · ${noShows} asientos liberados</span>
                 </div>
                 <button type="button" data-action="live" ${present >= 2 ? "" : "disabled"}>
                   <i class="fa-solid fa-bolt" aria-hidden="true"></i> Pasar a competencia
@@ -250,40 +248,58 @@ export function TournamentPro() {
             </div>
           </section>
 
-          ${checkInOpen || checkInCompleted ? `
-            <section class="tournament-pro-page__card tournament-pro-page__card--wide tournament-pro-page__checkin-card">
-              <div class="tournament-pro-page__section-heading">
-                <div>
-                  <span class="tournament-pro-page__eyebrow">CHECK-IN</span>
-                  <h2>Asistencia</h2>
+          ${checkInOpen ? `
+            <div class="tournament-pro-page__modal-backdrop tournament-pro-page__checkin-modal-backdrop" data-checkin-modal>
+              <section class="tournament-pro-page__modal tournament-pro-page__checkin-modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-checkin-modal-title">
+                <header class="tournament-pro-page__modal-header tournament-pro-page__checkin-modal-header">
+                  <div>
+                    <span class="tournament-pro-page__eyebrow">CHECK-IN</span>
+                    <h2 id="tournament-pro-checkin-modal-title">Confirmar asistencia</h2>
+                    <p>El check-in es exclusivamente para confirmar quién está presente el día del evento. Elige una acción directamente para cada participante.</p>
+                  </div>
+                  <div class="tournament-pro-page__bracket-counter">
+                    <strong>${present}</strong><span>presentes · ${noShows} no-show</span>
+                  </div>
+                </header>
+                <div class="tournament-pro-page__modal-body tournament-pro-page__checkin-modal-body">
+                  <div class="tournament-pro-page__checkin-summary">
+                    <span>${participants.length} participantes asignados</span>
+                    <span>${Math.max(assigned - present - noShows, 0)} pendientes</span>
+                  </div>
+                  <div class="tournament-pro-page__participant-list tournament-pro-page__checkin-participant-list">
+                    ${participants.map((participant) => {
+                      const isPresent = participant.checkIn === true;
+                      const isNoShow = participant.status === "no_show";
+                      const canChange = checkInOpen && !eventLive && !eventFinished;
+                      return `
+                        <article class="tournament-pro-page__participant ${isPresent ? "is-present" : isNoShow ? "is-no-show" : ""}">
+                          <div>
+                            <strong>${escapeHtml(participant.displayName || participant.id)}</strong>
+                            <span>${escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team NEXUS"))}</span>
+                          </div>
+                          <div class="tournament-pro-page__inline-actions tournament-pro-page__checkin-actions">
+                            ${canChange ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--present" data-present="${escapeAttr(participant.id)}" ${isPresent ? "disabled" : ""}>Presente</button>` : ""}
+                            ${canChange ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--release" data-noshow="${escapeAttr(participant.id)}" ${isNoShow ? "disabled" : ""}>Liberar asiento</button>` : ""}
+                            ${canChange ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--replace" data-replace="${escapeAttr(participant.id)}">Reemplazar</button>` : ""}
+                            ${isPresent ? `<span class="tournament-pro-page__checkin-badge tournament-pro-page__checkin-badge--present">Presente</span>` : ""}
+                            ${isNoShow ? `<span class="tournament-pro-page__checkin-badge tournament-pro-page__checkin-badge--noshow">No asistió · asiento libre</span>` : ""}
+                          </div>
+                        </article>
+                      `;
+                    }).join("") || `<div class="tournament-pro-page__empty">No hay participantes asignados.</div>`}
+                  </div>
                 </div>
-                <div class="tournament-pro-page__bracket-counter">
-                  <strong>${present}</strong><span>presentes · ${noShows} no-show</span>
-                </div>
-              </div>
-              <p class="tournament-pro-page__helper">El check-in es exclusivamente para confirmar asistencia el día del evento. Un no-show conserva su historial y libera su asiento competitivo.</p>
-              <div class="tournament-pro-page__participant-list">
-                ${participants.map((participant) => {
-                  const isPresent = participant.checkIn === true;
-                  const isNoShow = participant.status === "no_show";
-                  const canChange = checkInOpen && !eventLive && !eventFinished;
-                  return `
-                    <article class="tournament-pro-page__participant ${isPresent ? "is-present" : isNoShow ? "is-no-show" : ""}">
-                      <div>
-                        <strong>${escapeHtml(participant.displayName || participant.id)}</strong>
-                        <span>${escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team NEXUS"))}</span>
-                      </div>
-                      <div class="tournament-pro-page__inline-actions">
-                        ${canChange && !isPresent && !isNoShow ? `<button type="button" data-present="${escapeAttr(participant.id)}">Presente</button>` : ""}
-                        ${canChange && isPresent ? `<button type="button" data-noshow="${escapeAttr(participant.id)}">Liberar asiento</button>` : ""}
-                        ${isPresent ? `<span class="tournament-pro-page__checkin-badge tournament-pro-page__checkin-badge--present">Presente</span>` : ""}
-                        ${isNoShow ? `<span class="tournament-pro-page__checkin-badge tournament-pro-page__checkin-badge--noshow">No asistió · asiento libre</span>` : ""}
-                      </div>
-                    </article>
-                  `;
-                }).join("") || `<div class="tournament-pro-page__empty">No hay participantes asignados.</div>`}
-              </div>
-            </section>
+                <footer class="tournament-pro-page__checkin-modal-footer">
+                  <div>
+                    <strong>${present} presentes</strong>
+                    <span>Necesitas al menos 2 para pasar a competencia.</span>
+                  </div>
+                  <button type="button" class="tournament-pro-page__primary-action" data-action="complete-checkin">
+                    <i class="fa-solid fa-flag-checkered" aria-hidden="true"></i> Finalizar check-in
+                  </button>
+                </footer>
+              </section>
+            </div>
           ` : ""}
 
           <section class="tournament-pro-page__card tournament-pro-page__card--wide tournament-pro-page__bracket-card">
@@ -347,17 +363,6 @@ export function TournamentPro() {
             </div>
           </section>
 
-          ${canAddLate ? `
-            <section class="tournament-pro-page__card tournament-pro-page__card--wide tournament-pro-page__late-entry-card">
-              <div class="tournament-pro-page__section-heading">
-                <div><span class="tournament-pro-page__eyebrow">REEMPLAZOS</span><h2>Agregar participante</h2></div>
-                <span class="tournament-pro-page__status">ANTES DEL PRIMER MATCH</span>
-              </div>
-              <p class="tournament-pro-page__helper">Si un asiento fue liberado durante el check-in, puedes ocuparlo con un Player o Team antes de comenzar la competencia.</p>
-              <button type="button" data-late-add class="tournament-pro-page__primary-action"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Agregar participante</button>
-            </section>
-          ` : ""}
-
           ${getTournamentRegistrationRequestsMarkup(registrationRequests, registrationRequestsError)}
 
           ${modalOpen && selectedSlot ? `
@@ -365,9 +370,9 @@ export function TournamentPro() {
               <section class="tournament-pro-page__modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-slot-modal-title">
                 <header class="tournament-pro-page__modal-header">
                   <div>
-                    <span class="tournament-pro-page__eyebrow">ASIGNAR PARTICIPANTE</span>
+                    <span class="tournament-pro-page__eyebrow">${replacementParticipantId ? "REEMPLAZAR PARTICIPANTE" : "ASIGNAR PARTICIPANTE"}</span>
                     <h2 id="tournament-pro-slot-modal-title">Seed ${escapeHtml(selectedSlot.seed)}</h2>
-                    <p>${selectedParticipantName ? `Actualmente: ${escapeHtml(selectedParticipantName)}` : "Esta posición está disponible."}</p>
+                    <p>${replacementParticipantId ? `Reemplazando: ${escapeHtml(selectedParticipantName)}` : selectedParticipantName ? `Actualmente: ${escapeHtml(selectedParticipantName)}` : "Esta posición está disponible."}</p>
                   </div>
                   <button type="button" class="tournament-pro-page__modal-close" data-slot-modal-close aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                 </header>
@@ -435,9 +440,23 @@ export function TournamentPro() {
         page.querySelectorAll("[data-present]").forEach((button) => button.addEventListener("click", () => runOperation(() => setParticipantCheckIn({ tournamentId, eventId, event, participantId: button.dataset.present, present: true }))));
         page.querySelectorAll("[data-noshow]").forEach((button) => button.addEventListener("click", () => runOperation(() => setParticipantCheckIn({ tournamentId, eventId, event, participantId: button.dataset.noshow, present: false }))));
 
+        page.querySelectorAll("[data-replace]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const participant = pro.participants?.[button.dataset.replace];
+            const slot = Object.values(pro.bracket?.slots || {}).find((item) => item.participantId === participant?.id);
+            if (!slot) return window.alert("No se encontró la posición de este participante.");
+            selectedSlotId = `seed-${slot.seed}`;
+            replacementParticipantId = participant.id;
+            modalOpen = true;
+            render();
+            requestAnimationFrame(() => page.querySelector("[data-slot-search-form] input")?.focus());
+          });
+        });
+
         page.querySelectorAll("[data-slot-add]").forEach((button) => {
           button.addEventListener("click", () => {
             selectedSlotId = button.dataset.slotAdd;
+            replacementParticipantId = null;
             modalOpen = true;
             render();
             requestAnimationFrame(() => page.querySelector("[data-slot-search-form] input")?.focus());
@@ -450,6 +469,7 @@ export function TournamentPro() {
             .sort((a, b) => Number(a.seed) - Number(b.seed))[0];
           if (!empty) return window.alert("No hay un asiento liberado disponible.");
           selectedSlotId = `seed-${empty.seed}`;
+          replacementParticipantId = null;
           modalOpen = true;
           render();
           requestAnimationFrame(() => page.querySelector("[data-slot-search-form] input")?.focus());
@@ -458,6 +478,7 @@ export function TournamentPro() {
         page.querySelectorAll("[data-slot-modal-close], [data-slot-modal-backdrop]").forEach((element) => element.addEventListener("click", (clickEvent) => {
           if (element.hasAttribute("data-slot-modal-backdrop") && clickEvent.target !== element) return;
           selectedSlotId = null;
+          replacementParticipantId = null;
           modalOpen = false;
           render();
         }));
@@ -496,14 +517,40 @@ export function TournamentPro() {
 
       const assignParticipant = async ({ entityType, entityId = null, displayName, manual = false }) => {
         if (!selectedSlotId) return;
+
         try {
-          event = await addParticipantToSlot({ tournamentId, eventId, event, slotId: selectedSlotId, entityType, entityId, displayName, manual });
+          if (replacementParticipantId) {
+            event = await replaceParticipantInSlot({
+              tournamentId,
+              eventId,
+              event,
+              slotId: selectedSlotId,
+              participantId: replacementParticipantId,
+              entityType,
+              entityId,
+              displayName,
+              manual
+            });
+          } else {
+            event = await addParticipantToSlot({
+              tournamentId,
+              eventId,
+              event,
+              slotId: selectedSlotId,
+              entityType,
+              entityId,
+              displayName,
+              manual
+            });
+          }
+
           pro = ensureTournamentProState(event);
           selectedSlotId = null;
+          replacementParticipantId = null;
           modalOpen = false;
           render();
         } catch (error) {
-          window.alert(error.message || "No fue posible agregar el participante.");
+          window.alert(error.message || "No fue posible completar la operación.");
         }
       };
 

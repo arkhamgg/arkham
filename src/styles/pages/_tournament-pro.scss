@@ -186,11 +186,14 @@
   border: 1px solid $color-800;
   border-radius: $radius-lg;
   background: $color-950;
-  overflow: hidden;
+  overflow: auto;
+  max-height: 720px;
+  scrollbar-width: thin;
+  scrollbar-color: $color-500 transparent;
 }
 
-/* The board becomes its own scroll container so large brackets never
-   expand the admin card or the page viewport. */
+/* The shell owns both scroll axes. The board can grow to its natural
+   dimensions without expanding the admin card or the page viewport. */
 .tournament-pro-page__bracket {
   display: flex;
   align-items: stretch;
@@ -199,11 +202,7 @@
   min-width: 100%;
   max-width: none;
   padding: $space-1 $space-5 $space-4;
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: 720px;
-  scrollbar-width: thin;
-  scrollbar-color: $color-500 transparent;
+  overflow: visible;
 }
 
 .tournament-pro-page__stage {
@@ -948,4 +947,149 @@
   .tournament-pro-page__operation-bar { align-items: stretch; flex-direction: column; }
   .tournament-pro-page__operation-bar button,
   .tournament-pro-page__primary-action { width: 100%; }
+}
+
+/* ========================================
+   Check-in modal
+   ======================================== */
+.tournament-pro-page__checkin-modal-backdrop {
+  z-index: $z-modal;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.tournament-pro-page__checkin-modal {
+  width: min(860px, 100%);
+  max-height: min(820px, calc(100vh - #{$space-12}));
+  display: flex;
+  flex-direction: column;
+}
+
+.tournament-pro-page__checkin-modal-header {
+  align-items: flex-start;
+}
+
+.tournament-pro-page__checkin-modal-header > div:first-child {
+  min-width: 0;
+}
+
+.tournament-pro-page__checkin-modal-header h2 {
+  font-size: $font-size-2xl;
+}
+
+.tournament-pro-page__checkin-modal-header p {
+  max-width: 620px;
+  line-height: 1.55;
+}
+
+.tournament-pro-page__checkin-modal-body {
+  min-height: 0;
+  overflow: auto;
+}
+
+.tournament-pro-page__checkin-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  margin-bottom: $space-4;
+}
+
+.tournament-pro-page__checkin-summary span {
+  padding: $space-2 $space-3;
+  border: 1px solid $color-700;
+  border-radius: $radius-full;
+  color: $color-300;
+  background: $color-950;
+  font-size: $font-size-xs;
+  font-weight: 700;
+}
+
+.tournament-pro-page__checkin-participant-list {
+  margin-top: 0;
+  max-height: 480px;
+  overflow: auto;
+  padding-right: $space-2;
+}
+
+.tournament-pro-page__checkin-participant-list .tournament-pro-page__participant {
+  padding: $space-4 0;
+}
+
+.tournament-pro-page__checkin-actions {
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.tournament-pro-page__checkin-choice {
+  min-width: 120px;
+  font-size: $font-size-sm !important;
+  font-weight: 700;
+}
+
+.tournament-pro-page__checkin-choice--present:not(:disabled) {
+  border-color: $color-success !important;
+  color: $color-success !important;
+}
+
+.tournament-pro-page__checkin-choice--release:not(:disabled) {
+  border-color: $color-warning !important;
+  color: $color-warning !important;
+}
+
+.tournament-pro-page__checkin-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-5;
+  padding: $space-5 $space-6;
+  border-top: 1px solid $color-700;
+  background: $color-900;
+}
+
+.tournament-pro-page__checkin-modal-footer div {
+  min-width: 0;
+}
+
+.tournament-pro-page__checkin-modal-footer strong,
+.tournament-pro-page__checkin-modal-footer span {
+  display: block;
+}
+
+.tournament-pro-page__checkin-modal-footer strong {
+  color: $color-white;
+}
+
+.tournament-pro-page__checkin-modal-footer span {
+  margin-top: $space-1;
+  color: $color-300;
+  font-size: $font-size-xs;
+}
+
+@media (max-width: 650px) {
+  .tournament-pro-page__checkin-modal {
+    max-height: calc(100vh - #{$space-6});
+  }
+
+  .tournament-pro-page__checkin-modal-header {
+    flex-direction: column;
+  }
+
+  .tournament-pro-page__checkin-modal-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tournament-pro-page__checkin-modal-footer button {
+    width: 100%;
+  }
+
+  .tournament-pro-page__checkin-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .tournament-pro-page__checkin-choice {
+    flex: 1;
+  }
 }
