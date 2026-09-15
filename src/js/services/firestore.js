@@ -8,6 +8,7 @@ import {
   setDoc,
   getDoc,
   getDocs,
+  onSnapshot,
   updateDoc,
   deleteField,
   serverTimestamp
@@ -399,6 +400,59 @@ export async function getMapEntities(
     }
   );
 
+}
+
+
+
+
+// ========================================
+// SUBSCRIBE MAP ENTITY
+// ========================================
+//
+// Escucha en tiempo real una entrada dentro
+// de un map field del documento padre.
+// Esto permite que las public landings reflejen
+// cambios operativos del torneo sin exponer
+// cuentas ni suscripciones privadas.
+//
+// ========================================
+
+export function subscribeMapEntity(
+  collectionName,
+  parentId,
+  mapField,
+  entityId,
+  onChange,
+  onError = null
+) {
+  const parentRef = doc(
+    db,
+    collectionName,
+    parentId
+  );
+
+  return onSnapshot(
+    parentRef,
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onChange(null);
+        return;
+      }
+
+      const map = snapshot.data()?.[mapField] || {};
+      onChange(map?.[entityId] || null);
+    },
+    (error) => {
+      console.error(
+        "NEXUS — Error en suscripción de entidad map:",
+        error
+      );
+
+      if (typeof onError === "function") {
+        onError(error);
+      }
+    }
+  );
 }
 
 

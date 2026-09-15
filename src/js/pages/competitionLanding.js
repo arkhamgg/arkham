@@ -2,13 +2,14 @@
 // NEXUS — Public Competition Landing
 // ========================================
 
-import { getEntity, getMapEntity } from "../services/firestore.js";
+import { getEntity, getMapEntity, subscribeMapEntity } from "../services/firestore.js";
 import { getGame } from "../services/gameCatalog.js";
 
 import { renderLanding1 } from "./competitionLanding/templates/landing-1.js";
 import { renderLanding2 } from "./competitionLanding/templates/landing-2.js";
 import { renderLanding3 } from "./competitionLanding/templates/landing-3.js";
 import { getTemplateResources } from "./competitionLanding/utils/landingUtils.js";
+import { updatePublicTournamentBracket } from "../components/publicTournamentBracket.js";
 
 
 // ========================================
@@ -183,6 +184,20 @@ async function loadCompetition({
       eventId,
       registrationAccess
     });
+
+
+    // Public real-time sync: the landing listens only to the public
+    // tournament event document. No account/subscription data is read.
+    subscribeMapEntity(
+      "tournaments",
+      tournamentId,
+      "events",
+      eventId,
+      (updatedEvent) => {
+        if (!updatedEvent) return;
+        updatePublicTournamentBracket(page, updatedEvent);
+      }
+    );
 
   } catch (error) {
 

@@ -14,6 +14,7 @@ import {
   renderSupportContact,
   normalizeSupportChannels
 } from "../utils/landingUtils.js";
+import { getPublicTournamentBracketMarkup } from "../../../components/publicTournamentBracket.js";
 
 export function renderLanding1({
   page,
@@ -254,6 +255,12 @@ export function renderLanding1({
           </div>
         </div>
       </section>
+
+
+      <!-- PRO BRACKET -->
+      <div data-public-bracket-mount>
+        ${getPublicTournamentBracketMarkup(event)}
+      </div>
 
 
       <!-- TEAMS / VISUAL BREAK -->
