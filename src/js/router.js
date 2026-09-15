@@ -183,6 +183,7 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
   "/dashboard",
   "/dashboard/tournaments/new",
   "/dashboard/tournaments/edit",
+  "/dashboard/tournaments/pro",
   "/dashboard/billing",
   "/dashboard/billing/upgrade",
   "/dashboard/billing/payment"

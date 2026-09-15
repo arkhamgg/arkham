@@ -19,6 +19,10 @@ import {
 } from "../services/planService.js";
 
 import {
+  hasEffectiveSubscriptionAccess
+} from "../services/subscription.js";
+
+import {
   getEntity,
   deleteMapEntity
 } from "../services/firestore.js";
@@ -304,6 +308,12 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
   // ========================================
 
   let currentTournamentId =
+    null;
+
+  let currentAccountContext =
+    null;
+
+  let currentEntityContext =
     null;
 
 
@@ -864,10 +874,50 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         }
 
 
+        /*
+         * NEXUS — Event Management Routing
+         *
+         * FREE  → Builder / configuration
+         * PRO   → Tournament Pro / operation
+         *
+         * Pro is granted only while the subscription has
+         * effective access. Expired Pro falls back to Builder.
+         */
+        const subscription =
+          currentAccountContext?.subscription;
+
+        const hasEffectivePro =
+          currentEntityContext?.productId === "tournament" &&
+          subscription?.planId === "pro" &&
+          hasEffectiveSubscriptionAccess(
+            subscription
+          );
+
+        const targetPath =
+          hasEffectivePro
+            ? "/dashboard/tournaments/pro"
+            : "/dashboard/tournaments/edit";
+
+        const targetUrl =
+          `${targetPath}?tournamentId=${encodeURIComponent(
+            tournamentId
+          )}&eventId=${encodeURIComponent(eventId)}`;
+
+        console.log(
+          "NEXUS — Event management route:",
+          {
+            tournamentId,
+            eventId,
+            planId: subscription?.planId || null,
+            hasEffectivePro,
+            targetPath
+          }
+        );
+
         window.history.pushState(
           {},
           "",
-          `/dashboard/tournaments/edit?tournamentId=${encodeURIComponent(tournamentId)}&eventId=${encodeURIComponent(eventId)}`
+          targetUrl
         );
 
 
@@ -1050,6 +1100,13 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         await getCurrentEntityContext();
 
 
+      currentAccountContext =
+        accountContext || null;
+
+      currentEntityContext =
+        entityContext || null;
+
+
       currentTournamentId =
         entityContext?.id ||
         null;
@@ -1066,9 +1123,10 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
       if (
         accountContext &&
         accountContext.subscription &&
-        accountContext.subscription.status ===
-          "active" &&
-        entityContext?.productId
+        entityContext?.productId &&
+        hasEffectiveSubscriptionAccess(
+          accountContext.subscription
+        )
       ) {
 
         access =
