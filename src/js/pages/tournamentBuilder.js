@@ -75,6 +75,12 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   let nexusContextInitialization = null;
 
+  // Contexto NEXUS disponible para todo el Builder.
+  // Debe poder ser utilizado tanto por loadNexusContext()
+  // como por el flujo de guardado.
+  let accountContext = null;
+  let entityContext = null;
+
   /*
    * --------------------------------------------------
    * PAGE STRUCTURE
@@ -1659,10 +1665,10 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
     try {
 
-      const accountContext =
+      accountContext =
         await getCurrentAccountContext();
 
-      const entityContext =
+      entityContext =
         await getCurrentEntityContext();
 
       /*
