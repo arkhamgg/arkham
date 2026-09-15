@@ -93,6 +93,13 @@ export async function addParticipantToSlot({
   if (!pro.bracket?.generated) {
     throw new Error("Primero prepara el bracket del torneo.");
   }
+  if ([TOURNAMENT_EVENT_STATUS.LIVE, TOURNAMENT_EVENT_STATUS.FINISHED].includes(pro.status)) {
+    throw new Error("La competencia ya está en curso o finalizada.");
+  }
+  if (pro.checkIn?.completed && pro.status !== TOURNAMENT_EVENT_STATUS.CHECK_IN) {
+    // Los cambios posteriores al check-in solo son reemplazos de asientos liberados.
+    // Se permite aquí mientras el evento aún no esté en vivo.
+  }
 
   const slot = pro.bracket.slots?.[slotId];
   if (!slot) throw new Error("La posición seleccionada no existe.");
@@ -123,7 +130,7 @@ export async function addParticipantToSlot({
     manual
   });
 
-  participant.status = PARTICIPANT_STATUS.APPROVED;
+  participant.status = pro.checkIn?.completed ? PARTICIPANT_STATUS.APPROVED : PARTICIPANT_STATUS.APPROVED;
   participant.seed = slot.seed;
   participant.slotIds = [slotId];
   participant.updatedAt = new Date().toISOString();
@@ -338,7 +345,6 @@ export async function setEventStatus({ tournamentId, eventId, event, status }) {
   }
   if (status === TOURNAMENT_EVENT_STATUS.LIVE) {
     validateCanStartEvent(pro);
-    prepareLiveParticipants(pro);
   }
   if (status === TOURNAMENT_EVENT_STATUS.CHECK_IN) {
     if (!pro.bracket.generated) throw new Error("Prepara el bracket antes de abrir el check-in.");
@@ -442,6 +448,39 @@ function syncFirstRoundFromSlots(pro) {
   });
 }
 
+function applyBracketByes(bracket) {
+  const stages = bracket?.stages || [];
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const stage of stages) {
+      for (const match of stage.matches || []) {
+        if (match.status !== MATCH_STATUS.BYE || !match.winnerId || !match.nextMatchId) continue;
+        const next = findMatch(bracket, match.nextMatchId);
+        if (!next || next.status === MATCH_STATUS.COMPLETED) continue;
+        const beforeA = next.participantAId;
+        const beforeB = next.participantBId;
+        if (match.nextSlot === "A") next.participantAId = match.winnerId;
+        else if (match.nextSlot === "B") next.participantBId = match.winnerId;
+        else if (!next.participantAId) next.participantAId = match.winnerId;
+        else if (!next.participantBId) next.participantBId = match.winnerId;
+        refreshMatchStatus(next);
+        if (beforeA !== next.participantAId || beforeB !== next.participantBId) changed = true;
+      }
+    }
+  }
+}
+
+function refreshMatchStatus(match) {
+  if (match.status === MATCH_STATUS.COMPLETED || match.status === MATCH_STATUS.LIVE) return;
+  match.status = match.participantAId && match.participantBId
+    ? MATCH_STATUS.PENDING
+    : match.participantAId || match.participantBId
+      ? MATCH_STATUS.BYE
+      : MATCH_STATUS.PENDING;
+}
+
 function findMatch(bracket, matchId) {
   return (bracket?.stages || [])
     .flatMap((stage) => stage.matches || [])
@@ -458,6 +497,21 @@ function validateMatchParticipants(pro, match) {
 }
 
 function completeCheckInState(pro) {
+  if (!pro.bracket?.generated) {
+    throw new Error("Prepara el bracket antes de finalizar el check-in.");
+  }
+
+  const presentParticipants = Object.values(pro.participants || {})
+    .filter((participant) => participant.checkIn === true && participant.status !== PARTICIPANT_STATUS.NO_SHOW);
+
+  if (presentParticipants.length < 1) {
+    throw new Error("Debe existir al menos un participante presente para cerrar el check-in.");
+  }
+
+  // El check-in no crea ni regenera otro bracket: actualiza el bracket existente.
+  syncFirstRoundFromSlots(pro);
+  applyBracketByes(pro.bracket);
+
   pro.checkIn.status = "completed";
   pro.checkIn.opened = true;
   pro.checkIn.completed = true;
@@ -466,19 +520,12 @@ function completeCheckInState(pro) {
 
 function validateCanStartEvent(pro) {
   if (!pro.bracket?.generated) throw new Error("Prepara el bracket antes de iniciar el evento.");
-  if (!pro.checkIn?.completed) throw new Error("Debes cerrar el check-in antes de iniciar el evento.");
-  const participants = Object.values(pro.participants || {});
-  if (!participants.some((participant) => participant.checkIn === true)) {
-    throw new Error("Debe existir al menos un participante presente.");
+  if (!pro.checkIn?.completed) throw new Error("Debes finalizar el check-in antes de iniciar el evento.");
+  const participants = Object.values(pro.participants || {})
+    .filter((participant) => participant.checkIn === true && participant.status !== PARTICIPANT_STATUS.NO_SHOW);
+  if (participants.length < 2) {
+    throw new Error("Se necesitan al menos 2 participantes presentes para iniciar la competencia.");
   }
-}
-
-function prepareLiveParticipants(pro) {
-  Object.values(pro.participants || {}).forEach((participant) => {
-    if (participant.checkIn === true && participant.status !== PARTICIPANT_STATUS.NO_SHOW) {
-      participant.status = PARTICIPANT_STATUS.APPROVED;
-    }
-  });
 }
 
 function setParticipantsCompeting(pro, match) {
