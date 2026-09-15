@@ -10,11 +10,13 @@ import { DateTimeSelector } from "../components/dateTimeSelector.js";
 import { PrizeEditor } from "../components/prizeEditor.js";
 import { RegistrationCostSelector } from "../components/registrationCostSelector.js";
 import { ContactSupportSelector } from "../components/contactSupportSelector.js";
+import { RegistrationRequirementsEditor } from "../components/registrationRequirementsEditor.js";
 
 import { getCurrentAccountContext } from "../services/account.js";
 import { getCurrentEntityContext } from "../services/entityContext.js";
 import { createSubscriptionAccess } from "../services/planService.js";
 import { hasEffectiveSubscriptionAccess } from "../services/subscription.js";
+import { ensureTournamentProState } from "../services/tournamentPro.js";
 import {
   createMapEntity,
   updateMapEntity,
@@ -48,6 +50,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
   let selectedPrizes = [];
   let selectedRegistrationCost = null;
   let selectedSupportContact = null;
+  let selectedRegistrationRequirements = null;
   let selectedLandingTemplate = "template-1";
 
   const urlParams = new URLSearchParams(
@@ -74,11 +77,11 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   let nexusContextInitialization = null;
 
+  // Contexto NEXUS disponible para todo el Builder.
+  // Debe poder ser utilizado tanto por loadNexusContext()
+  // como por el flujo de guardado.
   let accountContext = null;
-
   let entityContext = null;
-
-  let existingProState = null;
 
   /*
    * --------------------------------------------------
@@ -453,6 +456,33 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
               </article>
 
 
+              <!-- REQUISITOS DE INSCRIPCIÓN -->
+
+              <article
+                class="tournament-builder__card tournament-builder__card--wide"
+              >
+
+                <div class="tournament-builder__card-header">
+
+                  <span class="tournament-builder__card-label">
+                    REQUISITOS DE INSCRIPCIÓN
+                  </span>
+
+                  <span
+                    class="tournament-builder__card-status"
+                    data-builder-status="registration-requirements"
+                  ></span>
+
+                </div>
+
+                <div
+                  class="tournament-builder__field"
+                  data-tournament-registration-requirements
+                ></div>
+
+              </article>
+
+
               <!-- CONTACTO -->
 
               <article
@@ -657,6 +687,10 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     "[data-tournament-support-contact]"
   );
 
+  const registrationRequirementsContainer = page.querySelector(
+    "[data-tournament-registration-requirements]"
+  );
+
   const participationElement = page.querySelector(
     "[data-tournament-participation]"
   );
@@ -731,6 +765,10 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
     support: page.querySelector(
       '[data-builder-status="support"]'
+    ),
+
+    registrationRequirements: page.querySelector(
+      '[data-builder-status="registration-requirements"]'
     )
   };
 
@@ -1074,6 +1112,33 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   /*
    * --------------------------------------------------
+   * REGISTRATION REQUIREMENTS
+   * --------------------------------------------------
+   */
+
+  const registrationRequirementsEditor =
+    RegistrationRequirementsEditor({
+      value: selectedRegistrationRequirements,
+      onChange: (requirements) => {
+        selectedRegistrationRequirements = requirements;
+
+        setStatus(
+          statusElements.registrationRequirements,
+          Boolean(
+            requirements?.enabled &&
+            requirements?.requirements?.length
+          )
+        );
+      }
+    });
+
+  registrationRequirementsContainer.appendChild(
+    registrationRequirementsEditor.element
+  );
+
+
+  /*
+   * --------------------------------------------------
    * CONTACT SUPPORT SELECTOR
    * --------------------------------------------------
    */
@@ -1247,6 +1312,8 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       selectedPrizes = [];
       selectedRegistrationCost = null;
       selectedSupportContact = null;
+      selectedRegistrationRequirements = null;
+      registrationRequirementsEditor.setValue(null);
 
       if (participationElement) {
         participationElement.textContent =
@@ -1483,19 +1550,29 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         supportContact:
           selectedSupportContact,
 
+        registrationRequirements:
+          selectedRegistrationRequirements,
+
         landingTemplate:
           selectedLandingTemplate
 
       };
 
-      /*
-       * El Builder solo modifica información del torneo.
-       * Si el evento ya tiene estado Pro, lo preservamos
-       * intacto para que editar información (por ejemplo BO3 → BO7)
-       * no destruya la operación existente.
-       */
-      if (existingProState) {
-        tournamentConfiguration.pro = existingProState;
+      // La configuración Pro se inicializa solamente si
+      // la cuenta tiene entitlement efectivo en este momento.
+      // Nunca se elimina al perder Pro.
+      if (
+        accountContext?.subscription &&
+        hasEffectiveSubscriptionAccess(
+          accountContext.subscription
+        ) &&
+        entityContext?.productId === "tournament"
+      ) {
+        tournamentConfiguration.pro =
+          ensureTournamentProState({
+            ...tournamentConfiguration,
+            pro: undefined
+          });
       }
 
       saveTournament(tournamentConfiguration);
@@ -1792,8 +1869,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         );
       }
 
-      existingProState = event.pro || null;
-
       selectedGame = event.gameId || "";
       selectedFormat = event.format || "";
       selectedMatchSystem = event.matchSystem || "";
@@ -1812,6 +1887,9 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         event.registrationCost || null;
       selectedSupportContact =
         event.supportContact || null;
+
+      selectedRegistrationRequirements =
+        event.registrationRequirements || null;
 
       selectedLandingTemplate =
         event.landingTemplate || "template-1";
@@ -1881,6 +1959,9 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       contactSupportSelector.setValue(
         selectedSupportContact
       );
+      registrationRequirementsEditor.setValue(
+        selectedRegistrationRequirements
+      );
 
       setStatus(statusElements.game, Boolean(selectedGame));
       setStatus(
@@ -1914,6 +1995,13 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         statusElements.support,
         Array.isArray(selectedSupportContact?.channels) &&
         selectedSupportContact.channels.length > 0
+      );
+      setStatus(
+        statusElements.registrationRequirements,
+        Boolean(
+          selectedRegistrationRequirements?.enabled &&
+          selectedRegistrationRequirements?.requirements?.length
+        )
       );
 
       if (builderTitle) {
