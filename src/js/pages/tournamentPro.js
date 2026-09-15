@@ -78,6 +78,7 @@ export function TournamentPro() {
       }
 
       let selectedSlotId = null;
+      let modalOpen = false;
 
       const refresh = async () => {
         event = await getTournamentProEvent(tournamentId, eventId);
@@ -100,15 +101,32 @@ export function TournamentPro() {
       const getParticipantName = (id) =>
         id ? pro.participants?.[id]?.displayName || id : "Posición disponible";
 
+      const getInitials = (value = "") => {
+        const parts = String(value).trim().split(/\s+/).filter(Boolean);
+        return (parts.slice(0, 2).map((part) => part[0]).join("") || "?").toUpperCase();
+      };
+
       const renderSlot = (slot) => {
         const participant = slot.participantId ? pro.participants?.[slot.participantId] : null;
+        const name = participant?.displayName || "Posición disponible";
+        const meta = participant
+          ? (participant.entityId || (participant.manual ? "Participante manual" : "Player/Team NEXUS"))
+          : "Esperando participante";
+
         return `
-          <article class="tournament-pro-page__slot ${participant ? "is-filled" : "is-empty"}">
-            <div class="tournament-pro-page__slot-number">SEED ${slot.seed}</div>
-            <strong>${escapeHtml(participant?.displayName || "Posición disponible")}</strong>
-            <span>${participant ? escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team NEXUS")) : "Sin participante"}</span>
-            ${!participant ? `<button type="button" data-slot-add="${escapeAttr(`seed-${slot.seed}`)}">Agregar participante</button>` : ""}
-          </article>
+          <div class="tournament-pro-page__bracket-slot ${participant ? "is-filled" : "is-empty"}">
+            <div class="tournament-pro-page__bracket-slot-seed">${escapeHtml(String(slot.seed).padStart(2, "0"))}</div>
+            <div class="tournament-pro-page__bracket-slot-avatar">${escapeHtml(getInitials(name))}</div>
+            <div class="tournament-pro-page__bracket-slot-info">
+              <strong>${escapeHtml(name)}</strong>
+              <span>${escapeHtml(meta)}</span>
+            </div>
+            ${!participant ? `
+              <button type="button" class="tournament-pro-page__slot-add" data-slot-add="${escapeAttr(`seed-${slot.seed}`)}" aria-label="Agregar participante al seed ${slot.seed}">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              </button>
+            ` : ""}
+          </div>
         `;
       };
 
@@ -145,69 +163,96 @@ export function TournamentPro() {
                 <span class="tournament-pro-page__eyebrow">BRACKET</span>
                 <h2>${escapeHtml(formatValue)}</h2>
               </div>
-              <span>${slots.filter((slot) => slot.participantId).length}/${escapeHtml(capacity)} posiciones</span>
+              <div class="tournament-pro-page__bracket-counter">
+                <strong>${slots.filter((slot) => slot.participantId).length}</strong>
+                <span>/ ${escapeHtml(capacity)} posiciones</span>
+              </div>
             </div>
-            <p class="tournament-pro-page__helper">Asigna los participantes directamente a las posiciones del bracket. Puedes buscar perfiles registrados en NEXUS o agregar un participante manual.</p>
+            <p class="tournament-pro-page__helper">Asigna los participantes directamente a las posiciones del bracket. Cada posición vacía abre un panel para buscar un Player/Team registrado en NEXUS o agregar un participante manual.</p>
 
-            <div class="tournament-pro-page__bracket">
-              ${firstStage ? `
-                <div class="tournament-pro-page__stage">
-                  <div class="tournament-pro-page__stage-title">${escapeHtml(firstStage.bracket === "winners" ? "WINNERS · RONDA 1" : "RONDA 1")}</div>
-                  <div class="tournament-pro-page__matches">
-                    ${firstStage.matches.map((match) => {
-                      const a = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 1}`];
-                      const b = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 2}`];
-                      return `
-                        <article class="tournament-pro-page__match">
-                          <div class="tournament-pro-page__match-top"><span>${escapeHtml(match.id)}</span><span>${escapeHtml(match.status)}</span></div>
-                          ${a ? renderSlot(a) : ""}
-                          ${b ? renderSlot(b) : ""}
+            <div class="tournament-pro-page__bracket-shell">
+              <div class="tournament-pro-page__bracket">
+                ${firstStage ? `
+                  <div class="tournament-pro-page__stage tournament-pro-page__stage--active">
+                    <div class="tournament-pro-page__stage-heading">
+                      <span class="tournament-pro-page__stage-index">01</span>
+                      <div><span class="tournament-pro-page__stage-kicker">INICIO</span><strong>${escapeHtml(firstStage.bracket === "winners" ? "WINNERS · RONDA 1" : "RONDA 1")}</strong></div>
+                    </div>
+                    <div class="tournament-pro-page__matches">
+                      ${firstStage.matches.map((match) => {
+                        const a = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 1}`];
+                        const b = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 2}`];
+                        return `
+                          <article class="tournament-pro-page__match">
+                            <div class="tournament-pro-page__match-top">
+                              <span class="tournament-pro-page__match-id">${escapeHtml(match.id)}</span>
+                              <span class="tournament-pro-page__match-status">${escapeHtml(match.status || "pending")}</span>
+                            </div>
+                            ${a ? renderSlot(a) : ""}
+                            ${b ? renderSlot(b) : ""}
+                          </article>
+                        `;
+                      }).join("")}
+                    </div>
+                  </div>
+                ` : ""}
+
+                ${stages.slice(1).map((stage, index) => `
+                  <div class="tournament-pro-page__stage tournament-pro-page__stage--future">
+                    <div class="tournament-pro-page__stage-heading">
+                      <span class="tournament-pro-page__stage-index">${String(index + 2).padStart(2, "0")}</span>
+                      <div><span class="tournament-pro-page__stage-kicker">SIGUIENTE</span><strong>${escapeHtml(stage.bracket === "grand_final" ? "GRAND FINAL" : `${stage.bracket === "losers" ? "LOSERS" : "WINNERS"} · RONDA ${stage.number}`)}</strong></div>
+                    </div>
+                    <div class="tournament-pro-page__matches">
+                      ${stage.matches.map((match) => `
+                        <article class="tournament-pro-page__match tournament-pro-page__match--future">
+                          <div class="tournament-pro-page__match-top"><span class="tournament-pro-page__match-id">${escapeHtml(match.id)}</span><span class="tournament-pro-page__match-status">pendiente</span></div>
+                          <div class="tournament-pro-page__future-slot"><span>Jugador / equipo</span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
+                          <div class="tournament-pro-page__future-slot"><span>Jugador / equipo</span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
                         </article>
-                      `;
-                    }).join("")}
+                      `).join("")}
+                    </div>
                   </div>
-                </div>
-              ` : ""}
-
-              ${stages.slice(1).map((stage) => `
-                <div class="tournament-pro-page__stage tournament-pro-page__stage--future">
-                  <div class="tournament-pro-page__stage-title">${escapeHtml(stage.bracket === "grand_final" ? "GRAND FINAL" : `${stage.bracket === "losers" ? "LOSERS" : "WINNERS"} · RONDA ${stage.number}`)}</div>
-                  <div class="tournament-pro-page__matches">
-                    ${stage.matches.map((match) => `
-                      <article class="tournament-pro-page__match tournament-pro-page__match--future">
-                        <div class="tournament-pro-page__match-top"><span>${escapeHtml(match.id)}</span><span>pendiente</span></div>
-                        <div class="tournament-pro-page__future-slot">Se definirá durante la competencia</div>
-                        <div class="tournament-pro-page__future-slot">Se definirá durante la competencia</div>
-                      </article>
-                    `).join("")}
-                  </div>
-                </div>
-              `).join("")}
+                `).join("")}
+              </div>
             </div>
           </section>
 
-          ${selectedSlot ? `
-            <section class="tournament-pro-page__card tournament-pro-page__card--wide">
-              <div class="tournament-pro-page__section-heading">
-                <div>
-                  <span class="tournament-pro-page__eyebrow">ASIGNAR POSICIÓN</span>
-                  <h2>Seed ${selectedSlot.seed}</h2>
+          ${modalOpen && selectedSlot ? `
+            <div class="tournament-pro-page__modal-backdrop" data-slot-modal-backdrop>
+              <section class="tournament-pro-page__modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-slot-modal-title">
+                <header class="tournament-pro-page__modal-header">
+                  <div>
+                    <span class="tournament-pro-page__eyebrow">ASIGNAR PARTICIPANTE</span>
+                    <h2 id="tournament-pro-slot-modal-title">Seed ${escapeHtml(selectedSlot.seed)}</h2>
+                    <p>${selectedParticipantName ? `Actualmente: ${escapeHtml(selectedParticipantName)}` : "Esta posición está disponible."}</p>
+                  </div>
+                  <button type="button" class="tournament-pro-page__modal-close" data-slot-modal-close aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                  </button>
+                </header>
+                <div class="tournament-pro-page__modal-body">
+                  <form data-slot-search-form>
+                    <label class="tournament-pro-page__modal-label">Buscar en NEXUS</label>
+                    <div class="tournament-pro-page__search-row">
+                      <input name="term" placeholder="Nombre, gamertag o ID" required autofocus>
+                      <select name="type" aria-label="Tipo de participante">
+                        <option value="player">Player</option>
+                        <option value="team">Team</option>
+                      </select>
+                      <button type="submit"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Buscar</button>
+                    </div>
+                  </form>
+                  <div class="tournament-pro-page__search-results" data-slot-search-results></div>
+                  <div class="tournament-pro-page__modal-divider"><span>o</span></div>
+                  <button type="button" class="tournament-pro-page__manual-option" data-slot-manual>
+                    <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                    <span><strong>Agregar participante manual</strong><small>Úsalo si no tiene perfil en NEXUS.</small></span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  </button>
                 </div>
-                <span>${selectedParticipantName ? escapeHtml(selectedParticipantName) : "Vacía"}</span>
-              </div>
-              <form data-slot-search-form>
-                <div class="tournament-pro-page__search-row">
-                  <input name="term" placeholder="Nombre, gamertag o ID" required>
-                  <select name="type">
-                    <option value="player">Player</option>
-                    <option value="team">Team</option>
-                  </select>
-                  <button type="submit">Buscar en NEXUS</button>
-                </div>
-              </form>
-              <div class="tournament-pro-page__search-results" data-slot-search-results></div>
-              <button type="button" data-slot-manual>Agregar nombre manualmente</button>
-            </section>
+              </section>
+            </div>
           ` : ""}
         `;
 
@@ -215,10 +260,21 @@ export function TournamentPro() {
       };
 
       const bind = () => {
+        page.querySelectorAll("[data-slot-modal-close], [data-slot-modal-backdrop]").forEach((element) => {
+          element.addEventListener("click", (clickEvent) => {
+            if (element.dataset.slotModalBackdrop && clickEvent.target !== element) return;
+            selectedSlotId = null;
+            modalOpen = false;
+            render();
+          });
+        });
+
         page.querySelectorAll("[data-slot-add]").forEach((button) => {
           button.addEventListener("click", () => {
             selectedSlotId = button.dataset.slotAdd;
+            modalOpen = true;
             render();
+            requestAnimationFrame(() => page.querySelector("[data-slot-search-form] input")?.focus());
           });
         });
 
@@ -263,6 +319,14 @@ export function TournamentPro() {
           });
         });
       };
+
+      const handleModalKeydown = (event) => {
+        if (event.key !== "Escape" || !modalOpen) return;
+        selectedSlotId = null;
+        modalOpen = false;
+        render();
+      };
+      page.addEventListener("keydown", handleModalKeydown);
 
       const assignParticipant = async ({ entityType, entityId = null, displayName, manual = false }) => {
         if (!selectedSlotId) return;
