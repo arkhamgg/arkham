@@ -95,7 +95,7 @@ function renderStage(pro, stage, index) {
   `;
 }
 
-export function getPublicTournamentBracketMarkup(event = {}) {
+export function getPublicTournamentBracketMarkup(event = {}, registrationState = null) {
   const pro = event?.pro;
 
   // event.pro is the public projection of the Pro operational state.
@@ -107,6 +107,9 @@ export function getPublicTournamentBracketMarkup(event = {}) {
   const capacity = normalizeCapacity(event.capacity, slots.length || 0);
   const count = getParticipantCount(pro);
   const generated = bracket.generated === true;
+  const requestStatus = registrationState?.request?.status || null;
+  const rejectionReason = registrationState?.request?.rejectionReason || null;
+  const canShowRegistration = registrationState?.canRegister !== false;
   const stages = Array.isArray(bracket.stages) ? bracket.stages : [];
 
   if (!generated) {
@@ -119,7 +122,18 @@ export function getPublicTournamentBracketMarkup(event = {}) {
               <h2>COMPETIDORES</h2>
               <p>La competencia todavía no ha generado su bracket.</p>
             </div>
-            <strong class="public-bracket__counter">${count}/${escapeHtml(capacity)}</strong>
+            <div class="public-bracket__counter-wrap">
+            <div class="public-bracket__counter-label">
+              <span>INSCRITOS</span>
+              <strong class="public-bracket__counter">${count}/${escapeHtml(capacity)}</strong>
+            </div>
+            ${canShowRegistration ? `
+              <button type="button" class="public-bracket__registration-button public-bracket__registration-button--${escapeHtml(requestStatus || "available")}" data-registration-cta>
+                <span>${escapeHtml(requestStatus === "pending" ? "SOLICITUD EN REVISIÓN" : requestStatus === "approved" ? "ASIENTO CONFIRMADO" : requestStatus === "rejected" ? "VOLVER A INTENTAR" : "SOLICITAR ASIENTO")}</span>
+                <i class="fa-solid ${requestStatus === "approved" ? "fa-check" : requestStatus === "pending" ? "fa-hourglass-half" : requestStatus === "rejected" ? "fa-rotate-right" : "fa-arrow-right"}" aria-hidden="true"></i>
+              </button>
+            ` : ""}
+          </div>
           </header>
         </div>
       </section>
@@ -136,8 +150,16 @@ export function getPublicTournamentBracketMarkup(event = {}) {
             <p>Los competidores se incorporan al cuadro conforme el organizador los asigna.</p>
           </div>
           <div class="public-bracket__counter-wrap">
-            <span>INSCRITOS</span>
-            <strong class="public-bracket__counter">${count}/${escapeHtml(capacity)}</strong>
+            <div class="public-bracket__counter-label">
+              <span>INSCRITOS</span>
+              <strong class="public-bracket__counter">${count}/${escapeHtml(capacity)}</strong>
+            </div>
+            ${canShowRegistration ? `
+              <button type="button" class="public-bracket__registration-button public-bracket__registration-button--${escapeHtml(requestStatus || "available")}" data-registration-cta>
+                <span>${escapeHtml(requestStatus === "pending" ? "SOLICITUD EN REVISIÓN" : requestStatus === "approved" ? "ASIENTO CONFIRMADO" : requestStatus === "rejected" ? "VOLVER A INTENTAR" : "SOLICITAR ASIENTO")}</span>
+                <i class="fa-solid ${requestStatus === "approved" ? "fa-check" : requestStatus === "pending" ? "fa-hourglass-half" : requestStatus === "rejected" ? "fa-rotate-right" : "fa-arrow-right"}" aria-hidden="true"></i>
+              </button>
+            ` : ""}
           </div>
         </header>
 
@@ -149,9 +171,9 @@ export function getPublicTournamentBracketMarkup(event = {}) {
   `;
 }
 
-export function updatePublicTournamentBracket(page, event = {}) {
+export function updatePublicTournamentBracket(page, event = {}, registrationState = null) {
   const mount = page?.querySelector("[data-public-bracket-mount]");
   if (!mount) return;
 
-  mount.innerHTML = getPublicTournamentBracketMarkup(event);
+  mount.innerHTML = getPublicTournamentBracketMarkup(event, registrationState);
 }
