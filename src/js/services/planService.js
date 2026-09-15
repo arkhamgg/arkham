@@ -38,6 +38,10 @@ import {
   createAccessContext
 } from "./access.js";
 
+import {
+  hasEffectiveSubscriptionAccess
+} from "./subscription.js";
+
 
 // ========================================
 // GET PLAN
@@ -169,8 +173,9 @@ export function createSubscriptionAccess(
 ) {
 
   if (
-    !subscription ||
-    subscription.status !== "active"
+    !hasEffectiveSubscriptionAccess(
+      subscription
+    )
   ) {
 
     return createAccessContext([]);

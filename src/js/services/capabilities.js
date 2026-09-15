@@ -124,6 +124,22 @@ export const CAPABILITIES = {
 
     "registration_cost",
 
+  BENEFITS:
+
+    "benefits",
+
+  SUPPORT_CONTACT:
+
+    "support_contact",
+
+  SOCIAL_LINKS:
+
+    "social_links",
+
+  REGISTRATION_DEADLINE:
+
+    "registration_deadline",
+
 
   // ======================================
   // PUBLICATION
@@ -169,6 +185,10 @@ export const CAPABILITIES = {
 
     "participation_requests",
 
+  MANUAL_PARTICIPANTS:
+
+    "manual_participants",
+
 
   // ======================================
   // COMPETITION OPERATION
@@ -193,6 +213,14 @@ export const CAPABILITIES = {
   RESULT_MANAGEMENT:
 
     "result_management",
+
+  RECOGNITION:
+
+    "recognition",
+
+  TOURNAMENT_CONTROL:
+
+    "tournament_control",
 
 
   // ======================================

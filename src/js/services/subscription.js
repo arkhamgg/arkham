@@ -437,13 +437,19 @@ export function hasEffectiveSubscriptionAccess(
   }
 
 
+  // ACTIVE solo concede acceso mientras el período
+  // facturado siga vigente. El estado persistido no
+  // sustituye la comprobación temporal.
   if (
     isSubscriptionActive(
       subscription
     )
   ) {
 
-    return true;
+    return isPeriodCurrentlyValid(
+      subscription,
+      now
+    );
 
   }
 
@@ -452,6 +458,14 @@ export function hasEffectiveSubscriptionAccess(
     subscription.status ===
     SUBSCRIPTION_STATUS.PAST_DUE
   ) {
+
+    // Nunca extenderemos el entitlement más allá del
+    // período originalmente pagado. Si existe una
+    // gracia administrativa, debe terminar como máximo
+    // al finalizar currentPeriodEnd.
+    if (!isPeriodCurrentlyValid(subscription, now)) {
+      return false;
+    }
 
     return isWithinGracePeriod(
       subscription,
@@ -465,6 +479,36 @@ export function hasEffectiveSubscriptionAccess(
 
 }
 
+
+
+
+// ========================================
+// CHECK CURRENT BILLING PERIOD
+// ========================================
+
+export function isPeriodCurrentlyValid(
+  subscription,
+  now = new Date()
+) {
+
+  if (!subscription) {
+    return false;
+  }
+
+  const periodEnd = toDate(
+    subscription.currentPeriodEnd
+  );
+
+  // Legacy/initial records without an end date
+  // preserve the previous behavior. New active
+  // subscriptions always receive currentPeriodEnd.
+  if (!periodEnd) {
+    return true;
+  }
+
+  return now.getTime() < periodEnd.getTime();
+
+}
 
 // ========================================
 // GET SUBSCRIPTION PLAN

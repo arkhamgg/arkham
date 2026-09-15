@@ -13,6 +13,7 @@ import { CreateTeam } from "./pages/createTeam.js";
 import { CreatePlayer } from "./pages/createPlayer.js";
 import { Teams } from "./pages/teams.js";
 import { TournamentBuilder } from "./pages/tournamentBuilder.js";
+import { TournamentPro } from "./pages/tournamentPro.js";
 import { CompetitionLanding } from "./pages/competitionLanding.js";
 import { CompetitionDetail } from "./pages/competitionDetail.js";
 import { Calendar } from "./pages/calendar.js";
@@ -101,6 +102,9 @@ const routes = {
 
   "/dashboard/tournaments/edit":
     TournamentBuilder,
+
+  "/dashboard/tournaments/pro":
+    TournamentPro,
 
   "/dashboard/billing":
     Billing,

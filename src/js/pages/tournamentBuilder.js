@@ -14,6 +14,8 @@ import { ContactSupportSelector } from "../components/contactSupportSelector.js"
 import { getCurrentAccountContext } from "../services/account.js";
 import { getCurrentEntityContext } from "../services/entityContext.js";
 import { createSubscriptionAccess } from "../services/planService.js";
+import { hasEffectiveSubscriptionAccess } from "../services/subscription.js";
+import { ensureTournamentProState } from "../services/tournamentPro.js";
 import {
   createMapEntity,
   updateMapEntity,
@@ -1481,6 +1483,23 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       };
 
+      // La configuración Pro se inicializa solamente si
+      // la cuenta tiene entitlement efectivo en este momento.
+      // Nunca se elimina al perder Pro.
+      if (
+        accountContext?.subscription &&
+        hasEffectiveSubscriptionAccess(
+          accountContext.subscription
+        ) &&
+        entityContext?.productId === "tournament"
+      ) {
+        tournamentConfiguration.pro =
+          ensureTournamentProState({
+            ...tournamentConfiguration,
+            pro: undefined
+          });
+      }
+
       saveTournament(tournamentConfiguration);
 
     }
@@ -1691,7 +1710,9 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       if (
         accountContext?.subscription &&
-        accountContext.subscription.status === "active" &&
+        hasEffectiveSubscriptionAccess(
+          accountContext.subscription
+        ) &&
         entityContext?.productId
       ) {
 
