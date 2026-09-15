@@ -173,7 +173,7 @@ export function TournamentPro() {
             <div class="tournament-pro-page__bracket-shell">
               <div class="tournament-pro-page__bracket">
                 ${firstStage ? `
-                  <div class="tournament-pro-page__stage tournament-pro-page__stage--active">
+                  <div class="tournament-pro-page__stage tournament-pro-page__stage--active" data-match-count="${firstStage.matches.length}">
                     <div class="tournament-pro-page__stage-heading">
                       <span class="tournament-pro-page__stage-index">01</span>
                       <div><span class="tournament-pro-page__stage-kicker">INICIO</span><strong>${escapeHtml(firstStage.bracket === "winners" ? "WINNERS · RONDA 1" : "RONDA 1")}</strong></div>
@@ -183,7 +183,7 @@ export function TournamentPro() {
                         const a = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 1}`];
                         const b = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 2}`];
                         return `
-                          <article class="tournament-pro-page__match">
+                          <article class="tournament-pro-page__match" data-match-index="${match.position || 0}">
                             <div class="tournament-pro-page__match-top">
                               <span class="tournament-pro-page__match-id">${escapeHtml(match.id)}</span>
                               <span class="tournament-pro-page__match-status">${escapeHtml(match.status || "pending")}</span>
@@ -198,14 +198,14 @@ export function TournamentPro() {
                 ` : ""}
 
                 ${stages.slice(1).map((stage, index) => `
-                  <div class="tournament-pro-page__stage tournament-pro-page__stage--future">
+                  <div class="tournament-pro-page__stage tournament-pro-page__stage--future" data-stage-index="${index + 2}" data-match-count="${stage.matches.length}">
                     <div class="tournament-pro-page__stage-heading">
                       <span class="tournament-pro-page__stage-index">${String(index + 2).padStart(2, "0")}</span>
                       <div><span class="tournament-pro-page__stage-kicker">SIGUIENTE</span><strong>${escapeHtml(stage.bracket === "grand_final" ? "GRAND FINAL" : `${stage.bracket === "losers" ? "LOSERS" : "WINNERS"} · RONDA ${stage.number}`)}</strong></div>
                     </div>
                     <div class="tournament-pro-page__matches">
                       ${stage.matches.map((match) => `
-                        <article class="tournament-pro-page__match tournament-pro-page__match--future">
+                        <article class="tournament-pro-page__match tournament-pro-page__match--future" data-match-index="${match.position || 0}">
                           <div class="tournament-pro-page__match-top"><span class="tournament-pro-page__match-id">${escapeHtml(match.id)}</span><span class="tournament-pro-page__match-status">pendiente</span></div>
                           <div class="tournament-pro-page__future-slot"><span>Jugador / equipo</span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
                           <div class="tournament-pro-page__future-slot"><span>Jugador / equipo</span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
@@ -262,7 +262,7 @@ export function TournamentPro() {
       const bind = () => {
         page.querySelectorAll("[data-slot-modal-close], [data-slot-modal-backdrop]").forEach((element) => {
           element.addEventListener("click", (clickEvent) => {
-            if (element.dataset.slotModalBackdrop && clickEvent.target !== element) return;
+            if (element.hasAttribute("data-slot-modal-backdrop") && clickEvent.target !== element) return;
             selectedSlotId = null;
             modalOpen = false;
             render();

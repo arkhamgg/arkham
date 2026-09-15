@@ -557,3 +557,232 @@
   .tournament-pro-page__modal-header,
   .tournament-pro-page__modal-body { padding: 18px; }
 }
+
+/* ========================================
+   NEXUS — Competitive Bracket Board v2
+   Visual direction: clean esports bracket,
+   thin connectors, compact match nodes.
+   ======================================== */
+.tournament-pro-page__bracket-shell {
+  position: relative;
+  padding: 26px 22px 30px;
+  border-color: #202024;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(227, 6, 19, .055), transparent 30%),
+    linear-gradient(180deg, #0A0A0C 0%, #08080A 100%);
+}
+
+.tournament-pro-page__bracket {
+  position: relative;
+  align-items: flex-start;
+  gap: 54px;
+  min-width: max-content;
+  padding: 4px 10px 12px;
+}
+
+.tournament-pro-page__stage {
+  flex: 0 0 278px;
+  position: relative;
+}
+
+.tournament-pro-page__stage-heading {
+  min-height: 38px;
+  margin-bottom: 20px;
+  padding-left: 2px;
+}
+
+.tournament-pro-page__stage-index {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.tournament-pro-page__stage--active .tournament-pro-page__stage-index {
+  background: rgba(227, 6, 19, .08);
+}
+
+.tournament-pro-page__matches {
+  gap: 22px;
+}
+
+.tournament-pro-page__stage:not(:first-child) .tournament-pro-page__matches {
+  padding-top: 42px;
+}
+
+.tournament-pro-page__match {
+  position: relative;
+  padding: 8px;
+  border: 1px solid #29292F;
+  border-radius: 5px;
+  background: #0B0B0D;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .16);
+}
+
+.tournament-pro-page__match::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -55px;
+  width: 54px;
+  height: 1px;
+  background: linear-gradient(90deg, #3A3A42, #5A1624);
+}
+
+.tournament-pro-page__stage:last-child .tournament-pro-page__match::after {
+  display: none;
+}
+
+.tournament-pro-page__stage:not(:first-child) .tournament-pro-page__match::before {
+  content: "";
+  position: absolute;
+  left: -55px;
+  top: 50%;
+  width: 27px;
+  height: 1px;
+  background: #3A3A42;
+  transform: translateY(-50%);
+}
+
+/* Pairing rails: each later-round node receives a subtle vertical branch. */
+.tournament-pro-page__stage:not(:first-child) .tournament-pro-page__match:nth-child(odd)::before {
+  box-shadow: -27px 0 0 -0.5px #3A3A42;
+}
+
+.tournament-pro-page__stage:not(:first-child) .tournament-pro-page__match:nth-child(odd)::after {
+  content: "";
+  position: absolute;
+  left: -28px;
+  right: auto;
+  top: 50%;
+  width: 1px;
+  height: calc(50% + 22px);
+  background: #3A3A42;
+  transform: translateY(-100%);
+}
+
+.tournament-pro-page__stage:not(:first-child) .tournament-pro-page__match:nth-child(even)::after {
+  content: "";
+  position: absolute;
+  left: -28px;
+  right: auto;
+  top: -22px;
+  width: 1px;
+  height: calc(50% + 22px);
+  background: #3A3A42;
+}
+
+.tournament-pro-page__match-top {
+  margin: 0 2px 7px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #1F1F23;
+}
+
+.tournament-pro-page__match-id {
+  color: #E30613;
+  font-size: 9px;
+}
+
+.tournament-pro-page__match-status {
+  padding: 2px 6px;
+  border-color: #25252A;
+  font-size: 8px;
+}
+
+.tournament-pro-page__bracket-slot {
+  grid-template-columns: 20px 28px minmax(0, 1fr) 28px;
+  min-height: 48px;
+  padding: 6px;
+  border-radius: 4px;
+  border-color: #1F1F23;
+  background: #0F0F12;
+}
+
+.tournament-pro-page__bracket-slot + .tournament-pro-page__bracket-slot {
+  margin-top: 4px;
+}
+
+.tournament-pro-page__bracket-slot.is-filled {
+  border-color: #303036;
+}
+
+.tournament-pro-page__bracket-slot.is-empty {
+  border-color: #33333A;
+  background: #0A0A0C;
+}
+
+.tournament-pro-page__bracket-slot-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  font-size: 9px;
+}
+
+.tournament-pro-page__bracket-slot-info strong {
+  font-size: 11px;
+}
+
+.tournament-pro-page__bracket-slot-info span {
+  font-size: 8px;
+}
+
+.tournament-pro-page__slot-add {
+  width: 25px !important;
+  height: 25px;
+  border-radius: 5px !important;
+  color: #71717A !important;
+  background: #111114 !important;
+}
+
+.tournament-pro-page__slot-add:hover:not(:disabled) {
+  border-color: #E30613 !important;
+  background: rgba(227, 6, 19, .12) !important;
+  box-shadow: 0 0 14px rgba(227, 6, 19, .18);
+}
+
+.tournament-pro-page__match--future {
+  min-height: 112px;
+  opacity: .7;
+  border-color: #202024;
+}
+
+.tournament-pro-page__future-slot {
+  min-height: 32px;
+  padding: 0 7px;
+  border-color: #1F1F23;
+  font-size: 9px;
+}
+
+/* The modal itself must sit above the backdrop and never inherit its click target. */
+.tournament-pro-page__modal-backdrop {
+  isolation: isolate;
+}
+
+.tournament-pro-page__modal {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 650px) {
+  .tournament-pro-page__bracket-shell {
+    padding: 18px 12px 24px;
+  }
+
+  .tournament-pro-page__bracket {
+    gap: 42px;
+    padding-inline: 4px;
+  }
+
+  .tournament-pro-page__stage {
+    flex-basis: 260px;
+  }
+
+  .tournament-pro-page__match::after {
+    right: -43px;
+    width: 42px;
+  }
+
+  .tournament-pro-page__stage:not(:first-child) .tournament-pro-page__match::before {
+    left: -43px;
+    width: 21px;
+  }
+}
