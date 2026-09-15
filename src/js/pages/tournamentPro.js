@@ -304,8 +304,8 @@ export function TournamentPro() {
                 ${firstStage ? `
                   <div class="tournament-pro-page__stage tournament-pro-page__stage--active" data-match-count="${firstStage.matches.length}">
                     <div class="tournament-pro-page__stage-heading">
-                      <span class="tournament-pro-page__stage-index">01</span>
-                      <div><span class="tournament-pro-page__stage-kicker">INICIO</span><strong>${escapeHtml(firstStage.bracket === "winners" ? "WINNERS · RONDA 1" : "RONDA 1")}</strong></div>
+                      <span class="tournament-pro-page__stage-index">R1</span>
+                      <div><strong>${escapeHtml(firstStage.bracket === "winners" ? "PRIMERA RONDA" : "RONDA 1")}</strong></div>
                     </div>
                     <div class="tournament-pro-page__matches">
                       ${firstStage.matches.map((match) => {
@@ -329,8 +329,8 @@ export function TournamentPro() {
                 ${stages.slice(1).map((stage, index) => `
                   <div class="tournament-pro-page__stage tournament-pro-page__stage--future" data-stage-index="${index + 2}" data-match-count="${stage.matches.length}">
                     <div class="tournament-pro-page__stage-heading">
-                      <span class="tournament-pro-page__stage-index">${String(index + 2).padStart(2, "0")}</span>
-                      <div><span class="tournament-pro-page__stage-kicker">SIGUIENTE</span><strong>${escapeHtml(stage.bracket === "grand_final" ? "GRAND FINAL" : `${stage.bracket === "losers" ? "LOSERS" : "WINNERS"} · RONDA ${stage.number}`)}</strong></div>
+                      <span class="tournament-pro-page__stage-index">R${index + 2}</span>
+                      <div><strong>${escapeHtml(stage.bracket === "grand_final" ? "GRAND FINAL" : `${stage.bracket === "losers" ? "LOSERS" : `RONDA ${stage.number}`}`)}</strong></div>
                     </div>
                     <div class="tournament-pro-page__matches">
                       ${stage.matches.map((match) => `
