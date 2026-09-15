@@ -19,7 +19,7 @@ function statusLabel(status) {
   return ({ pending: "EN REVISIÓN", approved: "ASIENTO OTORGADO", rejected: "RECHAZADA" })[status] || String(status || "—").toUpperCase();
 }
 
-export function getTournamentRegistrationRequestsMarkup(requests = []) {
+export function getTournamentRegistrationRequestsMarkup(requests = [], loadError = "") {
   const pending = requests.filter((request) => request.status === "pending");
   return `
     <section class="tournament-pro-page__card tournament-pro-page__card--wide tournament-pro-page__registration-card">
@@ -31,6 +31,12 @@ export function getTournamentRegistrationRequestsMarkup(requests = []) {
         <span class="tournament-pro-page__registration-badge ${pending.length ? "is-alert" : ""}">${pending.length} pendientes</span>
       </div>
       <p class="tournament-pro-page__helper">Revisa las solicitudes, valida los requisitos y otorga el asiento para incorporarlo al bracket.</p>
+      ${loadError ? `
+        <div class="tournament-pro-page__registration-error" role="alert">
+          <strong>No fue posible cargar las solicitudes.</strong>
+          <span>${escapeHtml(loadError)}</span>
+        </div>
+      ` : ""}
       <div class="tournament-pro-page__registration-list" data-registration-request-list>
         ${requests.length ? requests.map((request) => `
           <article class="tournament-pro-page__registration-request" data-request-row="${escapeHtml(request.id)}">

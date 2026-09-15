@@ -94,8 +94,21 @@ export default async function handler(req, res) {
     }
 
     if (mode === "list") {
-      if (tournament.ownerId !== uid) {
-        return json(res, 403, { success: false, error: "No tienes permiso para administrar este torneo." });
+      // La cuenta propietaria sigue siendo la autorización principal.
+      // Como NEXUS permite trabajar desde el EntityContext de la organización,
+      // también aceptamos el usuario que tiene este torneo como entidad actual.
+      let canManage = tournament.ownerId === uid;
+
+      if (!canManage) {
+        const profileSnap = await db.collection("users").doc(uid).get();
+        const profile = profileSnap.exists ? profileSnap.data() : null;
+        canManage =
+          profile?.entityType === "tournament" &&
+          profile?.entityId === tournamentId;
+      }
+
+      if (!canManage) {
+        return json(res, 403, { success: false, error: "La cuenta actual no tiene acceso administrativo a este torneo." });
       }
 
       const requests = Object.entries(getRequests(event))

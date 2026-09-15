@@ -73,7 +73,13 @@ export function TournamentPro() {
       if (!event) throw new Error("Evento no encontrado.");
 
       let pro = ensureTournamentProState(event);
-      let registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId }).catch(() => []);
+      let registrationRequests = [];
+      let registrationRequestsError = "";
+      try {
+        registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId });
+      } catch (error) {
+        registrationRequestsError = error?.message || "No fue posible cargar las solicitudes.";
+      }
       if (!pro.bracket?.generated) {
         event = await prepareBracket({ tournamentId, eventId, event });
         pro = ensureTournamentProState(event);
@@ -85,7 +91,13 @@ export function TournamentPro() {
       const refresh = async () => {
         event = await getTournamentProEvent(tournamentId, eventId);
         pro = ensureTournamentProState(event || {});
-        registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId }).catch(() => []);
+        registrationRequestsError = "";
+        try {
+          registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId });
+        } catch (error) {
+          registrationRequests = [];
+          registrationRequestsError = error?.message || "No fue posible cargar las solicitudes.";
+        }
         render();
       };
 
@@ -221,7 +233,7 @@ export function TournamentPro() {
             </div>
           </section>
 
-          ${getTournamentRegistrationRequestsMarkup(registrationRequests)}
+          ${getTournamentRegistrationRequestsMarkup(registrationRequests, registrationRequestsError)}
 
           ${modalOpen && selectedSlot ? `
             <div class="tournament-pro-page__modal-backdrop" data-slot-modal-backdrop>
@@ -268,7 +280,13 @@ export function TournamentPro() {
           eventId,
           getEvent: () => event,
           onChanged: async () => {
-            registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId }).catch(() => []);
+            registrationRequestsError = "";
+            try {
+              registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId });
+            } catch (error) {
+              registrationRequests = [];
+              registrationRequestsError = error?.message || "No fue posible cargar las solicitudes.";
+            }
             event = await getTournamentProEvent(tournamentId, eventId);
             pro = ensureTournamentProState(event || {});
             render();
