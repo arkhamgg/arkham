@@ -1,3 +1,4 @@
+@use "../abstracts/variables" as *;
 .tournament-pro-page { padding: $space-8; color: $color-100; }
 .tournament-pro-page__container { max-width: 1500px; margin: 0 auto; }
 .tournament-pro-page__header, .tournament-pro-page__section-heading, .tournament-pro-page__participant, .tournament-pro-page__request, .tournament-pro-page__search-row { display:flex; align-items:center; justify-content:space-between; gap:$space-4; }
