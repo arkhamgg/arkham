@@ -20,7 +20,7 @@ import {
 } from "../services/tournamentProOperations.js";
 import { ensureTournamentProState, PARTICIPANT_STATUS, TOURNAMENT_EVENT_STATUS } from "../services/tournamentPro.js";
 
-export async function TournamentPro() {
+export function TournamentPro() {
   const page = document.createElement("main");
   page.className = "tournament-pro-page";
   page.innerHTML = `
@@ -45,8 +45,9 @@ export async function TournamentPro() {
     return page;
   }
 
-  try {
-    const account = await getCurrentAccountContext();
+  const loadTournamentPro = async () => {
+    try {
+      const account = await getCurrentAccountContext();
     const entity = await getCurrentEntityContext();
     if (!hasEffectiveSubscriptionAccess(account?.subscription) || entity?.productId !== "tournament") {
       message.textContent = "Tournament Pro no está disponible para esta cuenta en este momento.";
@@ -219,11 +220,13 @@ export async function TournamentPro() {
     };
 
     render();
-  } catch (error) {
-    console.error(error);
-    message.textContent = error.message || "No fue posible cargar Tournament Pro.";
-  }
+    } catch (error) {
+      console.error(error);
+      message.textContent = error.message || "No fue posible cargar Tournament Pro.";
+    }
+  };
 
+  loadTournamentPro();
   return page;
 }
 
