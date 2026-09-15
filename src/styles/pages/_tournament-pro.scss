@@ -47,3 +47,100 @@
 .tournament-pro-page__empty { padding:24px 0; color:#71717A; text-align:center; }
 @media (max-width:1000px) { .tournament-pro-page__grid{grid-template-columns:1fr}.tournament-pro-page__card--wide{grid-column:auto}.tournament-pro-page__stats{grid-template-columns:repeat(3,minmax(0,1fr));} }
 @media (max-width:650px) { .tournament-pro-page{padding:18px}.tournament-pro-page__header,.tournament-pro-page__section-heading,.tournament-pro-page__participant,.tournament-pro-page__request,.tournament-pro-page__search-row{align-items:flex-start;flex-direction:column}.tournament-pro-page__search-row,.tournament-pro-page__search-row input,.tournament-pro-page__search-row select,.tournament-pro-page__search-row button{width:100%}.tournament-pro-page__stats{grid-template-columns:repeat(2,minmax(0,1fr));} }
+
+.tournament-pro-page__event-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.tournament-pro-page__event-summary div {
+  padding: 14px;
+  border: 1px solid #202024;
+  border-radius: 10px;
+  background: #0D0D0F;
+}
+
+.tournament-pro-page__event-summary span,
+.tournament-pro-page__helper,
+.tournament-pro-page__future-slot {
+  color: #A1A1AA;
+  font-size: 12px;
+}
+
+.tournament-pro-page__event-summary span,
+.tournament-pro-page__event-summary strong {
+  display: block;
+}
+
+.tournament-pro-page__event-summary strong {
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.tournament-pro-page__helper {
+  max-width: 800px;
+  margin: 10px 0 0;
+  line-height: 1.6;
+}
+
+.tournament-pro-page__slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #202024;
+  border-radius: 8px;
+  background: #0D0D0F;
+}
+
+.tournament-pro-page__slot-number {
+  color: #71717A;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.tournament-pro-page__slot span {
+  color: #A1A1AA;
+  font-size: 11px;
+}
+
+.tournament-pro-page__slot button {
+  margin-top: 5px;
+  width: 100%;
+}
+
+.tournament-pro-page__slot.is-empty {
+  border-style: dashed;
+}
+
+.tournament-pro-page__stage--future {
+  opacity: .78;
+}
+
+.tournament-pro-page__match--future {
+  min-height: 110px;
+}
+
+.tournament-pro-page__future-slot {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-top: 1px solid #202024;
+}
+
+@media (max-width: 1000px) {
+  .tournament-pro-page__event-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .tournament-pro-page__event-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

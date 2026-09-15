@@ -667,18 +667,38 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
                   <button
                     type="button"
                     class="dashboard-competition-card__button dashboard-competition-card__button--primary"
-                    data-manage-event
+                    data-configure-event
                     data-event-id="${escapeHtml(eventId)}"
                   >
-
                     <i
                       class="fa-solid fa-sliders"
                       aria-hidden="true"
                     ></i>
-
-                    Administrar evento
-
+                    Configurar información
                   </button>
+
+                  ${
+                    currentEntityContext?.productId === "tournament" &&
+                    currentAccountContext?.subscription?.planId === "pro" &&
+                    hasEffectiveSubscriptionAccess(
+                      currentAccountContext.subscription
+                    )
+                      ? `
+                        <button
+                          type="button"
+                          class="dashboard-competition-card__button"
+                          data-manage-event
+                          data-event-id="${escapeHtml(eventId)}"
+                        >
+                          <i
+                            class="fa-solid fa-gamepad"
+                            aria-hidden="true"
+                          ></i>
+                          Administrar
+                        </button>
+                      `
+                      : ""
+                  }
 
 
                   <button
@@ -840,96 +860,64 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
     "click",
     async event => {
 
+      const configureButton =
+        event.target.closest(
+          "[data-configure-event]"
+        );
+
+      if (configureButton) {
+        const eventId = configureButton.dataset.eventId;
+        const tournamentId = currentTournamentId;
+
+        if (!tournamentId || !eventId) {
+          console.error(
+            "NEXUS — No se pudo abrir la configuración del evento.",
+            { tournamentId, eventId }
+          );
+          return;
+        }
+
+        const targetUrl =
+          `/dashboard/tournaments/edit?tournamentId=${encodeURIComponent(
+            tournamentId
+          )}&eventId=${encodeURIComponent(eventId)}`;
+
+        window.history.pushState({}, "", targetUrl);
+        window.dispatchEvent(new PopStateEvent("popstate"));
+        return;
+      }
+
+
       const manageButton =
         event.target.closest(
           "[data-manage-event]"
         );
 
-
       if (manageButton) {
-
-        const eventId =
-          manageButton.dataset.eventId;
-
-
-        const tournamentId =
-          currentTournamentId;
-
-
-        if (
-          !tournamentId ||
-          !eventId
-        ) {
-
-          console.error(
-            "NEXUS — No se pudo abrir el evento para administrar.",
-            {
-              tournamentId,
-              eventId
-            }
-          );
-
-          return;
-
-        }
-
-
-        /*
-         * NEXUS — Event Management Routing
-         *
-         * FREE  → Builder / configuration
-         * PRO   → Tournament Pro / operation
-         *
-         * Pro is granted only while the subscription has
-         * effective access. Expired Pro falls back to Builder.
-         */
-        const subscription =
-          currentAccountContext?.subscription;
-
+        const eventId = manageButton.dataset.eventId;
+        const tournamentId = currentTournamentId;
+        const subscription = currentAccountContext?.subscription;
         const hasEffectivePro =
           currentEntityContext?.productId === "tournament" &&
           subscription?.planId === "pro" &&
-          hasEffectiveSubscriptionAccess(
-            subscription
-          );
+          hasEffectiveSubscriptionAccess(subscription);
 
-        const targetPath =
-          hasEffectivePro
-            ? "/dashboard/tournaments/pro"
-            : "/dashboard/tournaments/edit";
+        if (!tournamentId || !eventId || !hasEffectivePro) {
+          console.error(
+            "NEXUS — No se pudo abrir la administración Pro del evento.",
+            { tournamentId, eventId, hasEffectivePro }
+          );
+          return;
+        }
 
         const targetUrl =
-          `${targetPath}?tournamentId=${encodeURIComponent(
+          `/dashboard/tournaments/pro?tournamentId=${encodeURIComponent(
             tournamentId
           )}&eventId=${encodeURIComponent(eventId)}`;
 
-        console.log(
-          "NEXUS — Event management route:",
-          {
-            tournamentId,
-            eventId,
-            planId: subscription?.planId || null,
-            hasEffectivePro,
-            targetPath
-          }
-        );
-
-        window.history.pushState(
-          {},
-          "",
-          targetUrl
-        );
-
-
-        window.dispatchEvent(
-          new PopStateEvent(
-            "popstate"
-          )
-        );
-
-
+        window.history.pushState({}, "", targetUrl);
+        window.dispatchEvent(new PopStateEvent("popstate"));
         return;
-
       }
 
 

@@ -15,7 +15,6 @@ import { getCurrentAccountContext } from "../services/account.js";
 import { getCurrentEntityContext } from "../services/entityContext.js";
 import { createSubscriptionAccess } from "../services/planService.js";
 import { hasEffectiveSubscriptionAccess } from "../services/subscription.js";
-import { ensureTournamentProState } from "../services/tournamentPro.js";
 import {
   createMapEntity,
   updateMapEntity,
@@ -51,22 +50,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
   let selectedSupportContact = null;
   let selectedLandingTemplate = "template-1";
 
-  let selectedProConfiguration = {
-    registrationApproval: true,
-    requirementEnabled: false,
-    requirementType: "deposit",
-    depositAmount: "",
-    requirementInstructions: "",
-    recognitionEnabled: false,
-    benefits: "",
-    registrationDeadline: "",
-    socialLinks: {
-      instagram: "",
-      tiktok: "",
-      discord: ""
-    }
-  };
-
   const urlParams = new URLSearchParams(
     window.location.search
   );
@@ -76,14 +59,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   let eventId =
     urlParams.get("eventId") || null;
-
-  let builderStage =
-    urlParams.get("stage") === "pro" ? "pro" : "basic";
-
-  let accountContext = null;
-  let entityContext = null;
-  let isProAccount = false;
-  let existingProState = null;
 
   const isEditMode =
     Boolean(tournamentId && eventId);
@@ -98,6 +73,12 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
   let nexusContextReady = false;
 
   let nexusContextInitialization = null;
+
+  let accountContext = null;
+
+  let entityContext = null;
+
+  let existingProState = null;
 
   /*
    * --------------------------------------------------
@@ -582,168 +563,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
           </section>
 
 
-          <!-- CONFIGURACIÓN PRO -->
-
-          <section
-            class="tournament-builder__section tournament-builder__pro-section"
-            data-builder-pro-stage
-            hidden
-          >
-
-            <div class="tournament-builder__section-header">
-              <div>
-                <span class="tournament-builder__section-eyebrow">
-                  NEXUS PRO
-                </span>
-
-                <h2 class="tournament-builder__section-title">
-                  Configuración avanzada
-                </h2>
-
-                <p class="tournament-builder__section-description">
-                  Personaliza cómo funcionará la inscripción y la experiencia competitiva de tu evento.
-                </p>
-              </div>
-            </div>
-
-            <div class="tournament-builder__pro-grid">
-
-              <article class="tournament-builder__card">
-                <div class="tournament-builder__card-header">
-                  <span class="tournament-builder__card-label">
-                    REGISTRO
-                  </span>
-                </div>
-                <div class="tournament-builder__pro-field">
-                  <label class="tournament-builder__field-label">
-                    Solicitar aprobación para participar
-                  </label>
-                  <label class="tournament-builder__toggle">
-                    <input type="checkbox" data-pro-registration-approval>
-                    <span>La organización aprueba las solicitudes antes de confirmar el cupo.</span>
-                  </label>
-                </div>
-              </article>
-
-              <article class="tournament-builder__card">
-                <div class="tournament-builder__card-header">
-                  <span class="tournament-builder__card-label">
-                    REQUISITOS
-                  </span>
-                </div>
-                <div class="tournament-builder__pro-field">
-                  <label class="tournament-builder__toggle">
-                    <input type="checkbox" data-pro-requirement-enabled>
-                    <span>Requisito previo para completar la inscripción.</span>
-                  </label>
-
-                  <div class="tournament-builder__pro-subfield" data-pro-deposit-fields hidden>
-                    <label class="tournament-builder__field-label" for="pro-deposit-amount">
-                      Depósito requerido (Q)
-                    </label>
-                    <input
-                      id="pro-deposit-amount"
-                      class="tournament-builder__input"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      data-pro-deposit-amount
-                    >
-
-                    <label class="tournament-builder__field-label" for="pro-requirement-instructions">
-                      Instrucciones
-                    </label>
-                    <textarea
-                      id="pro-requirement-instructions"
-                      class="tournament-builder__textarea"
-                      rows="3"
-                      placeholder="Indica cómo debe realizarse o comprobarse el depósito."
-                      data-pro-requirement-instructions
-                    ></textarea>
-                  </div>
-                </div>
-              </article>
-
-              <article class="tournament-builder__card">
-                <div class="tournament-builder__card-header">
-                  <span class="tournament-builder__card-label">
-                    RECONOCIMIENTO
-                  </span>
-                </div>
-                <div class="tournament-builder__pro-field">
-                  <label class="tournament-builder__toggle">
-                    <input type="checkbox" data-pro-recognition-enabled>
-                    <span>Permitir solicitudes de reconocimiento al finalizar la competencia.</span>
-                  </label>
-                </div>
-              </article>
-
-              <article class="tournament-builder__card">
-                <div class="tournament-builder__card-header">
-                  <span class="tournament-builder__card-label">
-                    BENEFICIOS
-                  </span>
-                </div>
-                <div class="tournament-builder__pro-field">
-                  <label class="tournament-builder__field-label" for="pro-benefits">
-                    Beneficios para participantes
-                  </label>
-                  <textarea
-                    id="pro-benefits"
-                    class="tournament-builder__textarea"
-                    rows="4"
-                    placeholder="Ej. premios extra, contenido exclusivo, acceso anticipado…"
-                    data-pro-benefits
-                  ></textarea>
-                </div>
-              </article>
-
-              <article class="tournament-builder__card">
-                <div class="tournament-builder__card-header">
-                  <span class="tournament-builder__card-label">
-                    FECHA LÍMITE
-                  </span>
-                </div>
-                <div class="tournament-builder__pro-field">
-                  <label class="tournament-builder__field-label" for="pro-registration-deadline">
-                    Cierre de inscripciones
-                  </label>
-                  <input
-                    id="pro-registration-deadline"
-                    class="tournament-builder__input"
-                    type="datetime-local"
-                    data-pro-registration-deadline
-                  >
-                </div>
-              </article>
-
-              <article class="tournament-builder__card tournament-builder__card--wide">
-                <div class="tournament-builder__card-header">
-                  <span class="tournament-builder__card-label">
-                    REDES SOCIALES
-                  </span>
-                </div>
-                <div class="tournament-builder__pro-social-grid">
-                  <div class="tournament-builder__pro-field">
-                    <label class="tournament-builder__field-label" for="pro-instagram">Instagram</label>
-                    <input id="pro-instagram" class="tournament-builder__input" type="url" placeholder="https://instagram.com/…" data-pro-social="instagram">
-                  </div>
-                  <div class="tournament-builder__pro-field">
-                    <label class="tournament-builder__field-label" for="pro-tiktok">TikTok</label>
-                    <input id="pro-tiktok" class="tournament-builder__input" type="url" placeholder="https://tiktok.com/@…" data-pro-social="tiktok">
-                  </div>
-                  <div class="tournament-builder__pro-field">
-                    <label class="tournament-builder__field-label" for="pro-discord">Discord</label>
-                    <input id="pro-discord" class="tournament-builder__input" type="url" placeholder="https://discord.gg/…" data-pro-social="discord">
-                  </div>
-                </div>
-              </article>
-
-            </div>
-          </section>
-
-
           <!-- ACTIONS -->
 
           <footer class="tournament-builder__actions">
@@ -861,17 +680,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
   const landingTemplateDescription = page.querySelector(
     "[data-landing-template-description]"
   );
-
-  const proStage = page.querySelector("[data-builder-pro-stage]");
-  const proRegistrationApproval = page.querySelector("[data-pro-registration-approval]");
-  const proRequirementEnabled = page.querySelector("[data-pro-requirement-enabled]");
-  const proDepositFields = page.querySelector("[data-pro-deposit-fields]");
-  const proDepositAmount = page.querySelector("[data-pro-deposit-amount]");
-  const proRequirementInstructions = page.querySelector("[data-pro-requirement-instructions]");
-  const proRecognitionEnabled = page.querySelector("[data-pro-recognition-enabled]");
-  const proBenefits = page.querySelector("[data-pro-benefits]");
-  const proRegistrationDeadline = page.querySelector("[data-pro-registration-deadline]");
-  const proSocialInputs = page.querySelectorAll("[data-pro-social]");
 
 
   /*
@@ -1611,93 +1419,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   /*
    * --------------------------------------------------
-   * PRO BUILDER STAGE
-   * --------------------------------------------------
-   */
-
-  function applyBuilderStage() {
-    const basicSections = page.querySelectorAll(
-      ".tournament-builder > .tournament-builder__section:not(.tournament-builder__pro-section)"
-    );
-
-    basicSections.forEach((section) => {
-      section.hidden = builderStage === "pro";
-    });
-
-    if (proStage) {
-      proStage.hidden = !isProAccount || builderStage !== "pro";
-    }
-
-    if (saveButton) {
-      if (builderStage === "pro" && isProAccount) {
-        saveButton.textContent = isEditMode
-          ? "GUARDAR CONFIGURACIÓN"
-          : "GUARDAR Y CONTINUAR";
-      } else if (isProAccount) {
-        saveButton.textContent = "SEGUIR CONFIGURANDO";
-      } else {
-        saveButton.textContent = isEditMode
-          ? "GUARDAR CAMBIOS"
-          : "GUARDAR TORNEO";
-      }
-    }
-  }
-
-  function syncProRequirementUI() {
-    const enabled = Boolean(proRequirementEnabled?.checked);
-    if (proDepositFields) {
-      proDepositFields.hidden = !enabled;
-    }
-  }
-
-  function readProConfiguration() {
-    const socialLinks = {};
-    proSocialInputs.forEach((input) => {
-      socialLinks[input.dataset.proSocial] = input.value.trim();
-    });
-
-    return {
-      registrationApproval: Boolean(proRegistrationApproval?.checked),
-      requirementEnabled: Boolean(proRequirementEnabled?.checked),
-      requirementType: "deposit",
-      depositAmount: proDepositAmount?.value || "",
-      requirementInstructions: proRequirementInstructions?.value.trim() || "",
-      recognitionEnabled: Boolean(proRecognitionEnabled?.checked),
-      benefits: proBenefits?.value.trim() || "",
-      registrationDeadline: proRegistrationDeadline?.value || "",
-      socialLinks
-    };
-  }
-
-  function applyProConfiguration(configuration = {}) {
-    selectedProConfiguration = {
-      ...selectedProConfiguration,
-      ...configuration,
-      socialLinks: {
-        ...selectedProConfiguration.socialLinks,
-        ...(configuration.socialLinks || {})
-      }
-    };
-
-    if (proRegistrationApproval) proRegistrationApproval.checked = selectedProConfiguration.registrationApproval !== false;
-    if (proRequirementEnabled) proRequirementEnabled.checked = Boolean(selectedProConfiguration.requirementEnabled);
-    if (proDepositAmount) proDepositAmount.value = selectedProConfiguration.depositAmount || "";
-    if (proRequirementInstructions) proRequirementInstructions.value = selectedProConfiguration.requirementInstructions || "";
-    if (proRecognitionEnabled) proRecognitionEnabled.checked = Boolean(selectedProConfiguration.recognitionEnabled);
-    if (proBenefits) proBenefits.value = selectedProConfiguration.benefits || "";
-    if (proRegistrationDeadline) proRegistrationDeadline.value = selectedProConfiguration.registrationDeadline || "";
-
-    proSocialInputs.forEach((input) => {
-      input.value = selectedProConfiguration.socialLinks?.[input.dataset.proSocial] || "";
-    });
-
-    syncProRequirementUI();
-  }
-
-  proRequirementEnabled?.addEventListener("change", syncProRequirementUI);
-
-  /*
-   * --------------------------------------------------
    * REVIEW
    * --------------------------------------------------
    */
@@ -1767,28 +1488,17 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       };
 
-      if (isProAccount) {
-        selectedProConfiguration = readProConfiguration();
-        tournamentConfiguration.proConfiguration = selectedProConfiguration;
-      }
-
-      // Nunca destruimos el estado Pro existente de un evento.
-      // En un evento nuevo, Pro se inicializa únicamente cuando
-      // existe entitlement efectivo.
+      /*
+       * El Builder solo modifica información del torneo.
+       * Si el evento ya tiene estado Pro, lo preservamos
+       * intacto para que editar información (por ejemplo BO3 → BO7)
+       * no destruya la operación existente.
+       */
       if (existingProState) {
         tournamentConfiguration.pro = existingProState;
-      } else if (isProAccount) {
-        tournamentConfiguration.pro =
-          ensureTournamentProState({
-            ...tournamentConfiguration,
-            pro: undefined
-          });
       }
 
-      await saveTournament(
-        tournamentConfiguration,
-        isProAccount && builderStage === "basic"
-      );
+      saveTournament(tournamentConfiguration);
 
     }
   );
@@ -1800,7 +1510,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
    * --------------------------------------------------
    */
 
-  async function saveTournament(tournamentConfiguration, continueConfiguration = false) {
+  async function saveTournament(tournamentConfiguration) {
 
     /*
      * Protección adicional: incluso si esta función es
@@ -1893,15 +1603,10 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         }
       );
 
-      const nextPath =
-        continueConfiguration && eventId
-          ? `/dashboard/tournaments/edit?tournamentId=${encodeURIComponent(tournamentId)}&eventId=${encodeURIComponent(eventId)}&stage=pro`
-          : "/dashboard";
-
       window.history.pushState(
         {},
         "",
-        nextPath
+        "/dashboard"
       );
 
       window.dispatchEvent(
@@ -2017,18 +1722,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       }
 
-      isProAccount = Boolean(
-        accountContext?.subscription &&
-        hasEffectiveSubscriptionAccess(accountContext.subscription) &&
-        entityContext?.productId === "tournament"
-      );
-
-      if (!isProAccount) {
-        builderStage = "basic";
-      }
-
-      applyBuilderStage();
-
       if (sidebar) {
         sidebar.setContext({
 
@@ -2099,6 +1792,8 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         );
       }
 
+      existingProState = event.pro || null;
+
       selectedGame = event.gameId || "";
       selectedFormat = event.format || "";
       selectedMatchSystem = event.matchSystem || "";
@@ -2120,12 +1815,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       selectedLandingTemplate =
         event.landingTemplate || "template-1";
-
-      existingProState = event.pro || null;
-
-      applyProConfiguration(
-        event.proConfiguration || {}
-      );
 
       if (landingTemplateSelector) {
         landingTemplateSelector.value =
@@ -2228,13 +1917,8 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       );
 
       if (builderTitle) {
-        builderTitle.textContent =
-          builderStage === "pro"
-            ? "CONFIGURACIÓN PRO"
-            : "EDITAR TORNEO";
+        builderTitle.textContent = "EDITAR TORNEO";
       }
-
-      applyBuilderStage();
 
       saveButton.textContent = "GUARDAR CAMBIOS";
       updateNextButton();
