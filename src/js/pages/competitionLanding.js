@@ -10,6 +10,8 @@ import { renderLanding2 } from "./competitionLanding/templates/landing-2.js";
 import { renderLanding3 } from "./competitionLanding/templates/landing-3.js";
 import { getTemplateResources } from "./competitionLanding/utils/landingUtils.js";
 import { updatePublicTournamentBracket } from "../components/publicTournamentBracket.js";
+import { openPublicTournamentRegistration } from "../components/publicTournamentRegistration.js";
+import { initializeSession, getCurrentSession } from "../services/session.js";
 
 
 // ========================================
@@ -137,7 +139,7 @@ async function loadCompetition({
 
     const registrationAccess =
       resolvePublicRegistrationAccess(
-        tournament
+        event
       );
 
 
@@ -185,6 +187,14 @@ async function loadCompetition({
       registrationAccess
     });
 
+    bindRegistrationCta({
+      page,
+      tournament,
+      event,
+      tournamentId,
+      eventId
+    });
+
 
     // Public real-time sync: the landing listens only to the public
     // tournament event document. No account/subscription data is read.
@@ -218,41 +228,44 @@ async function loadCompetition({
 // PUBLIC REGISTRATION ACCESS
 // ========================================
 
-function resolvePublicRegistrationAccess(tournament) {
-
-  /*
-   * IMPORTANTE
-   *
-   * La Landing pública no debe intentar
-   * leer:
-   *
-   * accounts/{ownerId}
-   * subscriptions/{subscriptionId}
-   *
-   * porque esos datos pertenecen al ámbito
-   * privado de la cuenta del organizador.
-   *
-   * Actualmente el registro público todavía
-   * no está implementado.
-   *
-   * Por seguridad y compatibilidad con las
-   * reglas actuales de Firestore, devolvemos
-   * acceso cerrado de forma explícita.
-   *
-   * Más adelante esta función podrá utilizar
-   * una propiedad pública derivada del torneo,
-   * por ejemplo:
-   *
-   * tournament.publicRegistration
-   *
-   * sin exponer información privada de la
-   * cuenta o de la suscripción.
-   */
-
+function resolvePublicRegistrationAccess(event) {
+  const isProEvent = Boolean(event?.pro);
   return {
-    canRegister: false,
-    planId: null
+    canRegister: isProEvent,
+    planId: isProEvent ? "pro" : null
   };
+}
+
+
+// ========================================
+// REGISTRATION CTA
+// ========================================
+
+function bindRegistrationCta({ page, tournament, event, tournamentId, eventId }) {
+  page.querySelectorAll("[data-registration-cta]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await initializeSession();
+        const session = getCurrentSession();
+        if (!session?.user?.uid) {
+          const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          window.history.pushState({}, "", `/login?returnTo=${encodeURIComponent(returnTo)}`);
+          window.dispatchEvent(new PopStateEvent("popstate"));
+          return;
+        }
+
+        openPublicTournamentRegistration({
+          page,
+          tournament,
+          event,
+          tournamentId,
+          eventId
+        });
+      } catch (error) {
+        console.error("NEXUS — Error abriendo registro público:", error);
+      }
+    });
+  });
 }
 
 

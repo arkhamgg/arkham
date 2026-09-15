@@ -228,14 +228,45 @@ export async function approveParticipationRequest({ tournamentId, eventId, event
 
   if (approve) {
     const participantId = request.participantId || `request_${requestId}`;
-    pro.participants[participantId] = createParticipant({
+    const capacity = Number(pro.capacity?.value || pro.capacity || event.capacity?.value || event.capacity);
+    const activeCount = Object.values(pro.participants || {})
+      .filter((participant) => ![PARTICIPANT_STATUS.REJECTED, PARTICIPANT_STATUS.WITHDRAWN, PARTICIPANT_STATUS.NO_SHOW].includes(participant.status))
+      .length;
+    if (capacity > 0 && activeCount >= capacity) {
+      throw new Error("La capacidad del torneo ya está completa.");
+    }
+
+    if (pro.participants[participantId]) {
+      throw new Error("Esta solicitud ya fue convertida en participante.");
+    }
+
+    const participant = createParticipant({
       participantId,
       entityType: request.entityType || "manual",
       entityId: request.entityId || null,
       displayName: request.displayName,
       manual: !request.entityId
     });
+    participant.status = PARTICIPANT_STATUS.APPROVED;
+
+    pro.participants[participantId] = participant;
     request.participantId = participantId;
+
+    if (pro.bracket?.generated) {
+      const availableSlot = Object.entries(pro.bracket.slots || {})
+        .sort(([, a], [, b]) => Number(a.seed || 9999) - Number(b.seed || 9999))
+        .find(([, slot]) => !slot.participantId);
+      if (!availableSlot) {
+        delete pro.participants[participantId];
+        request.participantId = null;
+        throw new Error("No hay un asiento disponible en el bracket.");
+      }
+      const [slotId, slot] = availableSlot;
+      slot.participantId = participantId;
+      participant.seed = slot.seed;
+      participant.slotIds = [slotId];
+      syncFirstRoundFromSlots(pro);
+    }
   }
 
   return savePro(tournamentId, eventId, event, pro);

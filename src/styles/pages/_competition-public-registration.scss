@@ -1,0 +1,181 @@
+// ========================================
+// NEXUS — Public Tournament Registration
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+.competition-public-registration-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: $space-6;
+}
+
+.competition-public-registration-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.competition-public-registration-modal__dialog {
+  position: relative;
+  width: min(620px, 100%);
+  max-height: min(88vh, 760px);
+  overflow: auto;
+  padding: $space-8;
+  background: $color-950;
+  border: 1px solid $color-700;
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.55);
+}
+
+.competition-public-registration-modal__close {
+  position: absolute;
+  top: $space-4;
+  right: $space-4;
+  width: 40px;
+  height: 40px;
+  border: 1px solid $color-700;
+  background: $color-900;
+  color: $color-100;
+  cursor: pointer;
+}
+
+.competition-public-registration-modal__eyebrow,
+.competition-public-registration-modal__section-label {
+  font-size: $font-size-xs;
+  letter-spacing: 0.14em;
+  color: $color-red;
+  font-weight: 700;
+}
+
+.competition-public-registration-modal__dialog h2 {
+  margin: $space-2 0 0;
+  color: $color-white;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+}
+
+.competition-public-registration-modal__event {
+  margin: $space-1 0 $space-6;
+  color: $color-300;
+}
+
+.competition-public-registration-modal__identity,
+.competition-public-registration-modal__no-requirements,
+.competition-public-registration-modal__requirement {
+  border: 1px solid $color-800;
+  background: $color-900;
+}
+
+.competition-public-registration-modal__identity {
+  display: grid;
+  gap: $space-1;
+  padding: $space-4;
+  margin-bottom: $space-6;
+}
+
+.competition-public-registration-modal__identity strong,
+.competition-public-registration-modal__requirement strong,
+.competition-public-registration-modal__no-requirements strong {
+  color: $color-white;
+}
+
+.competition-public-registration-modal__identity span,
+.competition-public-registration-modal__requirement span,
+.competition-public-registration-modal__requirement small,
+.competition-public-registration-modal__no-requirements span {
+  color: $color-300;
+}
+
+.competition-public-registration-modal__requirements {
+  display: grid;
+  gap: $space-3;
+  margin-bottom: $space-5;
+}
+
+.competition-public-registration-modal__requirement {
+  display: grid;
+  gap: $space-1;
+  padding: $space-4;
+}
+
+.competition-public-registration-modal__requirement b {
+  color: $color-white;
+  font-size: $font-size-lg;
+}
+
+.competition-public-registration-modal__file {
+  display: grid;
+  gap: $space-2;
+  padding: $space-4;
+  border: 1px dashed $color-700;
+  color: $color-300;
+}
+
+.competition-public-registration-modal__file input {
+  width: 100%;
+}
+
+.competition-public-registration-modal__file small {
+  color: $color-300;
+}
+
+.competition-public-registration-modal__no-requirements {
+  display: flex;
+  gap: $space-3;
+  padding: $space-4;
+  margin-bottom: $space-5;
+}
+
+.competition-public-registration-modal__no-requirements > i {
+  color: $color-500;
+}
+
+.competition-public-registration-modal__no-requirements div {
+  display: grid;
+  gap: $space-1;
+}
+
+.competition-public-registration-modal__status {
+  min-height: 24px;
+  margin: 0 0 $space-3;
+  color: $color-300;
+}
+
+.competition-public-registration-modal__status.is-error {
+  color: $color-error;
+}
+
+.competition-public-registration-modal__status.is-success {
+  color: $color-success;
+}
+
+.competition-public-registration-modal__submit {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-4 $space-5;
+  border: 1px solid $color-red;
+  background: $color-red;
+  color: $color-white;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.competition-public-registration-modal__submit:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+@media (max-width: 640px) {
+  .competition-public-registration-modal {
+    padding: $space-3;
+  }
+
+  .competition-public-registration-modal__dialog {
+    padding: $space-5;
+  }
+}

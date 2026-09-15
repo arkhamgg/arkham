@@ -72,6 +72,13 @@ export function Login() {
     replace = false
   ) {
 
+    const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+    if (returnTo && returnTo.startsWith("/")) {
+      window.history[replace ? "replaceState" : "pushState"]({}, "", returnTo);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      return;
+    }
+
     const destination =
       await resolveDashboardPath();
 
