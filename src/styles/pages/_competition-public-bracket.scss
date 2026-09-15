@@ -1,11 +1,20 @@
 @use "../abstracts/variables" as *;
 
+// ========================================
+// NEXUS — PUBLIC TOURNAMENT BRACKET
+// ========================================
+
 .competition-landing__pro-bracket {
   position: relative;
   overflow: hidden;
   padding: clamp(4rem, 9vw, 8rem) 0;
   background:
-    linear-gradient(180deg, $color-black 0%, $color-950 50%, $color-black 100%);
+    linear-gradient(
+      180deg,
+      $color-black 0%,
+      $color-950 50%,
+      $color-black 100%
+    );
   border-top: 1px solid $color-800;
   border-bottom: 1px solid $color-800;
 }
@@ -74,7 +83,7 @@
   overflow-x: auto;
   padding: $space-5 0 $space-8;
   scrollbar-width: thin;
-  scrollbar-color: $color-600 transparent;
+  scrollbar-color: $color-500 transparent;
 }
 
 .public-bracket__stage {
@@ -92,7 +101,11 @@
   right: calc(clamp(2.5rem, 6vw, 5rem) * -1 + 0.4rem);
   width: clamp(2.5rem, 6vw, 5rem);
   height: 1px;
-  background: linear-gradient(90deg, $color-red, $color-700);
+  background: linear-gradient(
+    90deg,
+    $color-red,
+    $color-700
+  );
   opacity: 0.85;
 }
 
@@ -111,7 +124,7 @@
   }
 
   strong {
-    color: $color-200;
+    color: $color-100;
     font-size: 0.68rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -167,7 +180,7 @@
 }
 
 .public-bracket__seed {
-  color: $color-600;
+  color: $color-500;
   font-size: 0.54rem;
   font-weight: 900;
 }
@@ -179,7 +192,7 @@
   place-items: center;
   border: 1px solid $color-700;
   background: $color-900;
-  color: $color-200;
+  color: $color-100;
   font-size: 0.58rem;
   font-weight: 900;
 }
@@ -201,7 +214,7 @@
 }
 
 .public-bracket__slot--empty .public-bracket__slot-name {
-  color: $color-600;
+  color: $color-500;
 }
 
 .public-bracket__slot > i {
@@ -212,6 +225,10 @@
 .public-bracket__match--bye {
   opacity: 0.68;
 }
+
+// ========================================
+// RESPONSIVE
+// ========================================
 
 @media (max-width: 700px) {
   .public-bracket__header {
