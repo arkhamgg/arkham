@@ -8,6 +8,7 @@ import {
   prepareBracket,
   addParticipantToSlot
 } from "../services/tournamentProOperations.js";
+import { getTournamentRegistrationRequestsMarkup, loadTournamentRegistrationRequests, bindTournamentRegistrationRequests } from "../components/tournamentRegistrationRequests.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
 
 export function TournamentPro() {
@@ -72,6 +73,7 @@ export function TournamentPro() {
       if (!event) throw new Error("Evento no encontrado.");
 
       let pro = ensureTournamentProState(event);
+      let registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId }).catch(() => []);
       if (!pro.bracket?.generated) {
         event = await prepareBracket({ tournamentId, eventId, event });
         pro = ensureTournamentProState(event);
@@ -83,6 +85,7 @@ export function TournamentPro() {
       const refresh = async () => {
         event = await getTournamentProEvent(tournamentId, eventId);
         pro = ensureTournamentProState(event || {});
+        registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId }).catch(() => []);
         render();
       };
 
@@ -218,6 +221,8 @@ export function TournamentPro() {
             </div>
           </section>
 
+          ${getTournamentRegistrationRequestsMarkup(registrationRequests)}
+
           ${modalOpen && selectedSlot ? `
             <div class="tournament-pro-page__modal-backdrop" data-slot-modal-backdrop>
               <section class="tournament-pro-page__modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-slot-modal-title">
@@ -257,6 +262,18 @@ export function TournamentPro() {
         `;
 
         bind();
+        bindTournamentRegistrationRequests({
+          page,
+          tournamentId,
+          eventId,
+          getEvent: () => event,
+          onChanged: async () => {
+            registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId }).catch(() => []);
+            event = await getTournamentProEvent(tournamentId, eventId);
+            pro = ensureTournamentProState(event || {});
+            render();
+          }
+        });
       };
 
       const bind = () => {

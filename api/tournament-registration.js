@@ -3,117 +3,195 @@
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "./_lib/firebaseAdmin.js";
 
-const app = getFirebaseAdminApp();
-const adminAuth = getAuth(app);
-const db = getFirestore(app);
-
-function response(res, success, data = {}, status = 200) {
-  return res.status(status).json({ success, ...data });
-}
-
-function tokenFrom(req) {
-  const header = req.headers?.authorization || req.headers?.Authorization || "";
-  return header.startsWith("Bearer ") ? header.slice(7).trim() : null;
+function json(res, status, payload) {
+  return res.status(status).json(payload);
 }
 
 async function authenticate(req) {
-  const token = tokenFrom(req);
-  if (!token) throw new Error("AUTH_TOKEN_MISSING");
-  return adminAuth.verifyIdToken(token);
+  const header = req.headers?.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) throw new Error("Debes iniciar sesión.");
+
+  const app = getFirebaseAdminApp();
+  const decoded = await getAuth(app).verifyIdToken(token);
+  return { app, uid: decoded.uid };
 }
 
-function eventRef(tournamentId, eventId) {
+function getEventRef(db, tournamentId, eventId) {
   return db.collection("tournaments").doc(tournamentId);
 }
 
-function normalizeParticipantType(event, profile) {
-  const participation = String(event?.participationType || "").toLowerCase();
-  if (participation.includes("team") || participation.includes("equipo")) {
-    if (profile.entityType !== "team") throw new Error("Este evento requiere un equipo NEXUS.");
-    return "team";
-  }
-  if (profile.entityType !== "player") throw new Error("Este evento requiere un perfil Player NEXUS.");
-  return "player";
+async function getTournamentContext(db, tournamentId, eventId) {
+  if (!tournamentId || !eventId) throw new Error("Faltan los datos de la competencia.");
+  const ref = getEventRef(db, tournamentId, eventId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new Error("No se encontró el torneo.");
+  const tournament = { id: snap.id, ...snap.data() };
+  const event = tournament.events?.[eventId];
+  if (!event) throw new Error("No se encontró el evento.");
+  if (!event.pro) throw new Error("Este evento no tiene registro Pro habilitado.");
+  return { ref, tournament, event };
+}
+
+function getEntityKey(profile) {
+  const entityType = profile?.entityType === "team" ? "team" : profile?.entityType === "player" ? "player" : null;
+  const entityId = profile?.entityId || null;
+  return { entityType, entityId };
+}
+
+function getRequests(event) {
+  return event?.pro?.registration?.requests || {};
+}
+
+function requestIsCurrent(request) {
+  return ["pending", "approved"].includes(request?.status);
 }
 
 export default async function handler(req, res) {
   try {
-    const decoded = await authenticate(req);
+    const { app, uid } = await authenticate(req);
+    const db = getFirestore(app);
+    const tournamentId = String(req.query?.tournamentId || req.body?.tournamentId || "").trim();
+    const eventId = String(req.query?.eventId || req.body?.eventId || "").trim();
+    const mode = String(req.query?.mode || req.body?.mode || "status").trim().toLowerCase();
 
-    if (req.method === "POST") {
-      const { tournamentId, eventId, proof = null } = req.body || {};
-      if (!tournamentId || !eventId) return response(res, false, { error: "Faltan tournamentId o eventId." }, 400);
+    const { ref, tournament, event } = await getTournamentContext(db, tournamentId, eventId);
 
-      const userSnap = await db.collection("users").doc(decoded.uid).get();
-      if (!userSnap.exists) return response(res, false, { error: "Tu cuenta NEXUS no tiene un perfil competitivo." }, 400);
-      const profile = userSnap.data() || {};
+    if (mode === "status") {
+      const profileSnap = await db.collection("users").doc(uid).get();
+      const profile = profileSnap.exists ? profileSnap.data() : null;
+      const { entityType, entityId } = getEntityKey(profile);
 
-      const ref = eventRef(tournamentId, eventId);
-      const snap = await ref.get();
-      if (!snap.exists) return response(res, false, { error: "No se encontró el torneo." }, 404);
-      const data = snap.data() || {};
-      const event = data.events?.[eventId];
-      if (!event) return response(res, false, { error: "No se encontró el evento." }, 404);
-      if (!event.pro) return response(res, false, { error: "Este evento no tiene inscripción Tournament Pro." }, 403);
-      if (event.pro.status === "finished" || event.pro.status === "archived") return response(res, false, { error: "La inscripción para este evento ya está cerrada." }, 400);
-
-      const participantType = normalizeParticipantType(event, profile);
-      const participantCollection = participantType === "team" ? "teams" : "players";
-      const participantSnap = await db.collection(participantCollection).doc(profile.entityId).get();
-      if (!participantSnap.exists) return response(res, false, { error: "Tu perfil competitivo ya no está disponible." }, 400);
-      const participantData = participantSnap.data() || {};
-      const participantId = `${participantType}_${profile.entityId}`;
-      const requests = event.pro.registration?.requests || {};
-      const participants = event.pro.participants || {};
-      const duplicate = Object.values(requests).find((item) => item?.uid === decoded.uid && ["pending", "approved"].includes(item.status));
-      if (duplicate) return response(res, false, { error: "Ya tienes una solicitud activa para este evento." }, 409);
-      if (participants[participantId]) return response(res, false, { error: "Ya formas parte de este evento." }, 409);
-
-      const capacity = Number(event.pro.capacity?.value || event.pro.capacity || event.capacity?.value || event.capacity || 0);
-      const activeCount = Object.values(participants).filter((p) => !["rejected", "withdrawn", "no_show"].includes(p.status)).length;
-      if (capacity > 0 && activeCount >= capacity) return response(res, false, { error: "No quedan asientos disponibles." }, 409);
-
-      const requestId = `request_${decoded.uid}_${Date.now()}`;
-      const displayName = profile.entityType === "team"
-        ? (participantData.name || participantData.shortName || profile.entityId)
-        : (participantData.gamertag || participantData.name || `${participantData.firstName || ""} ${participantData.lastName || ""}`.trim() || profile.entityId);
-
-      const requirements = event.registrationRequirements?.enabled
-        ? (event.registrationRequirements.requirements || [])
-        : [];
-      const proofRequired = requirements.some((item) => item?.requiresProof === true);
-      if (proofRequired && !proof) {
-        return response(res, false, { error: "Debes adjuntar el comprobante requerido para enviar la solicitud." }, 400);
+      if (!entityType || !entityId) {
+        return json(res, 200, { success: true, request: null, hasProfile: false });
       }
 
+      const requests = getRequests(event);
+      const matching = Object.entries(requests)
+        .map(([id, request]) => ({ id, ...request }))
+        .filter((request) => request.uid === uid && request.entityType === entityType && request.entityId === entityId)
+        .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+
+      const current = matching.find(requestIsCurrent) || matching[0] || null;
+
+      return json(res, 200, {
+        success: true,
+        hasProfile: true,
+        request: current
+          ? {
+              id: current.id,
+              status: current.status || "pending",
+              rejectionReason: current.rejectionReason || null,
+              createdAt: current.createdAt || null,
+              reviewedAt: current.reviewedAt || null,
+              proof: current.proof || null
+            }
+          : null
+      });
+    }
+
+    if (mode === "list") {
+      if (tournament.ownerId !== uid) {
+        return json(res, 403, { success: false, error: "No tienes permiso para administrar este torneo." });
+      }
+
+      const requests = Object.entries(getRequests(event))
+        .map(([id, request]) => ({ id, ...request }))
+        .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+
+      return json(res, 200, { success: true, requests });
+    }
+
+    if (req.method !== "POST") {
+      return json(res, 405, { success: false, error: "Método no permitido." });
+    }
+
+    const action = String(req.body?.action || "submit").trim().toLowerCase();
+
+    if (action === "submit") {
+      const profileSnap = await db.collection("users").doc(uid).get();
+      const profile = profileSnap.exists ? profileSnap.data() : null;
+      const { entityType, entityId } = getEntityKey(profile);
+
+      if (!entityType || !entityId) {
+        return json(res, 400, { success: false, error: "Tu cuenta NEXUS no tiene un perfil competitivo." });
+      }
+
+      const registration = event.pro.registration || {};
+      const deadline = event.registrationDeadline || registration.deadline || null;
+      if (deadline && Date.now() >= new Date(deadline).getTime()) {
+        return json(res, 400, { success: false, error: "El período de inscripción ya finalizó." });
+      }
+
+      const requests = getRequests(event);
+      const existing = Object.entries(requests)
+        .map(([id, request]) => ({ id, ...request }))
+        .find((request) => request.uid === uid && request.entityType === entityType && request.entityId === entityId && requestIsCurrent(request));
+
+      if (existing) {
+        return json(res, 409, {
+          success: false,
+          error: existing.status === "approved" ? "Tu asiento ya fue otorgado." : "Ya tienes una solicitud en revisión.",
+          request: { id: existing.id, status: existing.status }
+        });
+      }
+
+      const activeParticipants = Object.values(event.pro.participants || {})
+        .filter((participant) => !["rejected", "withdrawn", "no_show"].includes(participant.status)).length;
+      const capacity = Number(event.capacity?.value || event.capacity || event.pro.capacity?.value || event.pro.capacity || 0);
+      if (capacity > 0 && activeParticipants >= capacity) {
+        return json(res, 400, { success: false, error: "Los cupos de este torneo ya están completos." });
+      }
+
+      const requiresProof = (event.registrationRequirements?.requirements || []).some((requirement) => requirement?.requiresProof === true);
+      const proof = req.body?.proof || null;
+      if (event.registrationRequirements?.enabled && requiresProof && !proof?.url) {
+        return json(res, 400, { success: false, error: "Debes adjuntar el comprobante requerido." });
+      }
+
+      const existingParticipant = event.pro.participants?.[`${entityType}_${entityId}`];
+      if (existingParticipant && !["rejected", "withdrawn", "no_show"].includes(existingParticipant.status)) {
+        return json(res, 409, { success: false, error: "Este participante ya tiene un asiento en el torneo." });
+      }
+
+      const participantCollection = entityType === "team" ? "teams" : "players";
+      const entitySnap = await db.collection(participantCollection).doc(entityId).get();
+      if (!entitySnap.exists) return json(res, 400, { success: false, error: "No se encontró el perfil competitivo." });
+      const entity = entitySnap.data() || {};
+      const displayName = entityType === "team"
+        ? entity.name || entity.shortName || entityId
+        : entity.gamertag || entity.name || [entity.firstName, entity.lastName].filter(Boolean).join(" ") || entityId;
+
+      const requestId = `request_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const createdAt = new Date().toISOString();
       const request = {
-        uid: decoded.uid,
-        entityType: participantType,
-        entityId: profile.entityId,
-        participantId,
+        uid,
+        entityType,
+        entityId,
+        participantId: `${entityType}_${entityId}`,
         displayName,
         status: "pending",
-        proof: proof || null,
+        proof,
         requirements: event.registrationRequirements || null,
-        createdAt: new Date().toISOString(),
-        reviewedAt: null
+        createdAt,
+        reviewedAt: null,
+        rejectionReason: null
       };
 
       await ref.update({
-        [`events.${eventId}.pro.registration.requests.${requestId}`]: request,
-        updatedAt: FieldValue.serverTimestamp()
+        [`events.${eventId}.pro.registration.requests.${requestId}`]: request
       });
 
-      return response(res, true, { requestId, status: "pending" }, 201);
+      return json(res, 201, { success: true, request: { id: requestId, ...request } });
     }
 
-    return response(res, false, { error: "Método HTTP no permitido." }, 405);
+    return json(res, 400, { success: false, error: "Acción de registro no válida." });
   } catch (error) {
     console.error("NEXUS — Tournament Registration API:", error);
-    const status = error.message === "AUTH_TOKEN_MISSING" ? 401 : 500;
-    return response(res, false, { error: error.message || "No fue posible procesar la solicitud." }, status);
+    const status = /sesión|permiso/i.test(error?.message || "") ? 401 : 400;
+    return json(res, status, { success: false, error: error?.message || "No fue posible procesar la solicitud." });
   }
 }

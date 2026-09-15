@@ -11,7 +11,8 @@ import { renderLanding3 } from "./competitionLanding/templates/landing-3.js";
 import { getTemplateResources } from "./competitionLanding/utils/landingUtils.js";
 import { updatePublicTournamentBracket } from "../components/publicTournamentBracket.js";
 import { openPublicTournamentRegistration } from "../components/publicTournamentRegistration.js";
-import { initializeSession, getCurrentSession } from "../services/session.js";
+import { getMyTournamentRegistrationStatus } from "../services/tournamentRegistration.js";
+import { getCurrentSession, initializeSession } from "../services/session.js";
 
 
 // ========================================
@@ -138,9 +139,7 @@ async function loadCompetition({
      */
 
     const registrationAccess =
-      resolvePublicRegistrationAccess(
-        event
-      );
+      resolvePublicRegistrationAccess(event);
 
 
     // ======================================
@@ -176,6 +175,11 @@ async function loadCompetition({
     // RENDER
     // ======================================
 
+    let registrationState = {
+      canRegister: registrationAccess.canRegister,
+      request: null
+    };
+
     renderer({
       page,
       tournament,
@@ -184,16 +188,56 @@ async function loadCompetition({
       resources,
       tournamentId,
       eventId,
-      registrationAccess
+      registrationAccess: registrationState
     });
 
-    bindRegistrationCta({
-      page,
-      tournament,
-      event,
-      tournamentId,
-      eventId
+    const bindRegistration = () => {
+      page.querySelectorAll("[data-public-bracket-mount] [data-registration-cta]").forEach((button) => {
+        if (button.dataset.registrationBound === "true") return;
+        button.dataset.registrationBound = "true";
+        button.addEventListener("click", async () => {
+          if (registrationState.request?.status === "pending" || registrationState.request?.status === "approved") return;
+          try {
+            await initializeSession();
+            if (!getCurrentSession()) {
+              const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+              const loginUrl = `/login?returnTo=${encodeURIComponent(returnTo)}`;
+              window.history.pushState({}, "", loginUrl);
+              window.dispatchEvent(new PopStateEvent("popstate"));
+              return;
+            }
+            await openPublicTournamentRegistration({ page, tournament, event, tournamentId, eventId });
+          } catch (error) {
+            console.error("NEXUS — Error abriendo registro público:", error);
+          }
+        });
+      });
+    };
+
+    page.addEventListener("nexus:registration-submitted", async () => {
+      try {
+        const statusResponse = await getMyTournamentRegistrationStatus({ tournamentId, eventId });
+        registrationState = { ...registrationState, request: statusResponse?.request || null };
+        updatePublicTournamentBracket(page, event, registrationState);
+        bindRegistration();
+      } catch (error) {
+        console.warn("NEXUS — No fue posible actualizar el estado de inscripción:", error);
+      }
     });
+
+    bindRegistration();
+
+    try {
+      await initializeSession();
+      if (getCurrentSession()) {
+        const statusResponse = await getMyTournamentRegistrationStatus({ tournamentId, eventId });
+        registrationState = { ...registrationState, request: statusResponse?.request || null };
+        updatePublicTournamentBracket(page, event, registrationState);
+        bindRegistration();
+      }
+    } catch (error) {
+      console.warn("NEXUS — No fue posible resolver el estado de inscripción pública:", error);
+    }
 
 
     // Public real-time sync: the landing listens only to the public
@@ -205,7 +249,8 @@ async function loadCompetition({
       eventId,
       (updatedEvent) => {
         if (!updatedEvent) return;
-        updatePublicTournamentBracket(page, updatedEvent);
+        updatePublicTournamentBracket(page, updatedEvent, registrationState);
+        bindRegistration();
       }
     );
 
@@ -229,43 +274,10 @@ async function loadCompetition({
 // ========================================
 
 function resolvePublicRegistrationAccess(event) {
-  const isProEvent = Boolean(event?.pro);
   return {
-    canRegister: isProEvent,
-    planId: isProEvent ? "pro" : null
+    canRegister: Boolean(event?.pro),
+    planId: event?.pro ? "pro" : null
   };
-}
-
-
-// ========================================
-// REGISTRATION CTA
-// ========================================
-
-function bindRegistrationCta({ page, tournament, event, tournamentId, eventId }) {
-  page.querySelectorAll("[data-registration-cta]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      try {
-        await initializeSession();
-        const session = getCurrentSession();
-        if (!session?.user?.uid) {
-          const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-          window.history.pushState({}, "", `/login?returnTo=${encodeURIComponent(returnTo)}`);
-          window.dispatchEvent(new PopStateEvent("popstate"));
-          return;
-        }
-
-        openPublicTournamentRegistration({
-          page,
-          tournament,
-          event,
-          tournamentId,
-          eventId
-        });
-      } catch (error) {
-        console.error("NEXUS — Error abriendo registro público:", error);
-      }
-    });
-  });
 }
 
 

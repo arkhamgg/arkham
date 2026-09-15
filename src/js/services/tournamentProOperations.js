@@ -218,27 +218,24 @@ export async function setParticipantCheckIn({ tournamentId, eventId, event, part
   return savePro(tournamentId, eventId, event, pro);
 }
 
-export async function approveParticipationRequest({ tournamentId, eventId, event, requestId, approve = true }) {
+export async function approveParticipationRequest({ tournamentId, eventId, event, requestId, approve = true, rejectionReason = "" }) {
   const pro = ensureTournamentProState(event);
   const request = pro.registration.requests?.[requestId];
   if (!request) throw new Error("Solicitud no encontrada.");
+  if (["approved", "rejected"].includes(request.status)) throw new Error("Esta solicitud ya fue revisada.");
 
   request.status = approve ? "approved" : "rejected";
   request.reviewedAt = new Date().toISOString();
+  request.rejectionReason = approve ? null : String(rejectionReason || "Solicitud rechazada por la organización.").trim();
 
   if (approve) {
-    const participantId = request.participantId || `request_${requestId}`;
-    const capacity = Number(pro.capacity?.value || pro.capacity || event.capacity?.value || event.capacity);
+    const capacity = Number(pro.capacity?.value || pro.capacity || event.capacity?.value || event.capacity || 0);
     const activeCount = Object.values(pro.participants || {})
-      .filter((participant) => ![PARTICIPANT_STATUS.REJECTED, PARTICIPANT_STATUS.WITHDRAWN, PARTICIPANT_STATUS.NO_SHOW].includes(participant.status))
-      .length;
-    if (capacity > 0 && activeCount >= capacity) {
-      throw new Error("La capacidad del torneo ya está completa.");
-    }
+      .filter((participant) => ![PARTICIPANT_STATUS.REJECTED, PARTICIPANT_STATUS.WITHDRAWN, PARTICIPANT_STATUS.NO_SHOW].includes(participant.status)).length;
+    if (capacity > 0 && activeCount >= capacity) throw new Error("No hay cupos disponibles para otorgar este asiento.");
 
-    if (pro.participants[participantId]) {
-      throw new Error("Esta solicitud ya fue convertida en participante.");
-    }
+    const participantId = request.participantId || `request_${requestId}`;
+    if (pro.participants[participantId]) throw new Error("El participante ya está dentro del torneo.");
 
     const participant = createParticipant({
       participantId,
@@ -248,23 +245,17 @@ export async function approveParticipationRequest({ tournamentId, eventId, event
       manual: !request.entityId
     });
     participant.status = PARTICIPANT_STATUS.APPROVED;
-
     pro.participants[participantId] = participant;
     request.participantId = participantId;
 
     if (pro.bracket?.generated) {
-      const availableSlot = Object.entries(pro.bracket.slots || {})
-        .sort(([, a], [, b]) => Number(a.seed || 9999) - Number(b.seed || 9999))
-        .find(([, slot]) => !slot.participantId);
-      if (!availableSlot) {
-        delete pro.participants[participantId];
-        request.participantId = null;
-        throw new Error("No hay un asiento disponible en el bracket.");
-      }
-      const [slotId, slot] = availableSlot;
-      slot.participantId = participantId;
-      participant.seed = slot.seed;
-      participant.slotIds = [slotId];
+      const availableSlot = Object.values(pro.bracket.slots || {})
+        .filter((slot) => !slot.participantId)
+        .sort((a, b) => Number(a.seed) - Number(b.seed))[0];
+      if (!availableSlot) throw new Error("No existe una posición disponible en el bracket.");
+      availableSlot.participantId = participantId;
+      participant.seed = availableSlot.seed;
+      participant.slotIds = [availableSlot.id || `seed-${availableSlot.seed}`];
       syncFirstRoundFromSlots(pro);
     }
   }
