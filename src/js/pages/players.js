@@ -1,8 +1,9 @@
-import { Players } from "../components/players.js";
+// ========================================
+// NEXUS — Players Directory Page
+// ========================================
 
-export function PlayersPage() {
-  const page = document.createElement("main");
-  page.className = "players-public-page";
-  page.appendChild(Players());
-  return page;
+import { PlayersDirectory } from "../components/playersDirectory.js";
+
+export function Players() {
+  return PlayersDirectory();
 }

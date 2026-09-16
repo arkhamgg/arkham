@@ -259,7 +259,7 @@ export function Navbar() {
 
 
         <a
-          href="#players"
+          href="/players"
           class="navbar__mobile-link"
         >
 

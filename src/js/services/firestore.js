@@ -11,7 +11,11 @@ import {
   onSnapshot,
   updateDoc,
   deleteField,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  orderBy,
+  limit,
+  startAfter
 } from "firebase/firestore";
 
 import { db } from "./firebase.js";
@@ -105,6 +109,54 @@ export async function getEntity(
 // ========================================
 // GET ENTITIES
 // ========================================
+
+// ========================================
+// GET ENTITY PAGE
+// ========================================
+//
+// Real Firestore cursor pagination.
+// The cursor is the last DocumentSnapshot returned by the previous page.
+// ========================================
+
+export async function getEntityPage(
+  collectionName,
+  { pageSize = 24, cursor = null } = {}
+) {
+
+  const collectionRef =
+    collection(
+      db,
+      collectionName
+    );
+
+  const constraints = [
+    orderBy("createdAt", "desc"),
+    limit(pageSize)
+  ];
+
+  if (cursor) {
+    constraints.splice(1, 0, startAfter(cursor));
+  }
+
+  const snapshot =
+    await getDocs(
+      query(
+        collectionRef,
+        ...constraints
+      )
+    );
+
+  return {
+    items: snapshot.docs.map((document) => ({
+      id: document.id,
+      ...document.data()
+    })),
+    cursor: snapshot.docs.at(-1) || null,
+    hasMore: snapshot.docs.length === pageSize
+  };
+
+}
+
 
 export async function getEntities(
   collectionName

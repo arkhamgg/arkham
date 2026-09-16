@@ -12,13 +12,12 @@ import { Login } from "./pages/login.js";
 import { CreateTeam } from "./pages/createTeam.js";
 import { CreatePlayer } from "./pages/createPlayer.js";
 import { Teams } from "./pages/teams.js";
+import { Players } from "./pages/players.js";
 import { TournamentBuilder } from "./pages/tournamentBuilder.js";
 import { TournamentPro } from "./pages/tournamentPro.js";
 import { CompetitionLanding } from "./pages/competitionLanding.js";
 import { CompetitionDetail } from "./pages/competitionDetail.js";
 import { Calendar } from "./pages/calendar.js";
-import { PlayerView, PlayerCompetitiveProfileView } from "./pages/player.js";
-import { PlayersPage } from "./pages/players.js";
 import { Billing } from "./pages/billing.js";
 import { Upgrade } from "./pages/upgrade.js";
 import { Payment } from "./pages/payment.js";
@@ -26,8 +25,6 @@ import { Payment } from "./pages/payment.js";
 import { PublicShell } from "./components/publicShell.js";
 
 import { DashboardShell } from "./components/dashboardShell.js";
-
-import { getCurrentEntityContext } from "./services/entityContext.js";
 
 // ========================================
 // SESSION
@@ -102,26 +99,7 @@ const routes = {
     Teams,
 
   "/players":
-    PlayersPage,
-
-  "/dashboard/player/competitions":
-    () => PlayerView({ view: "competitions" }),
-
-  "/dashboard/player/requests":
-    () => PlayerView({ view: "requests" }),
-
-  "/dashboard/player/results":
-    () => PlayerView({ view: "results" }),
-
-  "/dashboard/player/stats":
-    () => PlayerView({ view: "stats" }),
-
-  "/dashboard/player/profile":
-    () => PlayerView({ view: "profile" }),
-
-  "/dashboard/player/competitive-profile":
-    () => PlayerCompetitiveProfileView(),
-
+    Players,
 
   "/dashboard/tournaments/new":
     TournamentBuilder,
@@ -207,12 +185,6 @@ const ADMIN_ROUTES = new Set([
 const CLIENT_DASHBOARD_ROUTES = new Set([
 
   "/dashboard",
-  "/dashboard/player/competitions",
-  "/dashboard/player/requests",
-  "/dashboard/player/results",
-  "/dashboard/player/stats",
-  "/dashboard/player/profile",
-  "/dashboard/player/competitive-profile",
   "/dashboard/tournaments/new",
   "/dashboard/tournaments/edit",
   "/dashboard/tournaments/pro",
@@ -429,28 +401,6 @@ async function resolveProtectedPath(
     /*
      * Usuario cliente.
      */
-
-    const entityContext = await getCurrentEntityContext();
-
-    // Player no tiene acceso a Billing ni Upgrade.
-    if (
-      entityContext?.type === "player" &&
-      [
-        "/dashboard/billing",
-        "/dashboard/billing/upgrade",
-        "/dashboard/billing/payment"
-      ].includes(path)
-    ) {
-      return "/dashboard";
-    }
-
-    // Las vistas de Player requieren contexto Player.
-    if (
-      path.startsWith("/dashboard/player/") &&
-      entityContext?.type !== "player"
-    ) {
-      return "/dashboard";
-    }
 
     return path;
 

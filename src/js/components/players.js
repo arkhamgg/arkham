@@ -380,7 +380,10 @@ export function Players() {
            BOTTOM
            ======================================== -->
 
-      <div class="players__bottom">
+      <a
+        href="/players"
+        class="players__bottom"
+      >
 
         <span>
           VER TODOS LOS PLAYERS
@@ -391,7 +394,7 @@ export function Players() {
           aria-hidden="true"
         ></i>
 
-      </div>
+      </a>
 
     </div>
   `;
