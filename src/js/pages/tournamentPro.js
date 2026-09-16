@@ -158,7 +158,7 @@ export function TournamentPro() {
         bye: "BYE"
       }[status] || String(status || "PENDIENTE").toUpperCase());
 
-      const renderMatchCard = (match, { slotA = null, slotB = null } = {}) => {
+      const renderMatchCard = (match, { slotA = null, slotB = null, eventLive = false } = {}) => {
         const participantAId = match.participantAId || slotA?.participantId || null;
         const participantBId = match.participantBId || slotB?.participantId || null;
         const hasBoth = Boolean(participantAId && participantBId);
@@ -370,7 +370,7 @@ export function TournamentPro() {
                       ${firstStage.matches.map((match) => {
                         const a = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 1}`];
                         const b = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 2}`];
-                        return renderMatchCard(match, { slotA: a, slotB: b });
+                        return renderMatchCard(match, { slotA: a, slotB: b, eventLive });
                       }).join("")}
                     </div>
                   </div>
@@ -383,7 +383,7 @@ export function TournamentPro() {
                       <div><strong>${escapeHtml(stage.bracket === "grand_final" ? "GRAND FINAL" : `${stage.bracket === "losers" ? "LOSERS" : `RONDA ${stage.number}`}`)}</strong></div>
                     </div>
                     <div class="tournament-pro-page__matches">
-                      ${stage.matches.map((match) => renderMatchCard(match)).join("")}
+                      ${stage.matches.map((match) => renderMatchCard(match, { eventLive })).join("")}
                     </div>
                   </div>
                 `).join("")}
