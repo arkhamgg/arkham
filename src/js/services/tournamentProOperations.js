@@ -390,7 +390,6 @@ export async function setEventStatus({ tournamentId, eventId, event, status }) {
   }
   if (status === TOURNAMENT_EVENT_STATUS.LIVE) {
     validateCanStartEvent(pro);
-    prepareLiveParticipants(pro);
   }
   if (status === TOURNAMENT_EVENT_STATUS.CHECK_IN) {
     if (!pro.bracket.generated) throw new Error("Prepara el bracket antes de abrir el check-in.");
@@ -574,18 +573,17 @@ function completeCheckInState(pro) {
 function validateCanStartEvent(pro) {
   if (!pro.bracket?.generated) throw new Error("Prepara el bracket antes de iniciar el evento.");
   if (!pro.checkIn?.completed) throw new Error("Debes cerrar el check-in antes de iniciar el evento.");
-  const participants = Object.values(pro.participants || {});
-  if (!participants.some((participant) => participant.checkIn === true)) {
-    throw new Error("Debe existir al menos un participante presente.");
-  }
-}
 
-function prepareLiveParticipants(pro) {
-  Object.values(pro.participants || {}).forEach((participant) => {
-    if (participant.checkIn === true && participant.status !== PARTICIPANT_STATUS.NO_SHOW) {
-      participant.status = PARTICIPANT_STATUS.APPROVED;
-    }
-  });
+  const presentParticipants = Object.values(pro.participants || {})
+    .filter((participant) => (
+      participant.checkIn === true &&
+      participant.status !== PARTICIPANT_STATUS.NO_SHOW &&
+      participant.status !== PARTICIPANT_STATUS.WITHDRAWN
+    ));
+
+  if (presentParticipants.length < 2) {
+    throw new Error("Se necesitan al menos 2 participantes presentes para pasar a competencia.");
+  }
 }
 
 function setParticipantsCompeting(pro, match) {

@@ -458,11 +458,14 @@ function routeWinner(bracket, match) {
 
 function refreshPendingStatus(match) {
   if (match.status === MATCH_STATUS.COMPLETED || match.status === MATCH_STATUS.LIVE) return;
+
+  // Tener un solo participante no significa BYE por sí mismo.
+  // En rondas futuras, el segundo participante puede llegar desde un
+  // match predecesor todavía pendiente. Los BYE se resuelven únicamente
+  // cuando la estructura del bracket confirma que el otro lado no llegará.
   match.status = match.participantAId && match.participantBId
     ? MATCH_STATUS.PENDING
-    : match.participantAId || match.participantBId
-      ? MATCH_STATUS.BYE
-      : MATCH_STATUS.PENDING;
+    : MATCH_STATUS.PENDING;
 }
 
 function linkRoundProgression(rounds) {
