@@ -11,7 +11,9 @@ import {
   setParticipantCheckIn,
   setCheckInOpen,
   completeCheckIn,
-  setEventStatus
+  setEventStatus,
+  startMatch,
+  completeMatch
 } from "../services/tournamentProOperations.js";
 import { getTournamentRegistrationRequestsMarkup, loadTournamentRegistrationRequests, bindTournamentRegistrationRequests } from "../components/tournamentRegistrationRequests.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
@@ -591,15 +593,40 @@ export function TournamentPro() {
 
       const assignParticipant = async ({ entityType, entityId = null, displayName, manual = false }) => {
         if (!selectedSlotId) return;
+
         try {
-          event = await addParticipantToSlot({ tournamentId, eventId, event, slotId: selectedSlotId, entityType, entityId, displayName, manual });
+          if (replacementParticipantId) {
+            event = await replaceParticipantInSlot({
+              tournamentId,
+              eventId,
+              event,
+              slotId: selectedSlotId,
+              participantId: replacementParticipantId,
+              entityType,
+              entityId,
+              displayName,
+              manual
+            });
+          } else {
+            event = await addParticipantToSlot({
+              tournamentId,
+              eventId,
+              event,
+              slotId: selectedSlotId,
+              entityType,
+              entityId,
+              displayName,
+              manual
+            });
+          }
+
           pro = ensureTournamentProState(event);
           selectedSlotId = null;
           replacementParticipantId = null;
           modalOpen = false;
           render();
         } catch (error) {
-          window.alert(error.message || "No fue posible agregar el participante.");
+          window.alert(error.message || "No fue posible completar la operación.");
         }
       };
 
