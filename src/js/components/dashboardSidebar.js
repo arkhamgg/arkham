@@ -65,25 +65,22 @@ const NAVIGATION_BY_ENTITY = {
 // ACCOUNT NAVIGATION
 // ========================================
 
-const ACCOUNT_NAVIGATION = [
-  {
-    id: "profile",
-    label: "Perfil",
-    icon: "fa-user-circle"
-  },
+const ACCOUNT_NAVIGATION_BY_ENTITY = {
+  player: [
+    { id: "profile", label: "Mi perfil", icon: "fa-user-circle" },
+    { id: "competitive-profile", label: "Perfil competitivo", icon: "fa-crosshairs" },
+    { id: "settings", label: "Configuración", icon: "fa-gear" }
+  ],
+  default: [
+    { id: "profile", label: "Perfil", icon: "fa-user-circle" },
+    { id: "billing", label: "Facturación", icon: "fa-credit-card" },
+    { id: "upgrade-plan", label: "Upgrade Plan", icon: "fa-bolt" }
+  ]
+};
 
-  {
-    id: "billing",
-    label: "Facturación",
-    icon: "fa-credit-card"
-  },
-
-  {
-    id: "upgrade-plan",
-    label: "Upgrade Plan",
-    icon: "fa-bolt"
-  }
-];
+function getAccountNavigation(entityType) {
+  return ACCOUNT_NAVIGATION_BY_ENTITY[entityType] || ACCOUNT_NAVIGATION_BY_ENTITY.default;
+}
 
 
 function getNavigationForEntity(entityType) {
@@ -148,7 +145,7 @@ export function DashboardSidebar({
 
     return [
       ...globalItems,
-      ...ACCOUNT_NAVIGATION
+      ...getAccountNavigation(entityType)
     ];
 
   }
@@ -313,7 +310,7 @@ export function DashboardSidebar({
           </span>
 
 
-          ${ACCOUNT_NAVIGATION
+          ${getAccountNavigation(entityType)
             .map(
               item => `
                 <button
@@ -460,7 +457,7 @@ export function DashboardSidebar({
           </span>
 
 
-          ${ACCOUNT_NAVIGATION
+          ${getAccountNavigation(entityType)
             .map(
               item => `
                 <button

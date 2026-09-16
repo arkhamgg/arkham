@@ -39,6 +39,15 @@ const DASHBOARD_NAVIGATION_ROUTES = {
   "player-stats":
     "/dashboard/player/stats",
 
+  profile:
+    "/dashboard/player/profile",
+
+  "competitive-profile":
+    "/dashboard/player/competitive-profile",
+
+  settings:
+    "/dashboard/settings",
+
   competitions:
     "/competitions",
 
@@ -66,7 +75,9 @@ function getActiveView(pathname) {
     "/dashboard/player/requests": "player-requests",
     "/dashboard/player/results": "player-results",
     "/dashboard/player/stats": "player-stats",
-    "/dashboard/player/profile": "profile"
+    "/dashboard/player/profile": "profile",
+    "/dashboard/player/competitive-profile": "competitive-profile",
+    "/dashboard/settings": "settings"
   };
 
   if (playerRoutes[pathname]) {

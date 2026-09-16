@@ -17,7 +17,7 @@ import { TournamentPro } from "./pages/tournamentPro.js";
 import { CompetitionLanding } from "./pages/competitionLanding.js";
 import { CompetitionDetail } from "./pages/competitionDetail.js";
 import { Calendar } from "./pages/calendar.js";
-import { PlayerView } from "./pages/player.js";
+import { PlayerView, PlayerCompetitiveProfileView } from "./pages/player.js";
 import { PlayersPage } from "./pages/players.js";
 import { Billing } from "./pages/billing.js";
 import { Upgrade } from "./pages/upgrade.js";
@@ -26,6 +26,8 @@ import { Payment } from "./pages/payment.js";
 import { PublicShell } from "./components/publicShell.js";
 
 import { DashboardShell } from "./components/dashboardShell.js";
+
+import { getCurrentEntityContext } from "./services/entityContext.js";
 
 // ========================================
 // SESSION
@@ -117,6 +119,12 @@ const routes = {
   "/dashboard/player/profile":
     () => PlayerView({ view: "profile" }),
 
+  "/dashboard/player/competitive-profile":
+    () => PlayerCompetitiveProfileView(),
+
+  "/dashboard/settings":
+    () => PlayerView({ view: "settings" }),
+
   "/dashboard/tournaments/new":
     TournamentBuilder,
 
@@ -206,6 +214,8 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
   "/dashboard/player/results",
   "/dashboard/player/stats",
   "/dashboard/player/profile",
+  "/dashboard/player/competitive-profile",
+  "/dashboard/settings",
   "/dashboard/tournaments/new",
   "/dashboard/tournaments/edit",
   "/dashboard/tournaments/pro",
@@ -422,6 +432,28 @@ async function resolveProtectedPath(
     /*
      * Usuario cliente.
      */
+
+    const entityContext = await getCurrentEntityContext();
+
+    // Player no tiene acceso a Billing ni Upgrade.
+    if (
+      entityContext?.type === "player" &&
+      [
+        "/dashboard/billing",
+        "/dashboard/billing/upgrade",
+        "/dashboard/billing/payment"
+      ].includes(path)
+    ) {
+      return "/dashboard";
+    }
+
+    // Las vistas de Player requieren contexto Player.
+    if (
+      path.startsWith("/dashboard/player/") &&
+      entityContext?.type !== "player"
+    ) {
+      return "/dashboard";
+    }
 
     return path;
 
