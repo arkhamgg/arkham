@@ -454,3 +454,67 @@
     font-size: $font-size-sm;
   }
 }
+
+// Global Team relationship
+.competitive-profile-form__team-section {
+  display: grid;
+  grid-template-columns: minmax(220px, .75fr) minmax(0, 1.25fr);
+  gap: $space-6;
+  padding: $space-6;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-950;
+
+  > div:first-child {
+    display: grid;
+    align-content: start;
+    gap: $space-2;
+
+    strong {
+      color: $color-white;
+      font-size: $font-size-lg;
+    }
+
+    small {
+      color: $color-500;
+      font-size: $font-size-xs;
+      line-height: 1.5;
+    }
+  }
+}
+
+.competitive-profile-form__section-label {
+  color: $color-red-light;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.competitive-profile-form__team-section > .competitive-profile-form__team-picker {
+  position: relative;
+  display: grid;
+  gap: $space-3;
+}
+
+.competitive-profile-form__team-clear {
+  min-height: 34px !important;
+  justify-self: start;
+  padding: 0 $space-3 !important;
+  border: 1px solid $color-700 !important;
+  background: transparent !important;
+  color: $color-300 !important;
+  font-size: $font-size-xs !important;
+
+  &:hover:not(:disabled) {
+    background: $color-800 !important;
+    color: $color-white !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .competitive-profile-form__team-section {
+    grid-template-columns: 1fr;
+  }
+}
