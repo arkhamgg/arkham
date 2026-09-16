@@ -340,3 +340,117 @@
     width: 100%;
   }
 }
+
+.competitive-profile-form__team-picker {
+  position: relative;
+  display: grid;
+  gap: $space-2;
+}
+
+.competitive-profile-form__team-search {
+  position: relative;
+
+  > i {
+    position: absolute;
+    top: 50%;
+    left: $space-4;
+    z-index: $z-content;
+    color: $color-500;
+    font-size: $font-size-sm;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 $space-4 0 $space-10;
+    border: 1px solid $color-700;
+    border-radius: $radius-md;
+    outline: 0;
+    background: $color-800;
+    color: $color-white;
+    font: inherit;
+    transition: border-color $transition-base $ease-standard, background $transition-base $ease-standard;
+
+    &::placeholder {
+      color: $color-500;
+    }
+
+    &:focus {
+      border-color: $color-red;
+      background: $color-900;
+    }
+  }
+}
+
+.competitive-profile-form__team-results {
+  position: absolute;
+  top: calc(100% - #{$space-2});
+  right: 0;
+  left: 0;
+  z-index: $z-overlay;
+  display: grid;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: $space-2;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-900;
+  box-shadow: $shadow-lg;
+}
+
+.competitive-profile-form__team-result {
+  display: grid;
+  gap: $space-1;
+  width: 100%;
+  min-height: auto !important;
+  padding: $space-3 $space-4 !important;
+  border: 0 !important;
+  border-radius: $radius-sm !important;
+  background: transparent !important;
+  color: $color-white !important;
+  text-align: left;
+  transform: none !important;
+
+  &:hover {
+    background: $color-800 !important;
+  }
+
+  strong {
+    font-size: $font-size-sm;
+  }
+
+  span {
+    color: $color-500;
+    font-size: $font-size-xs;
+    font-family: monospace;
+  }
+}
+
+.competitive-profile-form__team-empty {
+  padding: $space-4;
+  color: $color-500;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+}
+
+.competitive-profile-form__team-current {
+  display: grid;
+  gap: $space-1;
+  padding: $space-3 $space-4;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-950;
+
+  span,
+  small {
+    color: $color-500;
+    font-size: $font-size-xs;
+  }
+
+  strong {
+    color: $color-100;
+    font-size: $font-size-sm;
+  }
+}

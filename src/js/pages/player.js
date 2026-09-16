@@ -21,6 +21,10 @@ function escapeHtml(value = "") {
   }[char]));
 }
 
+function getTeamName(team = {}) {
+  return team.name || team.teamName || team.shortName || team.id || "Team";
+}
+
 export function PlayerView({ view = "competitions" } = {}) {
   if (view === "profile") return PlayerProfileView();
 
@@ -112,24 +116,86 @@ export function PlayerCompetitiveProfileView() {
     function renderRows() {
       gamesContainer.innerHTML = rows.map((profile, index) => {
         const game = games.find((item) => item.id === profile.gameId);
-        const roles = game?.competitiveInformation?.roles || {};
-        const roleEntries = Array.isArray(roles) ? roles.map((role) => [role.id || role, role.name || role]) : Object.entries(roles);
+        const roles = game?.competitiveInformation?.roles || [];
+        const roleEntries = Array.isArray(roles)
+          ? roles.map((role) => {
+              if (typeof role === "string") return [role, role];
+              return [role?.id || role?.name, role?.name || role?.id];
+            }).filter(([id, label]) => id && label)
+          : Object.entries(roles);
+        const selectedTeam = teams.find((team) => team.id === profile.teamId);
+        const teamSearch = profile.teamSearch ?? (selectedTeam ? getTeamName(selectedTeam) : "");
         return `<article class="competitive-profile-form__game" data-game-row="${index}">
           <div class="competitive-profile-form__game-head"><strong>JUEGO ${String(index + 1).padStart(2, "0")}</strong>${rows.length > 1 ? `<button type="button" data-remove-game="${index}" aria-label="Eliminar juego"><i class="fa-solid fa-xmark"></i></button>` : ""}</div>
           <label>Juego<select data-game-select="${index}"><option value="">Selecciona un juego</option>${games.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === profile.gameId ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select></label>
           <div class="competitive-profile-form__roles"><span>ROLES</span>${roleEntries.length ? roleEntries.map(([id, role]) => `<label><input type="checkbox" data-role="${index}" value="${escapeHtml(id)}" ${profile.roleIds?.includes(id) ? "checked" : ""}><span>${escapeHtml(typeof role === "string" ? role : role?.name || id)}</span></label>`).join("") : `<em>Selecciona un juego para cargar sus roles.</em>`}</div>
           <label>Disponibilidad<select data-availability="${index}"><option value="available" ${profile.availability !== "in_team" ? "selected" : ""}>Disponible</option><option value="in_team" ${profile.availability === "in_team" ? "selected" : ""}>En un Team</option></select></label>
-          ${profile.availability === "in_team" ? `<label>Team<select data-team="${index}"><option value="">Selecciona un Team confirmado</option>${teams.map((team) => `<option value="${escapeHtml(team.id)}" ${team.id === profile.teamId ? "selected" : ""}>${escapeHtml(team.name || team.teamName || team.id)}</option>`).join("")}</select><small>La pertenencia pública solo debe considerarse activa cuando el Team confirme la relación.</small></label>` : ""}
+          ${profile.availability === "in_team" ? `<div class="competitive-profile-form__team-picker" data-team-picker="${index}">
+            <label for="team-search-${index}">Team asociado</label>
+            <div class="competitive-profile-form__team-search">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input id="team-search-${index}" type="search" data-team-search="${index}" value="${escapeHtml(teamSearch)}" placeholder="Buscar por nombre o ID" autocomplete="off" role="combobox" aria-expanded="false">
+            </div>
+            <div class="competitive-profile-form__team-results" data-team-results="${index}" role="listbox" hidden></div>
+            <div class="competitive-profile-form__team-current" data-team-current="${index}">${selectedTeam ? `<span>Team seleccionado</span><strong>${escapeHtml(getTeamName(selectedTeam))}</strong><small>ID: ${escapeHtml(selectedTeam.id)}</small>` : `<span>Ningún Team seleccionado</span>`}</div>
+            <small>La pertenencia pública solo debe considerarse activa cuando el Team confirme la relación.</small>
+          </div>` : ""}
         </article>`;
       }).join("");
       bindRows();
+    }
+
+    function renderTeamResults(index, query = "") {
+      const results = gamesContainer.querySelector(`[data-team-results="${index}"]`);
+      const input = gamesContainer.querySelector(`[data-team-search="${index}"]`);
+      if (!results || !input) return;
+
+      const normalized = query.trim().toLowerCase();
+      if (!normalized) {
+        results.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+        results.innerHTML = "";
+        return;
+      }
+
+      const matches = teams
+        .filter((team) => {
+          const haystack = [team.id, getTeamName(team), team.shortName]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(normalized);
+        })
+        .slice(0, 10);
+
+      results.innerHTML = matches.length
+        ? matches.map((team) => `<button type="button" class="competitive-profile-form__team-result" data-team-result="${index}" data-team-id="${escapeHtml(team.id)}"><strong>${escapeHtml(getTeamName(team))}</strong><span>${escapeHtml(team.id)}</span></button>`).join("")
+        : `<div class="competitive-profile-form__team-empty">No encontramos un Team con ese nombre o ID.</div>`;
+
+      results.hidden = false;
+      input.setAttribute("aria-expanded", "true");
     }
 
     function bindRows() {
       gamesContainer.querySelectorAll("[data-game-select]").forEach((select) => select.addEventListener("change", () => { const i=Number(select.dataset.gameSelect); rows[i].gameId=select.value; rows[i].roleIds=[]; renderRows(); }));
       gamesContainer.querySelectorAll("[data-role]").forEach((input) => input.addEventListener("change", () => { const i=Number(input.dataset.role); rows[i].roleIds=[...gamesContainer.querySelectorAll(`[data-role="${i}"]:checked`)].map((el)=>el.value); }));
       gamesContainer.querySelectorAll("[data-availability]").forEach((select) => select.addEventListener("change", () => { const i=Number(select.dataset.availability); rows[i].availability=select.value; if(select.value !== "in_team") rows[i].teamId=null; renderRows(); }));
-      gamesContainer.querySelectorAll("[data-team]").forEach((select) => select.addEventListener("change", () => { rows[Number(select.dataset.team)].teamId=select.value || null; }));
+      gamesContainer.querySelectorAll("[data-team-search]").forEach((input) => {
+        const index = Number(input.dataset.teamSearch);
+        input.addEventListener("input", () => {
+          rows[index].teamSearch = input.value;
+          renderTeamResults(index, input.value);
+        });
+        input.addEventListener("focus", () => renderTeamResults(index, input.value));
+      });
+      gamesContainer.querySelectorAll("[data-team-result]").forEach((button) => button.addEventListener("click", () => {
+        const index = Number(button.dataset.teamResult);
+        const team = teams.find((item) => item.id === button.dataset.teamId);
+        if (!team) return;
+        rows[index].teamId = team.id;
+        rows[index].teamSearch = getTeamName(team);
+        renderRows();
+      }));
       gamesContainer.querySelectorAll("[data-remove-game]").forEach((button) => button.addEventListener("click", () => { rows.splice(Number(button.dataset.removeGame),1); renderRows(); }));
     }
 
