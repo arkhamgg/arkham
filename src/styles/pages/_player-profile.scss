@@ -837,3 +837,187 @@
     grid-column: auto;
   }
 }
+
+// Player tournament requests
+.player-view-page {
+  min-height: 100vh;
+  padding: $space-12 $space-10 $space-16;
+  background: $color-black;
+  color: $color-white;
+}
+
+.player-view-page__content {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+}
+
+.player-view-page__header {
+  margin-bottom: $space-8;
+}
+
+.player-view-page__eyebrow {
+  display: inline-block;
+  margin-bottom: $space-2;
+  color: $color-red-light;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.player-view-page__header h1 {
+  margin: 0;
+  font-size: $font-size-3xl;
+  line-height: 1.05;
+  letter-spacing: -.03em;
+}
+
+.player-view-page__header p {
+  max-width: 680px;
+  margin: $space-3 0 0;
+  color: $color-300;
+  font-size: $font-size-md;
+  line-height: 1.6;
+}
+
+.player-requests-list {
+  display: grid;
+  gap: $space-4;
+}
+
+.player-request-card {
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(0, 1fr) minmax(220px, .8fr) auto;
+  align-items: center;
+  gap: $space-6;
+  padding: $space-6;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+}
+
+.player-request-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  color: $color-warning;
+  font-size: $font-size-xs;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.player-request-card.is-approved .player-request-card__status { color: $color-success; }
+.player-request-card.is-rejected .player-request-card__status { color: $color-red-light; }
+
+.player-request-card__main,
+.player-request-card__reason {
+  min-width: 0;
+}
+
+.player-request-card__eyebrow,
+.player-request-card__reason > span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.player-request-card__main h2 {
+  margin: $space-1 0;
+  overflow: hidden;
+  font-size: $font-size-lg;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-request-card__main > span:last-child {
+  color: $color-300;
+  font-size: $font-size-sm;
+}
+
+.player-request-card__reason p {
+  margin: $space-1 0 0;
+  color: $color-100;
+  font-size: $font-size-sm;
+  line-height: 1.45;
+}
+
+.player-request-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $space-4;
+  color: $color-300;
+  font-size: $font-size-xs;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.player-request-card__retry {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: $space-2;
+  min-height: 40px;
+  padding: 0 $space-4;
+  border-radius: $radius-md;
+  background: $color-red;
+  color: $color-white;
+  font-size: $font-size-xs;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-decoration: none;
+  transition: background $transition-base $ease-standard, transform $transition-fast $ease-standard;
+}
+
+.player-request-card__retry:hover {
+  background: $color-red-light;
+  transform: translateY(-1px);
+}
+
+.player-requests-empty {
+  display: grid;
+  place-items: center;
+  gap: $space-3;
+  min-height: 260px;
+  padding: $space-8;
+  border: 1px dashed $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  text-align: center;
+}
+
+.player-requests-empty i {
+  color: $color-red;
+  font-size: $font-size-2xl;
+}
+
+.player-requests-empty strong { font-size: $font-size-lg; }
+.player-requests-empty span { max-width: 520px; color: $color-300; font-size: $font-size-sm; line-height: 1.5; }
+.player-requests-empty.is-error i { color: $color-error; }
+
+@media (max-width: 900px) {
+  .player-request-card {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .player-request-card__footer {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .player-view-page {
+    padding: $space-8 $space-4 $space-12;
+  }
+
+  .player-request-card {
+    grid-template-columns: 1fr;
+  }
+
+  .player-request-card__footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

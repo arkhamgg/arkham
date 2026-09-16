@@ -14,7 +14,9 @@ async function getIdToken() {
 
 async function requestApi({ method = "GET", tournamentId, eventId, mode = null, body = null }) {
   const token = await getIdToken();
-  const query = new URLSearchParams({ tournamentId, eventId });
+  const query = new URLSearchParams();
+  if (tournamentId) query.set("tournamentId", tournamentId);
+  if (eventId) query.set("eventId", eventId);
   if (mode) query.set("mode", mode);
 
   const response = await fetch(`/api/tournament-registration?${query.toString()}`, {
@@ -42,6 +44,10 @@ export async function getMyTournamentRegistrationStatus({ tournamentId, eventId 
 
 export async function getTournamentRegistrationRequests({ tournamentId, eventId }) {
   return requestApi({ tournamentId, eventId, mode: "list" });
+}
+
+export async function getMyTournamentRegistrationRequests() {
+  return requestApi({ mode: "mine" });
 }
 
 export async function submitTournamentParticipationRequest({ tournamentId, eventId, proof = null }) {

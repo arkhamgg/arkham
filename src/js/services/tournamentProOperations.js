@@ -289,7 +289,7 @@ export async function setParticipantCheckIn({ tournamentId, eventId, event, part
   return savePro(tournamentId, eventId, event, pro);
 }
 
-export async function approveParticipationRequest({ tournamentId, eventId, event, requestId, approve = true }) {
+export async function approveParticipationRequest({ tournamentId, eventId, event, requestId, approve = true, rejectionReason = "" }) {
   const pro = ensureTournamentProState(event);
   if (pro.checkIn?.completed) {
     throw new Error("El check-in ya fue finalizado. La lista de participantes está bloqueada.");
@@ -299,6 +299,7 @@ export async function approveParticipationRequest({ tournamentId, eventId, event
 
   request.status = approve ? "approved" : "rejected";
   request.reviewedAt = new Date().toISOString();
+  request.rejectionReason = approve ? null : String(rejectionReason || "").trim();
 
   if (approve) {
     const participantId = request.participantId || `request_${requestId}`;

@@ -93,8 +93,66 @@ export default async function handler(req, res) {
       });
     }
 
-    if (mode === "list") {
-      // La cuenta propietaria sigue siendo la autorización principal.
+    if (mode === "mine") {
+      const profileSnap = await db.collection("users").doc(uid).get();
+      const profile = profileSnap.exists ? profileSnap.data() : null;
+      const { entityType, entityId } = getEntityKey(profile);
+
+      if (!entityType || !entityId) {
+        return json(res, 200, { success: true, requests: [], hasProfile: false });
+      }
+
+      const tournamentsSnap = await db.collection("tournaments").get();
+      const requests = [];
+
+      tournamentsSnap.forEach((tournamentDoc) => {
+        const tournament = { id: tournamentDoc.id, ...tournamentDoc.data() };
+        const events = tournament.events && typeof tournament.events === "object"
+          ? tournament.events
+          : {};
+
+        Object.entries(events).forEach(([currentEventId, event]) => {
+          if (!event?.pro || event.pro.status === "finished") return;
+
+          const matching = Object.entries(getRequests(event))
+            .map(([id, request]) => ({ id, ...request }))
+            .filter((request) =>
+              request.uid === uid &&
+              request.entityType === entityType &&
+              request.entityId === entityId
+            )
+            .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+
+          if (!matching.length) return;
+
+          const current = matching.find(requestIsCurrent) || matching[0];
+          if (!current) return;
+
+          requests.push({
+            id: current.id,
+            tournamentId: tournament.id,
+            eventId: currentEventId,
+            tournamentName: tournament.name || tournament.title || "Torneo NEXUS",
+            gameId: event.gameId || null,
+            status: current.status || "pending",
+            rejectionReason: current.rejectionReason || null,
+            createdAt: current.createdAt || null,
+            reviewedAt: current.reviewedAt || null,
+            hasProof: Boolean(current.proof?.url)
+          });
+        });
+      });
+
+      requests.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+
+      return json(res, 200, {
+        success: true,
+        hasProfile: true,
+        requests
+      });
+    }
+
+    if (mode === "list") {      // La cuenta propietaria sigue siendo la autorización principal.
       // Como NEXUS permite trabajar desde el EntityContext de la organización,
       // también aceptamos el usuario que tiene este torneo como entidad actual.
       let canManage = tournament.ownerId === uid;
@@ -178,7 +236,17 @@ export default async function handler(req, res) {
         ? entity.name || entity.shortName || entityId
         : entity.gamertag || entity.name || [entity.firstName, entity.lastName].filter(Boolean).join(" ") || entityId;
 
-      const requestId = `request_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const previousRejected = Object.entries(requests)
+        .map(([id, request]) => ({ id, ...request }))
+        .filter((request) =>
+          request.uid === uid &&
+          request.entityType === entityType &&
+          request.entityId === entityId &&
+          request.status === "rejected"
+        )
+        .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))[0] || null;
+
+      const requestId = previousRejected?.id || `request_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const createdAt = new Date().toISOString();
       const request = {
         uid,

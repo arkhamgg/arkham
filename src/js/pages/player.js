@@ -7,6 +7,7 @@ import { getGames } from "../services/gameCatalog.js";
 import { getEntities } from "../services/firestore.js";
 import { updateEntity } from "../services/firestore.js";
 import { uploadImage } from "../services/imagekit.js";
+import { getMyTournamentRegistrationRequests } from "../services/tournamentRegistration.js";
 
 const ROLE_OPTIONS = [
   ["streamer", "Streamer"],
@@ -29,7 +30,8 @@ export function PlayerView({ view = "competitions" } = {}) {
   if (view === "profile") return PlayerProfileView();
 
   const page = document.createElement("main");
-  page.className = "player-view-page";
+  page.className = `player-view-page player-view-page--${escapeHtml(view)}`;
+
   const views = {
     competitions: ["COMPETITIVO", "Mis competencias", "Aquí aparecerán las competencias en las que participes."],
     requests: ["COMPETITIVO", "Solicitudes a torneo", "Consulta el estado de tus solicitudes y gestiona nuevos intentos."],
@@ -37,8 +39,93 @@ export function PlayerView({ view = "competitions" } = {}) {
     stats: ["COMPETITIVO", "Estadísticas", "Tus estadísticas competitivas se construirán a partir de tus partidas registradas."]
   };
   const current = views[view] || views.competitions;
-  page.innerHTML = `<section class="player-view-page__content"><span class="player-view-page__eyebrow">${current[0]}</span><h1>${current[1]}</h1><p>${current[2]}</p><span class="player-view-page__status">MÓDULO PLAYER · EN CONSTRUCCIÓN</span></section>`;
+
+  page.innerHTML = `<section class="player-view-page__content">
+    <header class="player-view-page__header">
+      <span class="player-view-page__eyebrow">${current[0]}</span>
+      <h1>${current[1]}</h1>
+      <p>${current[2]}</p>
+    </header>
+    <div class="player-view-page__body" data-player-view-body>
+      <span class="player-view-page__status">Cargando...</span>
+    </div>
+  </section>`;
+
+  if (view === "requests") {
+    loadPlayerTournamentRequests(page);
+  } else {
+    page.querySelector("[data-player-view-body]").innerHTML =
+      `<span class="player-view-page__status">MÓDULO PLAYER · EN CONSTRUCCIÓN</span>`;
+  }
+
   return page;
+}
+
+async function loadPlayerTournamentRequests(page) {
+  const body = page.querySelector("[data-player-view-body]");
+  if (!body) return;
+
+  try {
+    const response = await getMyTournamentRegistrationRequests();
+    const requests = Array.isArray(response?.requests) ? response.requests : [];
+
+    if (!requests.length) {
+      body.innerHTML = `
+        <div class="player-requests-empty">
+          <i class="fa-regular fa-inbox" aria-hidden="true"></i>
+          <strong>No tienes solicitudes activas.</strong>
+          <span>Cuando solicites un asiento en un torneo aparecerá aquí mientras siga vigente.</span>
+        </div>`;
+      return;
+    }
+
+    const statusMeta = {
+      pending: { label: "EN REVISIÓN", icon: "fa-hourglass-half", className: "is-pending" },
+      approved: { label: "ASIENTO APROBADO", icon: "fa-circle-check", className: "is-approved" },
+      rejected: { label: "RECHAZADA", icon: "fa-circle-xmark", className: "is-rejected" }
+    };
+
+    body.innerHTML = `
+      <div class="player-requests-list">
+        ${requests.map((request) => {
+          const status = statusMeta[request.status] || statusMeta.pending;
+          const retryUrl = `/competitions/event?tournamentId=${encodeURIComponent(request.tournamentId)}&eventId=${encodeURIComponent(request.eventId)}`;
+          return `
+            <article class="player-request-card ${status.className}">
+              <div class="player-request-card__status">
+                <i class="fa-solid ${status.icon}" aria-hidden="true"></i>
+                <span>${status.label}</span>
+              </div>
+              <div class="player-request-card__main">
+                <span class="player-request-card__eyebrow">TORNEO</span>
+                <h2>${escapeHtml(request.tournamentName)}</h2>
+                <span>${escapeHtml(request.gameId || "Competencia NEXUS")}</span>
+              </div>
+              ${request.status === "rejected" && request.rejectionReason ? `
+                <div class="player-request-card__reason">
+                  <span>MOTIVO DEL RECHAZO</span>
+                  <p>${escapeHtml(request.rejectionReason)}</p>
+                </div>` : ""}
+              <div class="player-request-card__footer">
+                <span>${request.status === "pending" ? "El organizador está revisando tu solicitud." : request.status === "approved" ? "Tu asiento ya fue otorgado." : "Puedes volver a solicitar el asiento."}</span>
+                ${request.status === "rejected" ? `
+                  <a class="player-request-card__retry" href="${retryUrl}">
+                    <span>VOLVER A INTENTAR</span>
+                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                  </a>` : ""}
+              </div>
+            </article>`;
+        }).join("")}
+      </div>`;
+  } catch (error) {
+    console.error("NEXUS — Error cargando solicitudes del Player:", error);
+    body.innerHTML = `
+      <div class="player-requests-empty is-error">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <strong>No fue posible cargar tus solicitudes.</strong>
+        <span>${escapeHtml(error?.message || "Intenta nuevamente más tarde.")}</span>
+      </div>`;
+  }
 }
 
 function PlayerProfileView() {
