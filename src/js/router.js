@@ -122,8 +122,6 @@ const routes = {
   "/dashboard/player/competitive-profile":
     () => PlayerCompetitiveProfileView(),
 
-  "/dashboard/settings":
-    () => PlayerView({ view: "settings" }),
 
   "/dashboard/tournaments/new":
     TournamentBuilder,
@@ -215,7 +213,6 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
   "/dashboard/player/stats",
   "/dashboard/player/profile",
   "/dashboard/player/competitive-profile",
-  "/dashboard/settings",
   "/dashboard/tournaments/new",
   "/dashboard/tournaments/edit",
   "/dashboard/tournaments/pro",

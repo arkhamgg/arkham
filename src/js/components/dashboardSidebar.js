@@ -68,8 +68,7 @@ const NAVIGATION_BY_ENTITY = {
 const ACCOUNT_NAVIGATION_BY_ENTITY = {
   player: [
     { id: "profile", label: "Mi perfil", icon: "fa-user-circle" },
-    { id: "competitive-profile", label: "Perfil competitivo", icon: "fa-crosshairs" },
-    { id: "settings", label: "Configuración", icon: "fa-gear" }
+    { id: "competitive-profile", label: "Perfil competitivo", icon: "fa-crosshairs" }
   ],
   default: [
     { id: "profile", label: "Perfil", icon: "fa-user-circle" },

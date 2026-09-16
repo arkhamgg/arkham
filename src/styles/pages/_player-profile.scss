@@ -1,0 +1,342 @@
+// ========================================
+// NEXUS — Player Profile
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+.player-profile-page,
+.player-competitive-profile-page {
+  min-height: 100vh;
+  padding: $space-12 $space-10 $space-16;
+  background: $color-black;
+  color: $color-white;
+}
+
+.player-profile-page__content,
+.player-competitive-profile-page__content {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+}
+
+.player-profile-page__content > header,
+.player-competitive-profile-page__content > header {
+  margin-bottom: $space-8;
+
+  span {
+    display: inline-block;
+    margin-bottom: $space-2;
+    color: $color-red-light;
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: $font-size-3xl;
+    line-height: 1.05;
+    letter-spacing: -.03em;
+  }
+
+  p {
+    max-width: 680px;
+    margin: $space-3 0 0;
+    color: $color-300;
+    font-size: $font-size-md;
+    line-height: 1.6;
+  }
+}
+
+.player-profile-form,
+.competitive-profile-form {
+  display: grid;
+  gap: $space-6;
+  padding: $space-8;
+  border: 1px solid $color-800;
+  border-radius: $radius-lg;
+  background: $color-900;
+}
+
+.player-profile-form__photo {
+  display: grid;
+  gap: $space-3;
+  padding-bottom: $space-6;
+  border-bottom: 1px solid $color-800;
+
+  > label,
+  section > h2,
+  .competitive-profile-form__roles > span {
+    color: $color-100;
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+}
+
+.player-profile-form__photo-row {
+  display: flex;
+  align-items: center;
+  gap: $space-5;
+  flex-wrap: wrap;
+}
+
+.player-profile-form__photo-preview {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border: 1px solid $color-700;
+  border-radius: $radius-full;
+  background: $color-800;
+  color: $color-500;
+  font-size: $font-size-2xl;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.player-profile-form__photo-row span {
+  color: $color-500;
+  font-size: $font-size-xs;
+}
+
+.player-profile-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-5;
+}
+
+.player-profile-form label,
+.competitive-profile-form > label,
+.competitive-profile-form__game > label {
+  display: grid;
+  gap: $space-2;
+  color: $color-300;
+  font-size: $font-size-sm;
+  font-weight: 600;
+}
+
+.player-profile-form input:not([type="checkbox"]):not([type="file"]),
+.competitive-profile-form select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 $space-4;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  outline: 0;
+  background: $color-800;
+  color: $color-white;
+  font: inherit;
+  transition: border-color $transition-base $ease-standard, background $transition-base $ease-standard;
+
+  &:focus {
+    border-color: $color-red;
+    background: $color-900;
+  }
+}
+
+.player-profile-form section {
+  display: grid;
+  gap: $space-4;
+  padding-top: $space-6;
+  border-top: 1px solid $color-800;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.player-profile-form__roles,
+.competitive-profile-form__roles {
+  display: flex;
+  gap: $space-3;
+  flex-wrap: wrap;
+}
+
+.player-profile-form__roles label,
+.competitive-profile-form__roles label {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  min-height: 40px;
+  padding: 0 $space-4;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-800;
+  color: $color-100;
+  cursor: pointer;
+
+  &:has(input:checked) {
+    border-color: $color-red;
+    background: $color-900;
+  }
+
+  input {
+    accent-color: $color-red;
+  }
+}
+
+.player-profile-form footer,
+.competitive-profile-form footer {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  padding-top: $space-2;
+}
+
+.player-profile-form button,
+.competitive-profile-form button {
+  min-height: 44px;
+  padding: 0 $space-5;
+  border: 0;
+  border-radius: $radius-md;
+  background: $color-red;
+  color: $color-white;
+  font: inherit;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: background $transition-base $ease-standard, transform $transition-fast $ease-standard;
+
+  &:hover:not(:disabled) {
+    background: $color-red-light;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+}
+
+[data-player-profile-message],
+[data-competitive-message] {
+  color: $color-success;
+  font-size: $font-size-sm;
+}
+
+// Competitive profile
+.competitive-profile-form {
+  gap: $space-5;
+}
+
+.competitive-profile-form__intro {
+  display: grid;
+  gap: $space-2;
+  padding-bottom: $space-5;
+  border-bottom: 1px solid $color-800;
+
+  strong {
+    color: $color-white;
+    font-size: $font-size-lg;
+  }
+
+  span {
+    color: $color-300;
+    font-size: $font-size-sm;
+    line-height: 1.5;
+  }
+}
+
+.competitive-profile-form__games {
+  display: grid;
+  gap: $space-5;
+}
+
+.competitive-profile-form__game {
+  display: grid;
+  gap: $space-5;
+  padding: $space-6;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-950;
+}
+
+.competitive-profile-form__game-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: $color-white;
+  font-size: $font-size-sm;
+
+  button {
+    min-height: 34px;
+    padding: 0 $space-3;
+    background: transparent;
+    color: $color-300;
+    border: 1px solid $color-700;
+
+    &:hover:not(:disabled) {
+      background: $color-800;
+      color: $color-white;
+      transform: none;
+    }
+  }
+}
+
+.competitive-profile-form__roles {
+  display: grid;
+  gap: $space-3;
+
+  > span {
+    margin-bottom: $space-1;
+  }
+
+  em {
+    color: $color-500;
+    font-size: $font-size-sm;
+    font-style: normal;
+  }
+}
+
+.competitive-profile-form__add {
+  justify-self: start;
+  background: transparent !important;
+  border: 1px solid $color-700 !important;
+  color: $color-100 !important;
+
+  &:hover:not(:disabled) {
+    background: $color-800 !important;
+    border-color: $color-500 !important;
+  }
+}
+
+.competitive-profile-form small {
+  color: $color-500;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .player-profile-page,
+  .player-competitive-profile-page {
+    padding: $space-8 $space-4 $space-12;
+  }
+
+  .player-profile-form,
+  .competitive-profile-form {
+    padding: $space-5;
+  }
+
+  .player-profile-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .player-profile-form footer,
+  .competitive-profile-form footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .player-profile-form footer button,
+  .competitive-profile-form footer button {
+    width: 100%;
+  }
+}

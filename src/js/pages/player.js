@@ -23,7 +23,6 @@ function escapeHtml(value = "") {
 
 export function PlayerView({ view = "competitions" } = {}) {
   if (view === "profile") return PlayerProfileView();
-  if (view === "settings") { const page = document.createElement("main"); page.className="player-view-page"; page.innerHTML=`<section class="player-view-page__content"><span class="player-view-page__eyebrow">CUENTA</span><h1>Configuración</h1><p>Configuración general de tu cuenta NEXUS.</p></section>`; return page; }
 
   const page = document.createElement("main");
   page.className = "player-view-page";
