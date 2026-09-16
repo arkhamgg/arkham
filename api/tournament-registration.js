@@ -148,18 +148,537 @@ export default async function handler(req, res) {
 
 
     // ========================================
-    // PLAYER — MY REQUESTS
+    // POST — SUBMIT REQUEST
     // ========================================
     //
     // IMPORTANT:
-    // mode=mine does NOT require tournamentId
-    // or eventId.
+    // POST must be handled BEFORE the GET
+    // modes.
     //
-    // This mode searches the tournaments/events
-    // where this Player has an active request.
+    // The frontend sends:
     //
-    // Therefore getTournamentContext() MUST NOT
-    // execute before this block.
+    // POST /api/tournament-registration
+    //
+    // {
+    //   action: "submit",
+    //   proof
+    // }
+    //
+    // It does not need to send mode=status.
+    // Previously the default mode "status"
+    // intercepted the POST before reaching
+    // action=submit.
+    // ========================================
+
+    if (req.method === "POST") {
+
+      // ======================================
+      // ACTION
+      // ======================================
+
+      const action =
+        String(
+          req.body?.action ||
+          "submit"
+        )
+          .trim()
+          .toLowerCase();
+
+
+      // ======================================
+      // SUBMIT
+      // ======================================
+
+      if (action === "submit") {
+
+        // ------------------------------------
+        // Player profile
+        // ------------------------------------
+
+        const profileSnap =
+          await db
+            .collection("users")
+            .doc(uid)
+            .get();
+
+        const profile =
+          profileSnap.exists
+            ? profileSnap.data()
+            : null;
+
+        const {
+          entityType,
+          entityId
+        } = getEntityKey(profile);
+
+
+        if (!entityType || !entityId) {
+
+          return json(
+            res,
+            400,
+            {
+              success: false,
+              error:
+                "Tu cuenta NEXUS no tiene un perfil competitivo."
+            }
+          );
+
+        }
+
+
+        // ------------------------------------
+        // Tournament / Event context
+        // ------------------------------------
+
+        const {
+          ref,
+          tournament,
+          event
+        } = await getTournamentContext(
+          db,
+          tournamentId,
+          eventId
+        );
+
+
+        // ------------------------------------
+        // Registration deadline
+        // ------------------------------------
+
+        const registration =
+          event.pro.registration ||
+          {};
+
+        const deadline =
+          event.registrationDeadline ||
+          registration.deadline ||
+          null;
+
+
+        if (
+          deadline &&
+          Date.now() >=
+            new Date(deadline).getTime()
+        ) {
+
+          return json(
+            res,
+            400,
+            {
+              success: false,
+              error:
+                "El período de inscripción ya finalizó."
+            }
+          );
+
+        }
+
+
+        // ------------------------------------
+        // Existing active request
+        // ------------------------------------
+
+        const requests =
+          getRequests(event);
+
+
+        const existing =
+          Object.entries(requests)
+            .map(
+              ([
+                id,
+                request
+              ]) => ({
+                id,
+                ...request
+              })
+            )
+            .find(
+              (request) =>
+                request.uid === uid &&
+                request.entityType ===
+                  entityType &&
+                request.entityId ===
+                  entityId &&
+                requestIsCurrent(request)
+            );
+
+
+        if (existing) {
+
+          return json(
+            res,
+            409,
+            {
+              success: false,
+
+              error:
+                existing.status ===
+                "approved"
+                  ? "Tu asiento ya fue otorgado."
+                  : "Ya tienes una solicitud en revisión.",
+
+              request: {
+                id:
+                  existing.id,
+
+                status:
+                  existing.status
+              }
+            }
+          );
+
+        }
+
+
+        // ------------------------------------
+        // Capacity
+        // ------------------------------------
+
+        const activeParticipants =
+          Object.values(
+            event.pro.participants ||
+              {}
+          )
+            .filter(
+              (participant) =>
+                ![
+                  "rejected",
+                  "withdrawn",
+                  "no_show"
+                ].includes(
+                  participant.status
+                )
+            )
+            .length;
+
+
+        const capacity =
+          Number(
+            event.capacity?.value ||
+            event.capacity ||
+            event.pro.capacity?.value ||
+            event.pro.capacity ||
+            0
+          );
+
+
+        if (
+          capacity > 0 &&
+          activeParticipants >=
+            capacity
+        ) {
+
+          return json(
+            res,
+            400,
+            {
+              success: false,
+              error:
+                "Los cupos de este torneo ya están completos."
+            }
+          );
+
+        }
+
+
+        // ------------------------------------
+        // Registration requirements
+        // ------------------------------------
+
+        const requiresProof =
+          (
+            event.registrationRequirements
+              ?.requirements ||
+            []
+          )
+            .some(
+              (requirement) =>
+                requirement?.requiresProof ===
+                true
+            );
+
+
+        const proof =
+          req.body?.proof ||
+          null;
+
+
+        if (
+          event.registrationRequirements
+            ?.enabled &&
+          requiresProof &&
+          !proof?.url
+        ) {
+
+          return json(
+            res,
+            400,
+            {
+              success: false,
+              error:
+                "Debes adjuntar el comprobante requerido."
+            }
+          );
+
+        }
+
+
+        // ------------------------------------
+        // Existing participant
+        // ------------------------------------
+
+        const existingParticipant =
+          event.pro.participants?.[
+            `${entityType}_${entityId}`
+          ];
+
+
+        if (
+          existingParticipant &&
+          ![
+            "rejected",
+            "withdrawn",
+            "no_show"
+          ].includes(
+            existingParticipant.status
+          )
+        ) {
+
+          return json(
+            res,
+            409,
+            {
+              success: false,
+              error:
+                "Este participante ya tiene un asiento en el torneo."
+            }
+          );
+
+        }
+
+
+        // ------------------------------------
+        // Competitive entity
+        // ------------------------------------
+
+        const participantCollection =
+          entityType === "team"
+            ? "teams"
+            : "players";
+
+
+        const entitySnap =
+          await db
+            .collection(
+              participantCollection
+            )
+            .doc(entityId)
+            .get();
+
+
+        if (!entitySnap.exists) {
+
+          return json(
+            res,
+            400,
+            {
+              success: false,
+              error:
+                "No se encontró el perfil competitivo."
+            }
+          );
+
+        }
+
+
+        const entity =
+          entitySnap.data() ||
+          {};
+
+
+        const displayName =
+          entityType === "team"
+            ? (
+                entity.name ||
+                entity.shortName ||
+                entityId
+              )
+            : (
+                entity.gamertag ||
+                entity.name ||
+                [
+                  entity.firstName,
+                  entity.lastName
+                ]
+                  .filter(Boolean)
+                  .join(" ") ||
+                entityId
+              );
+
+
+        // ------------------------------------
+        // Previous rejected request
+        // ------------------------------------
+        //
+        // Reuse the latest rejected request
+        // instead of creating unlimited
+        // historical request objects.
+        // ------------------------------------
+
+        const previousRejected =
+          Object.entries(requests)
+            .map(
+              ([
+                id,
+                request
+              ]) => ({
+                id,
+                ...request
+              })
+            )
+            .filter(
+              (request) =>
+                request.uid === uid &&
+                request.entityType ===
+                  entityType &&
+                request.entityId ===
+                  entityId &&
+                request.status ===
+                  "rejected"
+            )
+            .sort(
+              (a, b) =>
+                String(
+                  b.createdAt || ""
+                ).localeCompare(
+                  String(
+                    a.createdAt || ""
+                  )
+                )
+            )[0] || null;
+
+
+        const requestId =
+          previousRejected?.id ||
+          `request_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 8)}`;
+
+
+        const createdAt =
+          new Date().toISOString();
+
+
+        const request = {
+
+          uid,
+
+          entityType,
+
+          entityId,
+
+          participantId:
+            `${entityType}_${entityId}`,
+
+          displayName,
+
+          status:
+            "pending",
+
+          proof,
+
+          requirements:
+            event.registrationRequirements ||
+            null,
+
+          createdAt,
+
+          reviewedAt:
+            null,
+
+          rejectionReason:
+            null
+        };
+
+
+        // ------------------------------------
+        // Save request
+        // ------------------------------------
+
+        await ref.update({
+
+          [
+            `events.${eventId}.pro.registration.requests.${requestId}`
+          ]:
+            request
+
+        });
+
+
+        return json(
+          res,
+          201,
+          {
+            success: true,
+
+            request: {
+              id:
+                requestId,
+
+              ...request
+            }
+          }
+        );
+      }
+
+
+      // ======================================
+      // INVALID ACTION
+      // ======================================
+
+      return json(
+        res,
+        400,
+        {
+          success: false,
+          error:
+            "Acción de registro no válida."
+        }
+      );
+    }
+
+
+    // ========================================
+    // ONLY GET BELOW THIS POINT
+    // ========================================
+
+    if (req.method !== "GET") {
+
+      return json(
+        res,
+        405,
+        {
+          success: false,
+          error:
+            "Método no permitido."
+        }
+      );
+
+    }
+
+
+    // ========================================
+    // PLAYER — MY REQUESTS
+    // ========================================
+    //
+    // mode=mine does NOT require
+    // tournamentId or eventId.
+    //
+    // It searches active tournaments/events
+    // for requests belonging to the current
+    // Player.
     // ========================================
 
     if (mode === "mine") {
@@ -216,9 +735,11 @@ export default async function handler(req, res) {
             ...tournamentDoc.data()
           };
 
+
           const events =
             tournament.events &&
-            typeof tournament.events === "object"
+            typeof tournament.events ===
+              "object"
               ? tournament.events
               : {};
 
@@ -237,9 +758,12 @@ export default async function handler(req, res) {
 
                 if (
                   !event?.pro ||
-                  event.pro.status === "finished"
+                  event.pro.status ===
+                    "finished"
                 ) {
+
                   return;
+
                 }
 
 
@@ -277,7 +801,9 @@ export default async function handler(req, res) {
 
 
                 if (!matching.length) {
+
                   return;
+
                 }
 
 
@@ -303,12 +829,16 @@ export default async function handler(req, res) {
 
 
                 if (!current) {
+
                   return;
+
                 }
 
 
                 requests.push({
-                  id: current.id,
+
+                  id:
+                    current.id,
 
                   tournamentId:
                     tournament.id,
@@ -345,6 +875,7 @@ export default async function handler(req, res) {
                     Boolean(
                       current.proof?.url
                     )
+
                 });
 
               }
@@ -555,6 +1086,7 @@ export default async function handler(req, res) {
             "tournament" &&
           profile?.entityId ===
             tournamentId;
+
       }
 
 
@@ -610,469 +1142,7 @@ export default async function handler(req, res) {
 
 
     // ========================================
-    // METHODS
-    // ========================================
-
-    if (req.method !== "POST") {
-
-      return json(
-        res,
-        405,
-        {
-          success: false,
-          error:
-            "Método no permitido."
-        }
-      );
-
-    }
-
-
-    // ========================================
-    // ACTION
-    // ========================================
-
-    const action =
-      String(
-        req.body?.action ||
-        "submit"
-      )
-        .trim()
-        .toLowerCase();
-
-
-    // ========================================
-    // SUBMIT
-    // ========================================
-
-    if (action === "submit") {
-
-      const profileSnap =
-        await db
-          .collection("users")
-          .doc(uid)
-          .get();
-
-      const profile =
-        profileSnap.exists
-          ? profileSnap.data()
-          : null;
-
-      const {
-        entityType,
-        entityId
-      } = getEntityKey(profile);
-
-
-      if (!entityType || !entityId) {
-
-        return json(
-          res,
-          400,
-          {
-            success: false,
-            error:
-              "Tu cuenta NEXUS no tiene un perfil competitivo."
-          }
-        );
-
-      }
-
-
-      // --------------------------------------
-      // Registration deadline
-      // --------------------------------------
-
-      const registration =
-        event.pro.registration ||
-        {};
-
-      const deadline =
-        event.registrationDeadline ||
-        registration.deadline ||
-        null;
-
-
-      if (
-        deadline &&
-        Date.now() >=
-          new Date(deadline).getTime()
-      ) {
-
-        return json(
-          res,
-          400,
-          {
-            success: false,
-            error:
-              "El período de inscripción ya finalizó."
-          }
-        );
-
-      }
-
-
-      // --------------------------------------
-      // Existing active request
-      // --------------------------------------
-
-      const requests =
-        getRequests(event);
-
-
-      const existing =
-        Object.entries(requests)
-          .map(
-            ([
-              id,
-              request
-            ]) => ({
-              id,
-              ...request
-            })
-          )
-          .find(
-            (request) =>
-              request.uid === uid &&
-              request.entityType ===
-                entityType &&
-              request.entityId ===
-                entityId &&
-              requestIsCurrent(request)
-          );
-
-
-      if (existing) {
-
-        return json(
-          res,
-          409,
-          {
-            success: false,
-
-            error:
-              existing.status ===
-              "approved"
-                ? "Tu asiento ya fue otorgado."
-                : "Ya tienes una solicitud en revisión.",
-
-            request: {
-              id:
-                existing.id,
-
-              status:
-                existing.status
-            }
-          }
-        );
-
-      }
-
-
-      // --------------------------------------
-      // Capacity
-      // --------------------------------------
-
-      const activeParticipants =
-        Object.values(
-          event.pro.participants ||
-            {}
-        )
-          .filter(
-            (participant) =>
-              ![
-                "rejected",
-                "withdrawn",
-                "no_show"
-              ].includes(
-                participant.status
-              )
-          )
-          .length;
-
-
-      const capacity =
-        Number(
-          event.capacity?.value ||
-          event.capacity ||
-          event.pro.capacity?.value ||
-          event.pro.capacity ||
-          0
-        );
-
-
-      if (
-        capacity > 0 &&
-        activeParticipants >=
-          capacity
-      ) {
-
-        return json(
-          res,
-          400,
-          {
-            success: false,
-            error:
-              "Los cupos de este torneo ya están completos."
-          }
-        );
-
-      }
-
-
-      // --------------------------------------
-      // Registration requirements
-      // --------------------------------------
-
-      const requiresProof =
-        (
-          event.registrationRequirements
-            ?.requirements ||
-          []
-        )
-          .some(
-            (requirement) =>
-              requirement?.requiresProof ===
-              true
-          );
-
-
-      const proof =
-        req.body?.proof ||
-        null;
-
-
-      if (
-        event.registrationRequirements
-          ?.enabled &&
-        requiresProof &&
-        !proof?.url
-      ) {
-
-        return json(
-          res,
-          400,
-          {
-            success: false,
-            error:
-              "Debes adjuntar el comprobante requerido."
-          }
-        );
-
-      }
-
-
-      // --------------------------------------
-      // Existing participant
-      // --------------------------------------
-
-      const existingParticipant =
-        event.pro.participants?.[
-          `${entityType}_${entityId}`
-        ];
-
-
-      if (
-        existingParticipant &&
-        ![
-          "rejected",
-          "withdrawn",
-          "no_show"
-        ].includes(
-          existingParticipant.status
-        )
-      ) {
-
-        return json(
-          res,
-          409,
-          {
-            success: false,
-            error:
-              "Este participante ya tiene un asiento en el torneo."
-          }
-        );
-
-      }
-
-
-      // --------------------------------------
-      // Competitive entity
-      // --------------------------------------
-
-      const participantCollection =
-        entityType === "team"
-          ? "teams"
-          : "players";
-
-
-      const entitySnap =
-        await db
-          .collection(
-            participantCollection
-          )
-          .doc(entityId)
-          .get();
-
-
-      if (!entitySnap.exists) {
-
-        return json(
-          res,
-          400,
-          {
-            success: false,
-            error:
-              "No se encontró el perfil competitivo."
-          }
-        );
-
-      }
-
-
-      const entity =
-        entitySnap.data() ||
-        {};
-
-
-      const displayName =
-        entityType === "team"
-          ? (
-              entity.name ||
-              entity.shortName ||
-              entityId
-            )
-          : (
-              entity.gamertag ||
-              entity.name ||
-              [
-                entity.firstName,
-                entity.lastName
-              ]
-                .filter(Boolean)
-                .join(" ") ||
-              entityId
-            );
-
-
-      // --------------------------------------
-      // Previous rejected request
-      // --------------------------------------
-      //
-      // We reuse the latest rejected request
-      // instead of creating an unlimited chain
-      // of historical request objects.
-      // --------------------------------------
-
-      const previousRejected =
-        Object.entries(requests)
-          .map(
-            ([
-              id,
-              request
-            ]) => ({
-              id,
-              ...request
-            })
-          )
-          .filter(
-            (request) =>
-              request.uid === uid &&
-              request.entityType ===
-                entityType &&
-              request.entityId ===
-                entityId &&
-              request.status ===
-                "rejected"
-          )
-          .sort(
-            (a, b) =>
-              String(
-                b.createdAt || ""
-              ).localeCompare(
-                String(
-                  a.createdAt || ""
-                )
-              )
-          )[0] || null;
-
-
-      const requestId =
-        previousRejected?.id ||
-        `request_${Date.now()}_${Math.random()
-          .toString(36)
-          .slice(2, 8)}`;
-
-
-      const createdAt =
-        new Date().toISOString();
-
-
-      const request = {
-
-        uid,
-
-        entityType,
-
-        entityId,
-
-        participantId:
-          `${entityType}_${entityId}`,
-
-        displayName,
-
-        status:
-          "pending",
-
-        proof,
-
-        requirements:
-          event.registrationRequirements ||
-          null,
-
-        createdAt,
-
-        reviewedAt:
-          null,
-
-        rejectionReason:
-          null
-      };
-
-
-      // --------------------------------------
-      // Save request
-      // --------------------------------------
-
-      await ref.update({
-
-        [
-          `events.${eventId}.pro.registration.requests.${requestId}`
-        ]:
-          request
-
-      });
-
-
-      return json(
-        res,
-        201,
-        {
-          success: true,
-
-          request: {
-            id:
-              requestId,
-
-            ...request
-          }
-        }
-      );
-    }
-
-
-    // ========================================
-    // INVALID ACTION
+    // INVALID GET MODE
     // ========================================
 
     return json(
@@ -1081,7 +1151,7 @@ export default async function handler(req, res) {
       {
         success: false,
         error:
-          "Acción de registro no válida."
+          "Modo de consulta no válido."
       }
     );
 
