@@ -106,62 +106,32 @@ export function PlayerCompetitiveProfileView() {
     ]);
 
     const state = page.querySelector("[data-competitive-profile-state]");
-    const profiles = Array.isArray(context.entity.competitiveProfiles)
-      ? context.entity.competitiveProfiles
+    const entity = context.entity || {};
+    const profiles = Array.isArray(entity.competitiveProfiles)
+      ? entity.competitiveProfiles
       : [];
 
-    // La relación con un Team es global para el Player.
-    // Se conserva compatibilidad con datos anteriores que guardaban teamId por juego.
-    const legacyTeamIds = profiles
-      .map((profile) => profile?.teamId)
-      .filter(Boolean);
-    const uniqueLegacyTeamIds = [...new Set(legacyTeamIds)];
-    let globalTeamId = context.entity.teamId || uniqueLegacyTeamIds[0] || null;
-    let teamSearch = globalTeamId
-      ? getTeamName(teams.find((team) => team.id === globalTeamId) || {})
-      : "";
+    let rows = profiles.map((profile) => ({
+      gameId: profile?.gameId || "",
+      roleIds: Array.isArray(profile?.roleIds) ? [...profile.roleIds] : [],
+      availability: ["available", "looking_for_team", "in_team"].includes(profile?.availability)
+        ? profile.availability
+        : "available"
+    }));
 
-    state.innerHTML = `<form class="competitive-profile-form" data-competitive-form>
-      <div class="competitive-profile-form__intro">
-        <strong>Tu perfil competitivo</strong>
-        <span>Puedes competir en varios juegos y tener varios roles dentro de cada uno. Tu Player solo puede pertenecer a un Team a la vez.</span>
-      </div>
+    if (!rows.length) rows.push({ gameId: "", roleIds: [], availability: "available" });
 
-      <section class="competitive-profile-form__team-section">
-        <div>
-          <span class="competitive-profile-form__section-label">TEAM</span>
-          <strong>Tu Team</strong>
-          <small>La pertenencia a un Team es global, no por juego. La confirmación formal del Team se gestionará posteriormente.</small>
-        </div>
-        <div class="competitive-profile-form__team-picker">
-          <label for="player-team-search">Buscar Team por nombre o ID</label>
-          <div class="competitive-profile-form__team-search">
-            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input id="player-team-search" type="search" data-team-search value="${escapeHtml(teamSearch)}" placeholder="Ej. BlackNode Predators o ID" autocomplete="off" role="combobox" aria-expanded="false">
-          </div>
-          <div class="competitive-profile-form__team-results" data-team-results role="listbox" hidden></div>
-          <div class="competitive-profile-form__team-current" data-team-current>
-            ${globalTeamId
-              ? `<span>Team seleccionado</span><strong>${escapeHtml(getTeamName(teams.find((team) => team.id === globalTeamId) || {}))}</strong><small>ID: ${escapeHtml(globalTeamId)}</small><button type="button" class="competitive-profile-form__team-clear" data-team-clear>QUITAR TEAM</button>`
-              : `<span>Ningún Team seleccionado</span><small>Selecciona uno si actualmente perteneces a un Team.</small>`}
-          </div>
-        </div>
-      </section>
+    // Team es una relación global. teamId solo representa una pertenencia CONFIRMADA.
+    let globalTeamId = entity.teamId || null;
+    let pendingTeamId = entity.teamRequest?.status === "pending"
+      ? entity.teamRequest?.teamId || null
+      : null;
+    let pendingRequestedAt = entity.teamRequest?.requestedAt || null;
+    let teamSearch = "";
+    let editingIndex = null;
 
-      <div class="competitive-profile-form__games" data-games></div>
-      <button type="button" class="competitive-profile-form__add" data-add-game><i class="fa-solid fa-plus"></i> AGREGAR JUEGO</button>
-      <footer><button type="submit">GUARDAR PERFIL COMPETITIVO</button><span data-competitive-message></span></footer>
-    </form>`;
-
-    const gamesContainer = state.querySelector("[data-games]");
-
-    let rows = profiles.length
-      ? profiles.map((profile) => ({
-          gameId: profile?.gameId || "",
-          roleIds: Array.isArray(profile?.roleIds) ? [...profile.roleIds] : [],
-          availability: profile?.availability || "available"
-        }))
-      : [{ gameId: "", roleIds: [], availability: "available" }];
+    const getTeam = (teamId) => teams.find((team) => team.id === teamId) || null;
+    const getTeamLabel = (teamId) => getTeam(teamId) ? getTeamName(getTeam(teamId)) : teamId || "Team";
 
     function getRoleEntries(game) {
       const roles = game?.competitiveInfo?.roles || [];
@@ -184,45 +154,145 @@ export function PlayerCompetitiveProfileView() {
       return [];
     }
 
-    function renderRows() {
-      gamesContainer.innerHTML = rows.map((profile, index) => {
-        const game = games.find((item) => item.id === profile.gameId);
-        const roleEntries = getRoleEntries(game);
+    function renderTeamSection() {
+      const confirmed = getTeam(globalTeamId);
+      const pending = getTeam(pendingTeamId);
 
-        return `<article class="competitive-profile-form__game" data-game-row="${index}">
-          <div class="competitive-profile-form__game-head">
-            <strong>JUEGO ${String(index + 1).padStart(2, "0")}</strong>
-            ${rows.length > 1 ? `<button type="button" data-remove-game="${index}" aria-label="Eliminar juego"><i class="fa-solid fa-xmark"></i></button>` : ""}
+      return `<section class="competitive-profile-form__team-section">
+        <div>
+          <span class="competitive-profile-form__section-label">TEAM</span>
+          <strong>Tu Team</strong>
+          <small>La pertenencia es global. Un Player solo puede tener un Team confirmado a la vez.</small>
+        </div>
+        <div class="competitive-profile-form__team-picker">
+          ${confirmed ? `
+            <div class="competitive-profile-form__team-current competitive-profile-form__team-current--confirmed">
+              <span>TEAM ACTUAL · CONFIRMADO</span>
+              <strong>${escapeHtml(getTeamName(confirmed))}</strong>
+              <small>ID: ${escapeHtml(confirmed.id)}</small>
+              <button type="button" class="competitive-profile-form__team-action" data-change-team>CAMBIAR DE TEAM</button>
+            </div>` : ""}
+
+          ${pending ? `
+            <div class="competitive-profile-form__team-pending">
+              <div class="competitive-profile-form__team-pending-icon"><i class="fa-solid fa-clock"></i></div>
+              <div>
+                <span>SOLICITUD PENDIENTE</span>
+                <strong>${escapeHtml(getTeamName(pending))}</strong>
+                <small>El Team debe aceptar tu solicitud. Tu Team actual no cambia hasta que exista una confirmación.</small>
+              </div>
+              <div class="competitive-profile-form__team-pending-actions">
+                <button type="button" class="competitive-profile-form__team-action" data-change-team>CAMBIAR SOLICITUD</button>
+                <button type="button" class="competitive-profile-form__team-cancel" data-clear-team-request>CANCELAR SOLICITUD</button>
+              </div>
+            </div>` : ""}
+
+          ${!confirmed && !pending ? `
+            <div class="competitive-profile-form__team-empty-state">
+              <strong>Aún no tienes un Team</strong>
+              <span>Puedes buscar uno y enviar una solicitud de incorporación.</span>
+            </div>` : ""}
+
+          <div class="competitive-profile-form__team-search-wrap" data-team-search-wrap ${confirmed && !pending ? 'hidden' : ''}>
+            <label for="player-team-search">${pending ? "Buscar otro Team" : confirmed ? "Buscar nuevo Team" : "Buscar Team"}</label>
+            <div class="competitive-profile-form__team-search">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input id="player-team-search" type="search" data-team-search value="${escapeHtml(teamSearch)}" placeholder="Nombre, short name o ID" autocomplete="off" role="combobox" aria-expanded="false">
+            </div>
+            <div class="competitive-profile-form__team-results" data-team-results role="listbox" hidden></div>
           </div>
+        </div>
+      </section>`;
+    }
 
-          <label>Juego<select data-game-select="${index}">
-            <option value="">Selecciona un juego</option>
-            ${games.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === profile.gameId ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}
-          </select></label>
+    function renderGameEditor(index) {
+      const profile = rows[index];
+      const game = games.find((item) => item.id === profile.gameId);
+      const roleEntries = getRoleEntries(game);
 
-          <div class="competitive-profile-form__roles">
-            <span>ROLES · PUEDES ELEGIR VARIOS</span>
-            ${roleEntries.length
-              ? roleEntries.map(([id, label]) => `<label><input type="checkbox" data-role="${index}" value="${escapeHtml(id)}" ${profile.roleIds.includes(id) ? "checked" : ""}><span>${escapeHtml(label)}</span></label>`).join("")
-              : `<em>${profile.gameId ? "Este juego no tiene roles competitivos configurados." : "Selecciona un juego para cargar sus roles."}</em>`}
+      return `<article class="competitive-profile-form__game competitive-profile-form__game--editing" data-game-row="${index}">
+        <div class="competitive-profile-form__game-head">
+          <div><span>CONFIGURANDO</span><strong>JUEGO ${String(index + 1).padStart(2, "0")}</strong></div>
+          ${rows.length > 1 ? `<button type="button" data-remove-game="${index}" aria-label="Eliminar juego"><i class="fa-solid fa-xmark"></i></button>` : ""}
+        </div>
+
+        <label>Juego<select data-game-select="${index}">
+          <option value="">Selecciona un juego</option>
+          ${games.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === profile.gameId ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}
+        </select></label>
+
+        <div class="competitive-profile-form__roles">
+          <span>ROLES · PUEDES ELEGIR VARIOS</span>
+          ${roleEntries.length
+            ? `<div class="competitive-profile-form__role-options">${roleEntries.map(([id, label]) => `<label><input type="checkbox" data-role="${index}" value="${escapeHtml(id)}" ${profile.roleIds.includes(id) ? "checked" : ""}><span>${escapeHtml(label)}</span></label>`).join("")}</div>`
+            : `<em>${profile.gameId ? "Este juego no tiene roles competitivos configurados." : "Selecciona un juego para cargar sus roles."}</em>`}
+        </div>
+
+        <label>Disponibilidad para este juego<select data-availability="${index}">
+          <option value="available" ${profile.availability === "available" ? "selected" : ""}>Disponible</option>
+          <option value="looking_for_team" ${profile.availability === "looking_for_team" ? "selected" : ""}>Buscando Team</option>
+          <option value="in_team" ${profile.availability === "in_team" ? "selected" : ""}>Compito con mi Team</option>
+        </select></label>
+
+        ${profile.availability === "in_team"
+          ? `<div class="competitive-profile-form__team-note ${globalTeamId ? "" : "is-warning"}">
+              <i class="fa-solid ${globalTeamId ? "fa-link" : "fa-triangle-exclamation"}"></i>
+              <span>${globalTeamId
+                ? `Este juego utilizará tu Team confirmado: <strong>${escapeHtml(getTeamLabel(globalTeamId))}</strong>.`
+                : "Selecciona o confirma un Team global antes de indicar que compites con él."}</span>
+            </div>`
+          : ""}
+      </article>`;
+    }
+
+    function renderGameCard(profile, index) {
+      const game = games.find((item) => item.id === profile.gameId);
+      const roles = profile.roleIds || [];
+      const availability = {
+        available: ["Disponible", "is-available"],
+        looking_for_team: ["Buscando Team", "is-looking"],
+        in_team: ["Compitiendo con mi Team", "is-in-team"]
+      }[profile.availability] || ["Disponible", "is-available"];
+
+      return `<article class="competitive-profile-card">
+        <div class="competitive-profile-card__top">
+          <div class="competitive-profile-card__game-icon"><i class="fa-solid fa-gamepad"></i></div>
+          <div class="competitive-profile-card__identity"><span>JUEGO</span><h2>${escapeHtml(game?.name || profile.gameId)}</h2></div>
+          <button type="button" class="competitive-profile-card__edit" data-edit-game="${index}"><i class="fa-solid fa-pen"></i> ACTUALIZAR ESTE JUEGO</button>
+        </div>
+        <div class="competitive-profile-card__body">
+          <div><span>ROLES</span><div class="competitive-profile-card__roles">${roles.length ? roles.map((role) => `<span>${escapeHtml(role)}</span>`).join("") : "<em>Sin roles</em>"}</div></div>
+          <div><span>ESTADO</span><strong class="competitive-profile-card__status ${availability[1]}">${availability[0]}</strong></div>
+          ${profile.availability === "in_team" ? `<div><span>TEAM</span><strong>${escapeHtml(getTeamLabel(globalTeamId))}</strong></div>` : ""}
+        </div>
+      </article>`;
+    }
+
+    function render() {
+      state.innerHTML = `<form class="competitive-profile-form" data-competitive-form>
+        <div class="competitive-profile-form__intro">
+          <strong>Tu perfil competitivo</strong>
+          <span>Puedes competir en varios juegos y tener varios roles dentro de cada uno. Tu Player solo puede pertenecer a un Team confirmado a la vez.</span>
+        </div>
+
+        ${renderTeamSection()}
+
+        <section class="competitive-profile-form__games-section">
+          <div class="competitive-profile-form__section-header">
+            <div><span class="competitive-profile-form__section-label">JUEGOS</span><strong>Tu historial competitivo</strong><small>Agrega cada juego una sola vez y configura sus roles de forma independiente.</small></div>
           </div>
+          <div class="competitive-profile-form__games" data-games>
+            ${editingIndex !== null
+              ? renderGameEditor(editingIndex)
+              : rows.filter((profile) => profile.gameId).map(renderGameCard).join("") || `<div class="competitive-profile-form__games-empty"><i class="fa-solid fa-gamepad"></i><strong>Aún no has configurado juegos.</strong><span>Agrega tu primer juego para comenzar tu perfil competitivo.</span></div>`}
+          </div>
+          <button type="button" class="competitive-profile-form__add" data-add-game><i class="fa-solid fa-plus"></i> ${editingIndex !== null ? "AGREGAR OTRO JUEGO" : "AGREGAR JUEGO"}</button>
+        </section>
 
-          <label>Disponibilidad para este juego<select data-availability="${index}">
-            <option value="available" ${profile.availability === "available" ? "selected" : ""}>Disponible</option>
-            <option value="looking_for_team" ${profile.availability === "looking_for_team" ? "selected" : ""}>Buscando Team</option>
-            <option value="in_team" ${profile.availability === "in_team" ? "selected" : ""}>Compito con mi Team</option>
-          </select></label>
+        <footer><button type="submit">GUARDAR PERFIL COMPETITIVO</button><span data-competitive-message></span></footer>
+      </form>`;
 
-          ${profile.availability === "in_team"
-            ? `<div class="competitive-profile-form__team-note ${globalTeamId ? "" : "is-warning"}">
-                <i class="fa-solid ${globalTeamId ? "fa-link" : "fa-triangle-exclamation"}"></i>
-                <span>${globalTeamId
-                  ? `Este juego utilizará tu Team global: <strong>${escapeHtml(getTeamName(teams.find((team) => team.id === globalTeamId) || {}))}</strong>.`
-                  : "Selecciona primero tu Team global arriba para indicar que compites con él."}</span>
-              </div>`
-            : ""}
-        </article>`;
-      }).join("");
+      bind();
     }
 
     function renderTeamResults(query = "") {
@@ -238,15 +308,13 @@ export function PlayerCompetitiveProfileView() {
         return;
       }
 
-      const matches = teams
-        .filter((team) => {
-          const haystack = [team.id, team.name, team.shortName, team.teamName]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-          return haystack.includes(normalized);
-        })
-        .slice(0, 10);
+      const matches = teams.filter((team) => {
+        const haystack = [team.id, team.name, team.shortName, team.teamName]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(normalized);
+      }).slice(0, 10);
 
       results.innerHTML = matches.length
         ? matches.map((team) => `<button type="button" class="competitive-profile-form__team-result" data-team-result data-team-id="${escapeHtml(team.id)}" role="option"><strong>${escapeHtml(getTeamName(team))}</strong><span>${escapeHtml(team.id)}</span></button>`).join("")
@@ -256,91 +324,122 @@ export function PlayerCompetitiveProfileView() {
       input.setAttribute("aria-expanded", "true");
     }
 
-    state.querySelector("[data-team-search]").addEventListener("input", (event) => {
-      teamSearch = event.target.value;
-      renderTeamResults(teamSearch);
-    });
+    function bind() {
+      const form = state.querySelector("[data-competitive-form]");
+      const gamesContainer = state.querySelector("[data-games]");
+      const teamInput = state.querySelector("[data-team-search]");
 
-    state.querySelector("[data-team-search]").addEventListener("focus", (event) => {
-      renderTeamResults(event.target.value);
-    });
+      if (teamInput) {
+        teamInput.addEventListener("input", (event) => {
+          teamSearch = event.target.value;
+          renderTeamResults(teamSearch);
+        });
+        teamInput.addEventListener("focus", (event) => renderTeamResults(event.target.value));
+      }
 
-    state.addEventListener("click", (event) => {
+      if (!state.dataset.clickBound) {
+        state.addEventListener("click", handleClick);
+        state.dataset.clickBound = "true";
+      }
+
+      if (gamesContainer) {
+        gamesContainer.addEventListener("change", (event) => {
+          const gameSelect = event.target.closest("[data-game-select]");
+          if (gameSelect) {
+            const index = Number(gameSelect.dataset.gameSelect);
+            rows[index].gameId = gameSelect.value;
+            rows[index].roleIds = [];
+            editingIndex = index;
+            render();
+            return;
+          }
+
+          const roleInput = event.target.closest("[data-role]");
+          if (roleInput) {
+            const index = Number(roleInput.dataset.role);
+            rows[index].roleIds = [...gamesContainer.querySelectorAll(`[data-role="${index}"]:checked`)].map((input) => input.value);
+            return;
+          }
+
+          const availability = event.target.closest("[data-availability]");
+          if (availability) {
+            const index = Number(availability.dataset.availability);
+            rows[index].availability = availability.value;
+            editingIndex = index;
+            render();
+          }
+        });
+      }
+
+      if (form) {
+        form.addEventListener("submit", handleSubmit);
+      }
+    }
+
+    function handleClick(event) {
       const result = event.target.closest("[data-team-result]");
       if (result) {
         const team = teams.find((item) => item.id === result.dataset.teamId);
         if (!team) return;
 
-        globalTeamId = team.id;
-        teamSearch = getTeamName(team);
-        state.querySelector("[data-team-search]").value = teamSearch;
-        renderTeamResults("");
-        renderRows();
-        renderTeamCurrent();
+        if (team.id === globalTeamId) {
+          pendingTeamId = null;
+          pendingRequestedAt = null;
+        } else {
+          pendingTeamId = team.id;
+          pendingRequestedAt = new Date().toISOString();
+        }
+
+        teamSearch = "";
+        render();
         return;
       }
 
-      const clear = event.target.closest("[data-team-clear]");
-      if (clear) {
-        globalTeamId = null;
-        teamSearch = "";
-        state.querySelector("[data-team-search]").value = "";
-        renderTeamResults("");
-        renderTeamCurrent();
-        renderRows();
+      const changeTeam = event.target.closest("[data-change-team]");
+      if (changeTeam) {
+        const wrap = state.querySelector("[data-team-search-wrap]");
+        if (wrap) wrap.hidden = false;
+        const input = state.querySelector("[data-team-search]");
+        input?.focus();
+        return;
       }
-    });
 
-    function renderTeamCurrent() {
-      const current = state.querySelector("[data-team-current]");
-      if (!current) return;
+      const edit = event.target.closest("[data-edit-game]");
+      if (edit) {
+        editingIndex = Number(edit.dataset.editGame);
+        render();
+        return;
+      }
 
-      const selectedTeam = teams.find((team) => team.id === globalTeamId);
-      current.innerHTML = selectedTeam
-        ? `<span>Team seleccionado</span><strong>${escapeHtml(getTeamName(selectedTeam))}</strong><small>ID: ${escapeHtml(selectedTeam.id)}</small><button type="button" class="competitive-profile-form__team-clear" data-team-clear>QUITAR TEAM</button>`
-        : `<span>Ningún Team seleccionado</span><small>Selecciona uno si actualmente perteneces a un Team.</small>`;
+      const remove = event.target.closest("[data-remove-game]");
+      if (remove) {
+        const index = Number(remove.dataset.removeGame);
+        rows.splice(index, 1);
+        if (!rows.length) rows.push({ gameId: "", roleIds: [], availability: "available" });
+        editingIndex = null;
+        render();
+        return;
+      }
+
+      const add = event.target.closest("[data-add-game]");
+      if (add) {
+        rows.push({ gameId: "", roleIds: [], availability: "available" });
+        editingIndex = rows.length - 1;
+        render();
+        return;
+      }
+
+      const clearPending = event.target.closest("[data-clear-team-request]");
+      if (clearPending) {
+        pendingTeamId = null;
+        pendingRequestedAt = null;
+        teamSearch = "";
+        render();
+      }
     }
 
-    gamesContainer.addEventListener("change", (event) => {
-      const gameSelect = event.target.closest("[data-game-select]");
-      if (gameSelect) {
-        const index = Number(gameSelect.dataset.gameSelect);
-        rows[index].gameId = gameSelect.value;
-        rows[index].roleIds = [];
-        renderRows();
-        return;
-      }
-
-      const roleInput = event.target.closest("[data-role]");
-      if (roleInput) {
-        const index = Number(roleInput.dataset.role);
-        rows[index].roleIds = [...gamesContainer.querySelectorAll(`[data-role="${index}"]:checked`)].map((input) => input.value);
-        return;
-      }
-
-      const availability = event.target.closest("[data-availability]");
-      if (availability) {
-        const index = Number(availability.dataset.availability);
-        rows[index].availability = availability.value;
-        renderRows();
-      }
-    });
-
-    gamesContainer.addEventListener("click", (event) => {
-      const remove = event.target.closest("[data-remove-game]");
-      if (!remove) return;
-      rows.splice(Number(remove.dataset.removeGame), 1);
-      renderRows();
-    });
-
-    state.querySelector("[data-add-game]").addEventListener("click", () => {
-      rows.push({ gameId: "", roleIds: [], availability: "available" });
-      renderRows();
-    });
-
-    state.querySelector("form").addEventListener("submit", async (event) => {
+    async function handleSubmit(event) {
       event.preventDefault();
-
       const message = state.querySelector("[data-competitive-message]");
       const button = state.querySelector("button[type=submit]");
       const clean = rows
@@ -359,29 +458,49 @@ export function PlayerCompetitiveProfileView() {
       }
 
       if (clean.some((profile) => profile.availability === "in_team") && !globalTeamId) {
-        message.textContent = "Selecciona tu Team global antes de indicar que compites con él.";
+        message.textContent = "Necesitas un Team confirmado para indicar que compites con él.";
         return;
+      }
+
+      if (pendingTeamId === globalTeamId) {
+        pendingTeamId = null;
+        pendingRequestedAt = null;
       }
 
       button.disabled = true;
       message.textContent = "Guardando...";
 
       try {
-        await updateEntity("players", context.id, {
+        const update = {
           teamId: globalTeamId,
           competitiveProfiles: clean
-        });
+        };
+
+        if (pendingTeamId) {
+          update.teamRequest = {
+            teamId: pendingTeamId,
+            status: "pending",
+            requestedAt: pendingRequestedAt || new Date().toISOString()
+          };
+        } else {
+          update.teamRequest = null;
+        }
+
+        await updateEntity("players", context.id, update);
         message.textContent = "Perfil competitivo actualizado correctamente.";
+        editingIndex = null;
+        render();
+        state.querySelector("[data-competitive-message]").textContent = "Perfil competitivo actualizado correctamente.";
       } catch (error) {
         console.error("NEXUS — Error actualizando perfil competitivo:", error);
         message.textContent = "No se pudo guardar el perfil competitivo.";
       } finally {
-        button.disabled = false;
+        const currentButton = state.querySelector("button[type=submit]");
+        if (currentButton) currentButton.disabled = false;
       }
-    });
+    }
 
-    renderRows();
-    renderTeamCurrent();
+    render();
   })().catch((error) => {
     console.error("NEXUS — Error cargando perfil competitivo:", error);
     page.querySelector("[data-competitive-profile-state]").textContent = "No se pudo cargar el perfil competitivo.";
