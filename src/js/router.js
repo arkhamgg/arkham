@@ -13,6 +13,7 @@ import { CreateTeam } from "./pages/createTeam.js";
 import { CreatePlayer } from "./pages/createPlayer.js";
 import { Teams } from "./pages/teams.js";
 import { Players } from "./pages/players.js";
+import { PlayerView, PlayerCompetitiveProfileView } from "./pages/player.js";
 import { TournamentBuilder } from "./pages/tournamentBuilder.js";
 import { TournamentPro } from "./pages/tournamentPro.js";
 import { CompetitionLanding } from "./pages/competitionLanding.js";
@@ -23,7 +24,6 @@ import { Upgrade } from "./pages/upgrade.js";
 import { Payment } from "./pages/payment.js";
 
 import { PublicShell } from "./components/publicShell.js";
-
 import { DashboardShell } from "./components/dashboardShell.js";
 
 // ========================================
@@ -101,6 +101,44 @@ const routes = {
   "/players":
     Players,
 
+  // ======================================
+  // PLAYER
+  // ======================================
+
+  "/dashboard/player/competitions":
+    () =>
+      PlayerView({
+        view: "competitions"
+      }),
+
+  "/dashboard/player/requests":
+    () =>
+      PlayerView({
+        view: "requests"
+      }),
+
+  "/dashboard/player/results":
+    () =>
+      PlayerView({
+        view: "results"
+      }),
+
+  "/dashboard/player/stats":
+    () =>
+      PlayerView({
+        view: "stats"
+      }),
+
+  "/dashboard/player/profile":
+    PlayerView,
+
+  "/dashboard/player/competitive-profile":
+    PlayerCompetitiveProfileView,
+
+  // ======================================
+  // TOURNAMENT
+  // ======================================
+
   "/dashboard/tournaments/new":
     TournamentBuilder,
 
@@ -110,6 +148,10 @@ const routes = {
   "/dashboard/tournaments/pro":
     TournamentPro,
 
+  // ======================================
+  // BILLING
+  // ======================================
+
   "/dashboard/billing":
     Billing,
 
@@ -118,6 +160,10 @@ const routes = {
 
   "/dashboard/billing/payment":
     Payment,
+
+  // ======================================
+  // CALENDAR
+  // ======================================
 
   "/calendar":
     Calendar,
@@ -137,6 +183,7 @@ const routes = {
 
   "/dashboard/admin/plans":
     AdminPlans,
+
   "/dashboard/admin/capabilities":
     AdminCapabilities,
 
@@ -185,9 +232,30 @@ const ADMIN_ROUTES = new Set([
 const CLIENT_DASHBOARD_ROUTES = new Set([
 
   "/dashboard",
+
+  // --------------------------------------
+  // PLAYER
+  // --------------------------------------
+
+  "/dashboard/player/competitions",
+  "/dashboard/player/requests",
+  "/dashboard/player/results",
+  "/dashboard/player/stats",
+  "/dashboard/player/profile",
+  "/dashboard/player/competitive-profile",
+
+  // --------------------------------------
+  // TOURNAMENT
+  // --------------------------------------
+
   "/dashboard/tournaments/new",
   "/dashboard/tournaments/edit",
   "/dashboard/tournaments/pro",
+
+  // --------------------------------------
+  // BILLING
+  // --------------------------------------
+
   "/dashboard/billing",
   "/dashboard/billing/upgrade",
   "/dashboard/billing/payment"
@@ -526,7 +594,6 @@ export function Router(app) {
       app.innerHTML =
         "";
 
-
       app.appendChild(
         shell
       );
@@ -560,10 +627,8 @@ export function Router(app) {
         app.innerHTML =
           "";
 
-
         const page =
           Home();
-
 
         app.appendChild(
           page
