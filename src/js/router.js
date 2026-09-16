@@ -17,6 +17,8 @@ import { TournamentPro } from "./pages/tournamentPro.js";
 import { CompetitionLanding } from "./pages/competitionLanding.js";
 import { CompetitionDetail } from "./pages/competitionDetail.js";
 import { Calendar } from "./pages/calendar.js";
+import { PlayerView } from "./pages/player.js";
+import { PlayersPage } from "./pages/players.js";
 import { Billing } from "./pages/billing.js";
 import { Upgrade } from "./pages/upgrade.js";
 import { Payment } from "./pages/payment.js";
@@ -96,6 +98,24 @@ const routes = {
 
   "/teams":
     Teams,
+
+  "/players":
+    PlayersPage,
+
+  "/dashboard/player/competitions":
+    () => PlayerView({ view: "competitions" }),
+
+  "/dashboard/player/requests":
+    () => PlayerView({ view: "requests" }),
+
+  "/dashboard/player/results":
+    () => PlayerView({ view: "results" }),
+
+  "/dashboard/player/stats":
+    () => PlayerView({ view: "stats" }),
+
+  "/dashboard/player/profile":
+    () => PlayerView({ view: "profile" }),
 
   "/dashboard/tournaments/new":
     TournamentBuilder,
@@ -181,6 +201,11 @@ const ADMIN_ROUTES = new Set([
 const CLIENT_DASHBOARD_ROUTES = new Set([
 
   "/dashboard",
+  "/dashboard/player/competitions",
+  "/dashboard/player/requests",
+  "/dashboard/player/results",
+  "/dashboard/player/stats",
+  "/dashboard/player/profile",
   "/dashboard/tournaments/new",
   "/dashboard/tournaments/edit",
   "/dashboard/tournaments/pro",

@@ -6,50 +6,59 @@ import { logout } from "../services/auth.js";
 
 
 // ========================================
-// GLOBAL NAVIGATION
+// NAVIGATION BY ENTITY
 // ========================================
 
-const GLOBAL_NAVIGATION = [
-  {
-    group: "PRINCIPAL",
-    items: [
-      {
-        id: "overview",
-        label: "Overview",
-        icon: "fa-grid-2"
-      }
-    ]
-  },
+const NAVIGATION_BY_ENTITY = {
 
-  {
-    group: "EXPLORAR",
-    items: [
-      {
-        id: "competitions",
-        label: "Competencias",
-        icon: "fa-trophy"
-      },
+  player: [
+    {
+      group: "PRINCIPAL",
+      items: [
+        { id: "overview", label: "Mi NEXUS", icon: "fa-grid-2" }
+      ]
+    },
 
-      {
-        id: "teams",
-        label: "Equipos",
-        icon: "fa-users"
-      },
+    {
+      group: "COMPETITIVO",
+      items: [
+        { id: "player-competitions", label: "Mis competencias", icon: "fa-trophy" },
+        { id: "player-requests", label: "Solicitudes a torneo", icon: "fa-ticket" },
+        { id: "player-results", label: "Mis resultados", icon: "fa-ranking-star" },
+        { id: "player-stats", label: "Estadísticas", icon: "fa-chart-simple" }
+      ]
+    },
 
-      {
-        id: "players",
-        label: "Jugadores",
-        icon: "fa-user"
-      },
+    {
+      group: "EXPLORAR",
+      items: [
+        { id: "competitions", label: "Competencias", icon: "fa-trophy" },
+        { id: "teams", label: "Teams", icon: "fa-users" },
+        { id: "players", label: "Players", icon: "fa-user" },
+        { id: "calendar", label: "Calendario", icon: "fa-calendar-days" }
+      ]
+    }
+  ],
 
-      {
-        id: "calendar",
-        label: "Calendario",
-        icon: "fa-calendar-days"
-      }
-    ]
-  }
-];
+  default: [
+    {
+      group: "PRINCIPAL",
+      items: [
+        { id: "overview", label: "Overview", icon: "fa-grid-2" }
+      ]
+    },
+
+    {
+      group: "EXPLORAR",
+      items: [
+        { id: "competitions", label: "Competencias", icon: "fa-trophy" },
+        { id: "teams", label: "Equipos", icon: "fa-users" },
+        { id: "players", label: "Jugadores", icon: "fa-user" },
+        { id: "calendar", label: "Calendario", icon: "fa-calendar-days" }
+      ]
+    }
+  ]
+};
 
 
 // ========================================
@@ -75,6 +84,16 @@ const ACCOUNT_NAVIGATION = [
     icon: "fa-bolt"
   }
 ];
+
+
+function getNavigationForEntity(entityType) {
+
+  return (
+    NAVIGATION_BY_ENTITY[entityType] ||
+    NAVIGATION_BY_ENTITY.default
+  );
+
+}
 
 
 // ========================================
@@ -105,6 +124,9 @@ export function DashboardSidebar({
   container.className =
     "dashboard-sidebar";
 
+  let navigation =
+    getNavigationForEntity(entityType);
+
 
   // ========================================
   // MOBILE NAV STATE
@@ -120,7 +142,7 @@ export function DashboardSidebar({
   function getAllNavigationItems() {
 
     const globalItems =
-      GLOBAL_NAVIGATION.flatMap(
+      navigation.flatMap(
         group => group.items
       );
 
@@ -226,7 +248,7 @@ export function DashboardSidebar({
         aria-label="Navegación de Mi NEXUS"
       >
 
-        ${GLOBAL_NAVIGATION
+        ${navigation
           .map(
             group => `
               <div
@@ -373,7 +395,7 @@ export function DashboardSidebar({
         <!-- PRINCIPAL / EXPLORAR -->
         <!-- ================================= -->
 
-        ${GLOBAL_NAVIGATION
+        ${navigation
           .map(
             group => `
               <div
@@ -761,6 +783,9 @@ export function DashboardSidebar({
 
     access =
       accessContext;
+
+    navigation =
+      getNavigationForEntity(entityType);
 
     render();
 

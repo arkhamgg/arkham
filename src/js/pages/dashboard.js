@@ -1073,6 +1073,129 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
 
   // ========================================
+  // PLAYER DASHBOARD
+  // ========================================
+
+  function renderPlayerDashboard(entityContext) {
+
+    const entity =
+      entityContext?.entity || {};
+
+    const gamertag =
+      entity.gamertag ||
+      entity.name ||
+      "Jugador NEXUS";
+
+    const roles =
+      Array.isArray(entity.roles)
+        ? entity.roles
+        : [];
+
+    const roleLabels = {
+      streamer: "Streamer",
+      content_creator: "Creador de contenido",
+      influencer: "Influencer",
+      competitive_player: "Jugador competitivo"
+    };
+
+    const rolesText =
+      roles.length
+        ? roles.map(role => roleLabels[role] || role).join(" · ")
+        : "Perfil NEXUS";
+
+    const workspace =
+      main?.querySelector(".dashboard-workspace");
+
+    if (!workspace) return;
+
+    workspace.innerHTML = `
+
+      <section class="player-dashboard">
+
+        <header class="player-dashboard__hero">
+
+          <div>
+            <span class="player-dashboard__eyebrow">PLAYER PROFILE</span>
+            <h2>${escapeHtml(gamertag)}</h2>
+            <p>${escapeHtml(rolesText)}</p>
+          </div>
+
+          <a
+            class="player-dashboard__profile-link"
+            href="/dashboard/player/profile"
+            data-player-profile
+          >
+            <i class="fa-solid fa-user" aria-hidden="true"></i>
+            Mi perfil
+          </a>
+
+        </header>
+
+        <div class="player-dashboard__grid">
+
+          <article class="player-dashboard__card player-dashboard__card--primary">
+            <span>COMPETENCIAS</span>
+            <strong>0</strong>
+            <p>Eventos en los que has participado.</p>
+          </article>
+
+          <article class="player-dashboard__card">
+            <span>SOLICITUDES</span>
+            <strong>0</strong>
+            <p>Solicitudes a torneos pendientes.</p>
+          </article>
+
+          <article class="player-dashboard__card">
+            <span>RESULTADOS</span>
+            <strong>0</strong>
+            <p>Resultados registrados en NEXUS.</p>
+          </article>
+
+          <article class="player-dashboard__card">
+            <span>TÍTULOS</span>
+            <strong>0</strong>
+            <p>Reconocimientos obtenidos.</p>
+          </article>
+
+        </div>
+
+        <section class="player-dashboard__section">
+          <div class="player-dashboard__section-header">
+            <div>
+              <span>COMPETITIVO</span>
+              <h3>Tu actividad competitiva</h3>
+            </div>
+          </div>
+
+          <div class="player-dashboard__empty">
+            <div class="player-dashboard__empty-icon">
+              <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
+            </div>
+            <h4>Aún no tienes competencias.</h4>
+            <p>Explora competencias disponibles y solicita tu lugar para comenzar tu historial competitivo.</p>
+            <a href="/competitions" class="player-dashboard__action">
+              Explorar competencias
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </a>
+          </div>
+        </section>
+
+      </section>
+
+    `;
+
+    page.querySelectorAll("[data-player-profile]").forEach(link => {
+      link.addEventListener("click", event => {
+        event.preventDefault();
+        window.history.pushState({}, "", "/dashboard/player/profile");
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      });
+    });
+
+  }
+
+
+  // ========================================
   // LOAD NEXUS CONTEXT
   // ========================================
 
@@ -1165,6 +1288,24 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
           await loadCompetitions(
             entityContext.id
           );
+
+        }
+
+        if (
+          entityContext.type ===
+            "player"
+        ) {
+
+          renderPlayerDashboard(
+            entityContext
+          );
+
+          headerDescription.textContent =
+            `Bienvenido, ${
+              entityContext.entity?.gamertag ||
+              entityContext.entity?.name ||
+              "jugador"
+            }.`;
 
         }
 
