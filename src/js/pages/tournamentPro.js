@@ -151,6 +151,49 @@ export function TournamentPro() {
         `;
       };
 
+      const matchStatusLabel = (status) => ({
+        pending: "PENDIENTE",
+        live: "EN VIVO",
+        completed: "COMPLETADO",
+        bye: "BYE"
+      }[status] || String(status || "PENDIENTE").toUpperCase());
+
+      const renderMatchCard = (match, { slotA = null, slotB = null } = {}) => {
+        const participantAId = match.participantAId || slotA?.participantId || null;
+        const participantBId = match.participantBId || slotB?.participantId || null;
+        const hasBoth = Boolean(participantAId && participantBId);
+        const canStartMatch = eventLive && match.status === "pending" && hasBoth;
+        const canCompleteMatch = eventLive && match.status === "live" && hasBoth;
+
+        return `
+          <article class="tournament-pro-page__match tournament-pro-page__match--${escapeAttr(match.status || "pending")} ${canStartMatch ? "is-ready" : ""}" data-match-id="${escapeAttr(match.id)}">
+            <div class="tournament-pro-page__match-top">
+              <span class="tournament-pro-page__match-id">${escapeHtml(match.id)}</span>
+              <span class="tournament-pro-page__match-status">${escapeHtml(matchStatusLabel(match.status))}</span>
+            </div>
+            <div class="tournament-pro-page__match-player ${match.winnerId === participantAId ? "is-winner" : ""}">
+              <span>${escapeHtml(getParticipantName(participantAId))}</span>
+              ${canCompleteMatch ? `<button type="button" data-winner="${escapeAttr(participantAId)}" data-match="${escapeAttr(match.id)}">GANÓ</button>` : ""}
+            </div>
+            <div class="tournament-pro-page__match-player ${match.winnerId === participantBId ? "is-winner" : ""}">
+              <span>${escapeHtml(getParticipantName(participantBId))}</span>
+              ${canCompleteMatch ? `<button type="button" data-winner="${escapeAttr(participantBId)}" data-match="${escapeAttr(match.id)}">GANÓ</button>` : ""}
+            </div>
+            ${match.score ? `<div class="tournament-pro-page__score">Resultado · ${escapeHtml(formatScore(match.score))}</div>` : ""}
+            ${match.status === "bye" ? `<div class="tournament-pro-page__match-note"><i class="fa-solid fa-forward" aria-hidden="true"></i> BYE · avance automático</div>` : ""}
+            ${canStartMatch ? `<button type="button" class="tournament-pro-page__match-action" data-start-match="${escapeAttr(match.id)}"><i class="fa-solid fa-play" aria-hidden="true"></i> Iniciar match</button>` : ""}
+            ${canCompleteMatch ? `
+              <div class="tournament-pro-page__score-inputs">
+                <label><span>A</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-a="${escapeAttr(match.id)}"></label>
+                <span class="tournament-pro-page__score-separator">—</span>
+                <label><span>B</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-b="${escapeAttr(match.id)}"></label>
+              </div>
+              <small class="tournament-pro-page__match-helper">Selecciona GANÓ para cerrar el match y avanzar el bracket.</small>
+            ` : ""}
+          </article>
+        `;
+      };
+
       const render = () => {
         const stages = pro.bracket?.stages || [];
         const firstStage = stages.find((stage) => stage.bracket === "winners" && stage.number === 1);
@@ -327,16 +370,7 @@ export function TournamentPro() {
                       ${firstStage.matches.map((match) => {
                         const a = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 1}`];
                         const b = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 2}`];
-                        return `
-                          <article class="tournament-pro-page__match" data-match-index="${match.position || 0}">
-                            <div class="tournament-pro-page__match-top">
-                              <span class="tournament-pro-page__match-id">${escapeHtml(match.id)}</span>
-                              <span class="tournament-pro-page__match-status">${escapeHtml(match.status || "pending")}</span>
-                            </div>
-                            ${a ? renderSlot(a) : ""}
-                            ${b ? renderSlot(b) : ""}
-                          </article>
-                        `;
+                        return renderMatchCard(match, { slotA: a, slotB: b });
                       }).join("")}
                     </div>
                   </div>
@@ -349,13 +383,7 @@ export function TournamentPro() {
                       <div><strong>${escapeHtml(stage.bracket === "grand_final" ? "GRAND FINAL" : `${stage.bracket === "losers" ? "LOSERS" : `RONDA ${stage.number}`}`)}</strong></div>
                     </div>
                     <div class="tournament-pro-page__matches">
-                      ${stage.matches.map((match) => `
-                        <article class="tournament-pro-page__match tournament-pro-page__match--future">
-                          <div class="tournament-pro-page__match-top"><span class="tournament-pro-page__match-id">${escapeHtml(match.id)}</span><span class="tournament-pro-page__match-status">${escapeHtml(match.status || "pendiente")}</span></div>
-                          <div class="tournament-pro-page__future-slot"><span>${escapeHtml(getParticipantName(match.participantAId))}</span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
-                          <div class="tournament-pro-page__future-slot"><span>${escapeHtml(getParticipantName(match.participantBId))}</span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
-                        </article>
-                      `).join("")}
+                      ${stage.matches.map((match) => renderMatchCard(match)).join("")}
                     </div>
                   </div>
                 `).join("")}
@@ -440,6 +468,35 @@ export function TournamentPro() {
         page.querySelectorAll("[data-present]").forEach((button) => button.addEventListener("click", () => runOperation(() => setParticipantCheckIn({ tournamentId, eventId, event, participantId: button.dataset.present, present: true }))));
         page.querySelectorAll("[data-noshow]").forEach((button) => button.addEventListener("click", () => runOperation(() => setParticipantCheckIn({ tournamentId, eventId, event, participantId: button.dataset.noshow, present: false }))));
 
+        page.querySelectorAll("[data-start-match]").forEach((button) => {
+          button.addEventListener("click", () => runOperation(() => startMatch({
+            tournamentId,
+            eventId,
+            event,
+            matchId: button.dataset.startMatch
+          })));
+        });
+
+        page.querySelectorAll("[data-winner]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const matchId = button.dataset.match;
+            const scoreA = page.querySelector(`[data-score-a="${cssEscape(matchId)}"]`)?.value;
+            const scoreB = page.querySelector(`[data-score-b="${cssEscape(matchId)}"]`)?.value;
+            const score = (scoreA !== undefined && scoreA !== "") || (scoreB !== undefined && scoreB !== "")
+              ? { a: Number(scoreA || 0), b: Number(scoreB || 0) }
+              : null;
+
+            return runOperation(() => completeMatch({
+              tournamentId,
+              eventId,
+              event,
+              matchId,
+              winnerId: button.dataset.winner,
+              score
+            }));
+          });
+        });
+
         page.querySelectorAll("[data-replace]").forEach((button) => {
           button.addEventListener("click", () => {
             const participant = pro.participants?.[button.dataset.replace];
@@ -517,40 +574,15 @@ export function TournamentPro() {
 
       const assignParticipant = async ({ entityType, entityId = null, displayName, manual = false }) => {
         if (!selectedSlotId) return;
-
         try {
-          if (replacementParticipantId) {
-            event = await replaceParticipantInSlot({
-              tournamentId,
-              eventId,
-              event,
-              slotId: selectedSlotId,
-              participantId: replacementParticipantId,
-              entityType,
-              entityId,
-              displayName,
-              manual
-            });
-          } else {
-            event = await addParticipantToSlot({
-              tournamentId,
-              eventId,
-              event,
-              slotId: selectedSlotId,
-              entityType,
-              entityId,
-              displayName,
-              manual
-            });
-          }
-
+          event = await addParticipantToSlot({ tournamentId, eventId, event, slotId: selectedSlotId, entityType, entityId, displayName, manual });
           pro = ensureTournamentProState(event);
           selectedSlotId = null;
           replacementParticipantId = null;
           modalOpen = false;
           render();
         } catch (error) {
-          window.alert(error.message || "No fue posible completar la operación.");
+          window.alert(error.message || "No fue posible agregar el participante.");
         }
       };
 
@@ -572,6 +604,18 @@ export function TournamentPro() {
 
   loadTournamentPro();
   return page;
+}
+
+function cssEscape(value) {
+  return typeof CSS !== "undefined" && CSS.escape
+    ? CSS.escape(value)
+    : String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+}
+
+function formatScore(score) {
+  if (!score || typeof score !== "object") return "";
+  if ("a" in score || "b" in score) return `${score.a ?? 0} — ${score.b ?? 0}`;
+  return Object.values(score).join(" — ");
 }
 
 function escapeHtml(value = "") {
