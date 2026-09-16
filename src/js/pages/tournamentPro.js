@@ -207,6 +207,7 @@ export function TournamentPro() {
         const eventLive = pro.status === "live";
         const eventFinished = pro.status === "finished";
         const canStart = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && assigned >= 2;
+        const canAddParticipant = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && assigned < Number(capacity || 0);
         const selectedSlot = slots.find((slot) => slot.seed && `seed-${slot.seed}` === selectedSlotId);
         const selectedParticipantName = selectedSlot?.participantId
           ? getParticipantName(selectedSlot.participantId)
@@ -267,9 +268,14 @@ export function TournamentPro() {
                   <strong>Antes de comenzar</strong>
                   <span>${assigned >= 2 ? "Hay suficientes participantes para iniciar el torneo." : "Necesitas al menos 2 participantes asignados para iniciar."}</span>
                 </div>
-                <button type="button" data-action="start-tournament" ${canStart ? "" : "disabled"}>
-                  <i class="fa-solid fa-play" aria-hidden="true"></i> Iniciar torneo
-                </button>
+                <div class="tournament-pro-page__operation-actions">
+                  <button type="button" data-action="add-participant" ${canAddParticipant ? "" : "disabled"}>
+                    <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Agregar participante
+                  </button>
+                  <button type="button" data-action="start-tournament" ${canStart ? "" : "disabled"}>
+                    <i class="fa-solid fa-play" aria-hidden="true"></i> Iniciar torneo
+                  </button>
+                </div>
               ` : checkInOpen ? `
                 <div>
                   <strong>Check-in en curso</strong>
@@ -460,6 +466,17 @@ export function TournamentPro() {
       const bind = () => {
         page.querySelectorAll("[data-action]").forEach((button) => button.addEventListener("click", () => {
           const action = button.dataset.action;
+          if (action === "add-participant") {
+            const emptySlot = Object.values(pro.bracket?.slots || {})
+              .filter((slot) => !slot.participantId)
+              .sort((a, b) => Number(a.seed) - Number(b.seed))[0];
+            if (!emptySlot) return window.alert("No hay posiciones disponibles en el bracket.");
+            selectedSlotId = `seed-${emptySlot.seed}`;
+            replacementParticipantId = null;
+            modalOpen = true;
+            render();
+            return requestAnimationFrame(() => page.querySelector("[data-slot-search-form] input")?.focus());
+          }
           if (action === "start-tournament") return runOperation(() => setCheckInOpen({ tournamentId, eventId, event, open: true }));
           if (action === "complete-checkin") return runOperation(() => completeCheckIn({ tournamentId, eventId, event }));
           if (action === "live") return runOperation(() => setEventStatus({ tournamentId, eventId, event, status: "live" }));
