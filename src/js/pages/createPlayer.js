@@ -433,6 +433,9 @@ export function CreatePlayer() {
           kick:
             formData.get("kick"),
 
+          roles:
+            formData.getAll("roles"),
+
           ownerId:
             user.uid
 

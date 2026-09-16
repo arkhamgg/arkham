@@ -611,6 +611,221 @@
 
 
   // ========================================
+  // NEXUS ROLES
+  // ========================================
+
+  &__roles {
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap:
+      $space-4;
+
+  }
+
+
+  &__role {
+
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    gap:
+      $space-4;
+
+    min-height: 88px;
+
+    padding:
+      $space-5;
+
+    border:
+      1px solid
+      $color-700;
+
+    border-radius:
+      $radius-md;
+
+    background:
+      $color-950;
+
+    cursor: pointer;
+
+    transition:
+      border-color
+        $transition-base
+        $ease-standard,
+      background
+        $transition-base
+        $ease-standard,
+      box-shadow
+        $transition-base
+        $ease-standard;
+
+  }
+
+
+  &__role:hover {
+
+    border-color:
+      $color-500;
+
+    background:
+      $color-900;
+
+  }
+
+
+  &__role > input {
+
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+  }
+
+
+  &__role-check {
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    width: 28px;
+    height: 28px;
+
+    border:
+      1px solid
+      $color-500;
+
+    border-radius:
+      $radius-sm;
+
+    color:
+      $color-white;
+
+    font-size:
+      $font-size-xs;
+
+    transition:
+      border-color
+        $transition-fast
+        $ease-standard,
+      background
+        $transition-fast
+        $ease-standard,
+      box-shadow
+        $transition-fast
+        $ease-standard;
+
+  }
+
+
+  &__role-check i {
+
+    opacity: 0;
+
+    transform: scale(0.7);
+
+    transition:
+      opacity
+        $transition-fast
+        $ease-standard,
+      transform
+        $transition-fast
+        $ease-standard;
+
+  }
+
+
+  &__role > input:checked + &__role-check {
+
+    border-color:
+      $color-red;
+
+    background:
+      $color-red;
+
+    box-shadow:
+      $glow-red-sm;
+
+  }
+
+
+  &__role > input:checked + &__role-check i {
+
+    opacity: 1;
+
+    transform: scale(1);
+
+  }
+
+
+  &__role:has(> input:checked) {
+
+    border-color:
+      $color-red;
+
+    background:
+      $color-900;
+
+  }
+
+
+  &__role-copy {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap:
+      $space-1;
+
+  }
+
+
+  &__role-copy strong {
+
+    color:
+      $color-white;
+
+    font-size:
+      $font-size-sm;
+
+    font-weight: 700;
+
+    letter-spacing:
+      0.05em;
+
+  }
+
+
+  &__role-copy small {
+
+    color:
+      $color-500;
+
+    font-size:
+      $font-size-xs;
+
+    line-height: 1.4;
+
+  }
+
+
+  // ========================================
   // INVALID
   // ========================================
 
@@ -694,6 +909,14 @@
 
       gap:
         $space-6;
+
+    }
+
+
+    &__roles {
+
+      grid-template-columns:
+        1fr;
 
     }
 

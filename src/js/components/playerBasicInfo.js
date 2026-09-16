@@ -416,6 +416,85 @@ export function PlayerBasicInfo() {
 
     </section>
 
+
+    <!-- ========================================
+         NEXUS ROLES
+    ======================================== -->
+
+    <section class="player-basic-info__section">
+
+      <header class="player-basic-info__section-header">
+
+        <div class="player-basic-info__section-number">
+          03
+        </div>
+
+        <div class="player-basic-info__section-heading">
+
+          <h2>
+            TU IDENTIDAD EN NEXUS
+          </h2>
+
+          <p>
+            Selecciona todas las opciones que representen
+            tu actividad dentro del gaming.
+          </p>
+
+        </div>
+
+      </header>
+
+
+      <div class="player-basic-info__roles">
+
+        <label class="player-basic-info__role">
+          <input type="checkbox" name="roles" value="streamer">
+          <span class="player-basic-info__role-check" aria-hidden="true">
+            <i class="fa-solid fa-check"></i>
+          </span>
+          <span class="player-basic-info__role-copy">
+            <strong>STREAMER</strong>
+            <small>Transmito contenido en vivo.</small>
+          </span>
+        </label>
+
+        <label class="player-basic-info__role">
+          <input type="checkbox" name="roles" value="content_creator">
+          <span class="player-basic-info__role-check" aria-hidden="true">
+            <i class="fa-solid fa-check"></i>
+          </span>
+          <span class="player-basic-info__role-copy">
+            <strong>CREADOR DE CONTENIDO</strong>
+            <small>Publico contenido relacionado con gaming.</small>
+          </span>
+        </label>
+
+        <label class="player-basic-info__role">
+          <input type="checkbox" name="roles" value="influencer">
+          <span class="player-basic-info__role-check" aria-hidden="true">
+            <i class="fa-solid fa-check"></i>
+          </span>
+          <span class="player-basic-info__role-copy">
+            <strong>INFLUENCER</strong>
+            <small>Construyo una comunidad alrededor de mi presencia.</small>
+          </span>
+        </label>
+
+        <label class="player-basic-info__role">
+          <input type="checkbox" name="roles" value="competitive_player">
+          <span class="player-basic-info__role-check" aria-hidden="true">
+            <i class="fa-solid fa-check"></i>
+          </span>
+          <span class="player-basic-info__role-copy">
+            <strong>JUGADOR COMPETITIVO</strong>
+            <small>Compito en torneos y competencias.</small>
+          </span>
+        </label>
+
+      </div>
+
+    </section>
+
   `;
 
 
