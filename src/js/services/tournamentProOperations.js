@@ -5,10 +5,10 @@
 import {
   getMapEntity,
   updateMapEntity,
-  getEntities,
-  createEntity,
-  getEntity
+  getEntities
 } from "./firestore.js";
+
+import { auth } from "./firebase.js";
 
 import {
   ensureTournamentProState,
@@ -969,133 +969,45 @@ export async function finalizeTournament({
     );
   }
 
-  const completedAt =
-    new Date().toISOString();
+  const user = auth.currentUser;
 
-  const standings =
-    officialResults.map(
-      (result) => ({
-        ...result
-      })
-    );
-
-  const recognitionRecords =
-    positions.map((position) => {
-      const result =
-        officialResults.find(
-          (item) =>
-            item.position === position
-        );
-
-      return {
-        position,
-        participantId:
-          result.participantId,
-        displayName:
-          result.displayName,
-        status:
-          RECOGNITION_STATUS.NOT_REQUESTED
-      };
-    });
-
-  pro.status =
-    TOURNAMENT_EVENT_STATUS.FINISHED;
-
-  pro.results = {
-    ...pro.results,
-    standings,
-    winnerIds: officialResults
-      .filter(
-        (result) =>
-          result.position === 1
-      )
-      .map(
-        (result) =>
-          result.participantId
-      ),
-    completedAt
-  };
-
-  pro.bracket.completedAt =
-    completedAt;
-
-  pro.recognition = {
-    enabled: true,
-    positions,
-    requests: {}
-  };
-
-  const history = {
-    competitionId: eventId,
-    tournamentId,
-    name: event.name || "",
-    gameId: event.gameId || null,
-    competitionOption:
-      event.competitionOption || null,
-    participationType:
-      event.participationType || null,
-    format:
-      event.format || null,
-    matchSystem:
-      event.matchSystem || null,
-    capacity:
-      event.capacity?.value ??
-      event.capacity ??
-      null,
-    dateTime:
-      event.dateTime ||
-      event.startDateTime ||
-      null,
-    location:
-      event.location || null,
-    registrationCost:
-      event.registrationCost ??
-      event.cost ??
-      null,
-    status: "completed",
-    results: {
-      first:
-        standings.find(
-          (result) => result.position === 1
-        ) || null,
-      second:
-        standings.find(
-          (result) => result.position === 2
-        ) || null,
-      third:
-        standings.find(
-          (result) => result.position === 3
-        ) || null
-    },
-    recognitions:
-      recognitionRecords,
-    completedAt
-  };
-
-  const existingHistory =
-    await getEntity(
-      "competitionHistory",
-      eventId
-    );
-
-  if (existingHistory) {
-    throw new Error(
-      "El historial de esta competencia ya existe."
-    );
+  if (!user) {
+    throw new Error("Debes iniciar sesión para finalizar el torneo.");
   }
 
-  await createEntity(
-    "competitionHistory",
-    history,
-    eventId
-  );
+  const token = await user.getIdToken();
 
-  return savePro(
-    tournamentId,
-    eventId,
-    event,
-    pro
-  );
+  const response = await fetch("/api/tournament-finalization", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      tournamentId,
+      eventId,
+      recognizedPositions: positions
+    })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data?.success === false) {
+    const error = new Error(
+      data?.error ||
+      "No fue posible finalizar el torneo."
+    );
+    error.status = response.status;
+    throw error;
+  }
+
+  return {
+    ...event,
+    pro: data.event?.pro || {
+      ...pro,
+      status: TOURNAMENT_EVENT_STATUS.FINISHED
+    }
+  };
 }
 
 export async function requestRecognition({
