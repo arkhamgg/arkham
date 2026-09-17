@@ -56,6 +56,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
   if (!session) {
 
     page.innerHTML = `
+
       <div class="dashboard-page__empty">
 
         <span
@@ -74,6 +75,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         </p>
 
       </div>
+
     `;
 
     return page;
@@ -354,6 +356,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
   const sidebar =
     dashboardSidebar;
 
+
   // ========================================
   // COMPETITIONS
   // ========================================
@@ -538,6 +541,14 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
                   "Online";
 
 
+            // ========================================
+            // EVENT STATUS
+            // ========================================
+
+            const isCompleted =
+              event?.status === "completed";
+
+
             return `
 
               <article
@@ -664,75 +675,108 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
                   class="dashboard-competition-card__actions"
                 >
 
-                  <button
-                    type="button"
-                    class="dashboard-competition-card__button dashboard-competition-card__button--primary"
-                    data-configure-event
-                    data-event-id="${escapeHtml(eventId)}"
-                  >
-                    <i
-                      class="fa-solid fa-sliders"
-                      aria-hidden="true"
-                    ></i>
-                    Configurar información
-                  </button>
-
                   ${
-                    currentEntityContext?.productId === "tournament" &&
-                    currentAccountContext?.subscription?.planId === "pro" &&
-                    hasEffectiveSubscriptionAccess(
-                      currentAccountContext.subscription
-                    )
+                    isCompleted
                       ? `
+
+                        <div
+                          class="dashboard-competition-card__status"
+                          aria-label="Evento terminado"
+                        >
+
+                          <i
+                            class="fa-solid fa-circle-check"
+                            aria-hidden="true"
+                          ></i>
+
+                          Evento terminado
+
+                        </div>
+
+                      `
+                      : `
+
+                        <button
+                          type="button"
+                          class="dashboard-competition-card__button dashboard-competition-card__button--primary"
+                          data-configure-event
+                          data-event-id="${escapeHtml(eventId)}"
+                        >
+
+                          <i
+                            class="fa-solid fa-sliders"
+                            aria-hidden="true"
+                          ></i>
+
+                          Configurar información
+
+                        </button>
+
+
+                        ${
+                          currentEntityContext?.productId === "tournament" &&
+                          currentAccountContext?.subscription?.planId === "pro" &&
+                          hasEffectiveSubscriptionAccess(
+                            currentAccountContext.subscription
+                          )
+                            ? `
+
+                              <button
+                                type="button"
+                                class="dashboard-competition-card__button"
+                                data-manage-event
+                                data-event-id="${escapeHtml(eventId)}"
+                              >
+
+                                <i
+                                  class="fa-solid fa-gamepad"
+                                  aria-hidden="true"
+                                ></i>
+
+                                Administrar
+
+                              </button>
+
+                            `
+                            : ""
+                        }
+
+
+                        <button
+                          type="button"
+                          class="dashboard-competition-card__button dashboard-competition-card__button--danger"
+                          data-delete-event
+                          data-event-id="${escapeHtml(eventId)}"
+                        >
+
+                          <i
+                            class="fa-solid fa-trash"
+                            aria-hidden="true"
+                          ></i>
+
+                          Eliminar
+
+                        </button>
+
+
                         <button
                           type="button"
                           class="dashboard-competition-card__button"
-                          data-manage-event
+                          data-view-event
                           data-event-id="${escapeHtml(eventId)}"
                         >
+
                           <i
-                            class="fa-solid fa-gamepad"
+                            class="fa-solid fa-arrow-up-right-from-square"
                             aria-hidden="true"
                           ></i>
-                          Administrar
+
+                          Ver evento
+
                         </button>
+
                       `
-                      : ""
                   }
-
-
-                  <button
-                    type="button"
-                    class="dashboard-competition-card__button dashboard-competition-card__button--danger"
-                    data-delete-event
-                    data-event-id="${escapeHtml(eventId)}"
-                  >
-
-                    <i
-                      class="fa-solid fa-trash"
-                      aria-hidden="true"
-                    ></i>
-
-                    Eliminar
-
-                  </button>
-
-
-                  <button
-                    type="button"
-                    class="dashboard-competition-card__button"
-                    data-view-event
-                    data-event-id="${escapeHtml(eventId)}"
-                  >
-
-                    <i
-                      class="fa-solid fa-arrow-up-right-from-square"
-                      aria-hidden="true"
-                    ></i>
-
-                    Ver evento
-
-                  </button>
 
                 </footer>
 
@@ -865,26 +909,56 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
           "[data-configure-event]"
         );
 
-      if (configureButton) {
-        const eventId = configureButton.dataset.eventId;
-        const tournamentId = currentTournamentId;
 
-        if (!tournamentId || !eventId) {
+      if (configureButton) {
+
+        const eventId =
+          configureButton.dataset.eventId;
+
+        const tournamentId =
+          currentTournamentId;
+
+
+        if (
+          !tournamentId ||
+          !eventId
+        ) {
+
           console.error(
             "NEXUS — No se pudo abrir la configuración del evento.",
-            { tournamentId, eventId }
+            {
+              tournamentId,
+              eventId
+            }
           );
+
           return;
+
         }
+
 
         const targetUrl =
           `/dashboard/tournaments/edit?tournamentId=${encodeURIComponent(
             tournamentId
           )}&eventId=${encodeURIComponent(eventId)}`;
 
-        window.history.pushState({}, "", targetUrl);
-        window.dispatchEvent(new PopStateEvent("popstate"));
+
+        window.history.pushState(
+          {},
+          "",
+          targetUrl
+        );
+
+
+        window.dispatchEvent(
+          new PopStateEvent(
+            "popstate"
+          )
+        );
+
+
         return;
+
       }
 
 
@@ -893,31 +967,68 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
           "[data-manage-event]"
         );
 
+
       if (manageButton) {
-        const eventId = manageButton.dataset.eventId;
-        const tournamentId = currentTournamentId;
-        const subscription = currentAccountContext?.subscription;
+
+        const eventId =
+          manageButton.dataset.eventId;
+
+        const tournamentId =
+          currentTournamentId;
+
+        const subscription =
+          currentAccountContext?.subscription;
+
         const hasEffectivePro =
           currentEntityContext?.productId === "tournament" &&
           subscription?.planId === "pro" &&
-          hasEffectiveSubscriptionAccess(subscription);
+          hasEffectiveSubscriptionAccess(
+            subscription
+          );
 
-        if (!tournamentId || !eventId || !hasEffectivePro) {
+
+        if (
+          !tournamentId ||
+          !eventId ||
+          !hasEffectivePro
+        ) {
+
           console.error(
             "NEXUS — No se pudo abrir la administración Pro del evento.",
-            { tournamentId, eventId, hasEffectivePro }
+            {
+              tournamentId,
+              eventId,
+              hasEffectivePro
+            }
           );
+
           return;
+
         }
+
 
         const targetUrl =
           `/dashboard/tournaments/pro?tournamentId=${encodeURIComponent(
             tournamentId
           )}&eventId=${encodeURIComponent(eventId)}`;
 
-        window.history.pushState({}, "", targetUrl);
-        window.dispatchEvent(new PopStateEvent("popstate"));
+
+        window.history.pushState(
+          {},
+          "",
+          targetUrl
+        );
+
+
+        window.dispatchEvent(
+          new PopStateEvent(
+            "popstate"
+          )
+        );
+
+
         return;
+
       }
 
 
@@ -995,6 +1106,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
             tournamentId
           );
 
+
         } catch (error) {
 
           console.error(
@@ -1056,7 +1168,11 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         window.history.pushState(
           {},
           "",
-          `/competitions/event?tournamentId=${encodeURIComponent(tournamentId)}&eventId=${encodeURIComponent(eventId)}`
+          `/competitions/event?tournamentId=${encodeURIComponent(
+            tournamentId
+          )}&eventId=${encodeURIComponent(
+            eventId
+          )}`
         );
 
 
@@ -1076,121 +1192,294 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
   // PLAYER DASHBOARD
   // ========================================
 
-  function renderPlayerDashboard(entityContext) {
+  function renderPlayerDashboard(
+    entityContext
+  ) {
 
     const entity =
       entityContext?.entity || {};
+
 
     const gamertag =
       entity.gamertag ||
       entity.name ||
       "Jugador NEXUS";
 
+
     const roles =
       Array.isArray(entity.roles)
         ? entity.roles
         : [];
 
+
     const roleLabels = {
-      streamer: "Streamer",
-      content_creator: "Creador de contenido",
-      influencer: "Influencer",
-      competitive_player: "Jugador competitivo"
+
+      streamer:
+        "Streamer",
+
+      content_creator:
+        "Creador de contenido",
+
+      influencer:
+        "Influencer",
+
+      competitive_player:
+        "Jugador competitivo"
+
     };
+
 
     const rolesText =
       roles.length
-        ? roles.map(role => roleLabels[role] || role).join(" · ")
+        ? roles
+            .map(
+              role =>
+                roleLabels[role] ||
+                role
+            )
+            .join(" · ")
         : "Perfil NEXUS";
 
+
     const workspace =
-      main?.querySelector(".dashboard-workspace");
+      main?.querySelector(
+        ".dashboard-workspace"
+      );
+
 
     if (!workspace) return;
+
 
     workspace.innerHTML = `
 
       <section class="player-dashboard">
 
-        <header class="player-dashboard__hero">
+        <header
+          class="player-dashboard__hero"
+        >
 
           <div>
-            <span class="player-dashboard__eyebrow">PLAYER PROFILE</span>
-            <h2>${escapeHtml(gamertag)}</h2>
-            <p>${escapeHtml(rolesText)}</p>
+
+            <span
+              class="player-dashboard__eyebrow"
+            >
+              PLAYER PROFILE
+            </span>
+
+            <h2>
+              ${escapeHtml(gamertag)}
+            </h2>
+
+            <p>
+              ${escapeHtml(rolesText)}
+            </p>
+
           </div>
+
 
           <a
             class="player-dashboard__profile-link"
             href="/dashboard/player/profile"
             data-player-profile
           >
-            <i class="fa-solid fa-user" aria-hidden="true"></i>
+
+            <i
+              class="fa-solid fa-user"
+              aria-hidden="true"
+            ></i>
+
             Mi perfil
+
           </a>
 
         </header>
 
-        <div class="player-dashboard__grid">
 
-          <article class="player-dashboard__card player-dashboard__card--primary">
-            <span>COMPETENCIAS</span>
-            <strong>0</strong>
-            <p>Eventos en los que has participado.</p>
+        <div
+          class="player-dashboard__grid"
+        >
+
+          <article
+            class="player-dashboard__card player-dashboard__card--primary"
+          >
+
+            <span>
+              COMPETENCIAS
+            </span>
+
+            <strong>
+              0
+            </strong>
+
+            <p>
+              Eventos en los que has participado.
+            </p>
+
           </article>
 
-          <article class="player-dashboard__card">
-            <span>SOLICITUDES</span>
-            <strong>0</strong>
-            <p>Solicitudes a torneos pendientes.</p>
+
+          <article
+            class="player-dashboard__card"
+          >
+
+            <span>
+              SOLICITUDES
+            </span>
+
+            <strong>
+              0
+            </strong>
+
+            <p>
+              Solicitudes a torneos pendientes.
+            </p>
+
           </article>
 
-          <article class="player-dashboard__card">
-            <span>RESULTADOS</span>
-            <strong>0</strong>
-            <p>Resultados registrados en NEXUS.</p>
+
+          <article
+            class="player-dashboard__card"
+          >
+
+            <span>
+              RESULTADOS
+            </span>
+
+            <strong>
+              0
+            </strong>
+
+            <p>
+              Resultados registrados en NEXUS.
+            </p>
+
           </article>
 
-          <article class="player-dashboard__card">
-            <span>TÍTULOS</span>
-            <strong>0</strong>
-            <p>Reconocimientos obtenidos.</p>
+
+          <article
+            class="player-dashboard__card"
+          >
+
+            <span>
+              TÍTULOS
+            </span>
+
+            <strong>
+              0
+            </strong>
+
+            <p>
+              Reconocimientos obtenidos.
+            </p>
+
           </article>
 
         </div>
 
-        <section class="player-dashboard__section">
-          <div class="player-dashboard__section-header">
+
+        <section
+          class="player-dashboard__section"
+        >
+
+          <div
+            class="player-dashboard__section-header"
+          >
+
             <div>
-              <span>COMPETITIVO</span>
-              <h3>Tu actividad competitiva</h3>
+
+              <span>
+                COMPETITIVO
+              </span>
+
+              <h3>
+                Tu actividad competitiva
+              </h3>
+
             </div>
+
           </div>
 
-          <div class="player-dashboard__empty">
-            <div class="player-dashboard__empty-icon">
-              <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
+
+          <div
+            class="player-dashboard__empty"
+          >
+
+            <div
+              class="player-dashboard__empty-icon"
+            >
+
+              <i
+                class="fa-solid fa-crosshairs"
+                aria-hidden="true"
+              ></i>
+
             </div>
-            <h4>Aún no tienes competencias.</h4>
-            <p>Explora competencias disponibles y solicita tu lugar para comenzar tu historial competitivo.</p>
-            <a href="/competitions" class="player-dashboard__action">
+
+            <h4>
+              Aún no tienes competencias.
+            </h4>
+
+            <p>
+              Explora competencias disponibles
+              y solicita tu lugar para comenzar
+              tu historial competitivo.
+            </p>
+
+            <a
+              href="/competitions"
+              class="player-dashboard__action"
+            >
+
               Explorar competencias
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+
+              <i
+                class="fa-solid fa-arrow-right"
+                aria-hidden="true"
+              ></i>
+
             </a>
+
           </div>
+
         </section>
 
       </section>
 
     `;
 
-    page.querySelectorAll("[data-player-profile]").forEach(link => {
-      link.addEventListener("click", event => {
-        event.preventDefault();
-        window.history.pushState({}, "", "/dashboard/player/profile");
-        window.dispatchEvent(new PopStateEvent("popstate"));
-      });
-    });
+
+    page
+      .querySelectorAll(
+        "[data-player-profile]"
+      )
+      .forEach(
+        link => {
+
+          link.addEventListener(
+            "click",
+            event => {
+
+              event.preventDefault();
+
+
+              window.history.pushState(
+                {},
+                "",
+                "/dashboard/player/profile"
+              );
+
+
+              window.dispatchEvent(
+                new PopStateEvent(
+                  "popstate"
+                )
+              );
+
+            }
+          );
+
+        }
+      );
 
   }
 
@@ -1213,6 +1502,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
       currentAccountContext =
         accountContext || null;
+
 
       currentEntityContext =
         entityContext || null;
@@ -1291,6 +1581,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
         }
 
+
         if (
           entityContext.type ===
             "player"
@@ -1299,6 +1590,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
           renderPlayerDashboard(
             entityContext
           );
+
 
           headerDescription.textContent =
             `Bienvenido, ${
@@ -1318,20 +1610,20 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
         if (sidebar) {
 
-        sidebar.setContext({
+          sidebar.setContext({
 
-          type:
-            entityContext.type,
+            type:
+              entityContext.type,
 
-          name:
-            entityName,
+            name:
+              entityName,
 
-          accessContext:
-            access
+            accessContext:
+              access
 
-        });
+          });
 
-      }
+        }
 
 
         headerDescription.textContent =
@@ -1406,6 +1698,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         "NEXUS — Crear torneo"
       );
 
+
       /*
        * El Dashboard ya conoce el Tournament actual.
        * Lo enviamos explícitamente al Builder para que
@@ -1423,10 +1716,12 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
       }
 
+
       const builderUrl =
         `/dashboard/tournaments/new?tournamentId=${encodeURIComponent(
           currentTournamentId
         )}`;
+
 
       window.history.pushState(
         {},
