@@ -90,10 +90,42 @@ export default async function handler(req, res) {
           joinedAt: player.teamRoster?.joinedAt || null
         }));
 
-      const requests = players
+      const requestSnapshot = await db
+        .collection("teamRequests")
+        .where("teamId", "==", teamId)
+        .get();
+
+      const requests = requestSnapshot.docs
+        .map((document) => ({
+          id: document.id,
+          requestId: document.id,
+          ...document.data()
+        }))
+        .filter((request) => request.type === "player_request")
+        .map((request) => ({
+          ...request,
+          status: String(request.status || "pending").toLowerCase(),
+          playerName: playerName(players.find((player) => player.id === request.playerId) || {}),
+          gamertag: players.find((player) => player.id === request.playerId)?.gamertag || ""
+        }));
+
+      // Compatibilidad con solicitudes creadas por la versión anterior,
+      // que todavía viven únicamente dentro de players/{playerId}.teamRequest.
+      const legacyRequests = players
         .map((player) => normalizeRequest(player))
         .filter((request) => request?.teamId === teamId)
-        .sort((a, b) => String(b.requestedAt || "").localeCompare(String(a.requestedAt || "")));
+        .filter((request) => !requests.some((item) => item.playerId === request.playerId))
+        .map((request) => ({
+          ...request,
+          requestId: null,
+          id: null
+        }));
+
+      requests.push(...legacyRequests);
+
+      requests.sort((a, b) =>
+        String(b.requestedAt || "").localeCompare(String(a.requestedAt || ""))
+      );
 
       return json(res, 200, {
         success: true,
@@ -109,6 +141,7 @@ export default async function handler(req, res) {
 
     const action = String(req.body?.action || "").trim().toLowerCase();
     const playerId = String(req.body?.playerId || "").trim();
+    const requestId = String(req.body?.requestId || "").trim();
 
     if (!playerId) {
       return json(res, 400, { error: "No se indicó el Player." });
@@ -122,9 +155,31 @@ export default async function handler(req, res) {
     }
 
     const player = { id: playerSnap.id, ...playerSnap.data() };
-    const request = player.teamRequest || null;
+    const legacyRequest = player.teamRequest || null;
 
-    if (request?.teamId !== teamId || request?.status !== "pending") {
+    let requestRef = null;
+    let request = legacyRequest;
+
+    if (requestId) {
+      requestRef = db.collection("teamRequests").doc(requestId);
+      const requestSnap = await requestRef.get();
+
+      if (!requestSnap.exists) {
+        return json(res, 404, { error: "No se encontró la solicitud." });
+      }
+
+      request = { id: requestSnap.id, ...requestSnap.data() };
+
+      if (
+        request.teamId !== teamId ||
+        request.playerId !== playerId ||
+        request.status !== "pending"
+      ) {
+        return json(res, 409, {
+          error: "Esta solicitud ya no está pendiente o pertenece a otro Team."
+        });
+      }
+    } else if (legacyRequest?.teamId !== teamId || legacyRequest?.status !== "pending") {
       return json(res, 409, {
         error: "Esta solicitud ya no está pendiente o pertenece a otro Team."
       });
@@ -150,6 +205,15 @@ export default async function handler(req, res) {
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       });
+
+      if (requestRef) {
+        batch.update(requestRef, {
+          status: "approved",
+          respondedAt: FieldValue.serverTimestamp(),
+          respondedBy: uid,
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      }
 
       batch.update(playerRef, {
         teamId,
@@ -182,16 +246,41 @@ export default async function handler(req, res) {
     if (action === "reject") {
       const reason = String(req.body?.reason || "").trim().slice(0, 300);
 
-      await playerRef.update({
-        teamRequest: {
-          ...request,
+      if (requestRef) {
+        const batch = db.batch();
+
+        batch.update(requestRef, {
           status: "rejected",
           respondedAt: FieldValue.serverTimestamp(),
           respondedBy: uid,
-          reviewReason: reason || null
-        },
-        updatedAt: FieldValue.serverTimestamp()
-      });
+          reviewReason: reason || null,
+          updatedAt: FieldValue.serverTimestamp()
+        });
+
+        batch.update(playerRef, {
+          teamRequest: {
+            ...request,
+            status: "rejected",
+            respondedAt: FieldValue.serverTimestamp(),
+            respondedBy: uid,
+            reviewReason: reason || null
+          },
+          updatedAt: FieldValue.serverTimestamp()
+        });
+
+        await batch.commit();
+      } else {
+        await playerRef.update({
+          teamRequest: {
+            ...request,
+            status: "rejected",
+            respondedAt: FieldValue.serverTimestamp(),
+            respondedBy: uid,
+            reviewReason: reason || null
+          },
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      }
 
       return json(res, 200, {
         success: true,

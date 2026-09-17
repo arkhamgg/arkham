@@ -85,9 +85,14 @@ async function loadRoster(page) {
 
 function renderRoster(state, response) {
   const members = Array.isArray(response?.members) ? response.members : [];
-  const requests = Array.isArray(response?.requests)
-    ? response.requests.filter((request) => request.status === "pending")
+  const allRequests = Array.isArray(response?.requests)
+    ? response.requests
     : [];
+
+  const requests = allRequests.filter((request) => request.status === "pending");
+  const history = allRequests.filter((request) =>
+    ["approved", "rejected", "cancelled"].includes(request.status)
+  );
 
   state.innerHTML = `
     <div class="team-roster__stats">
@@ -142,6 +147,24 @@ function renderRoster(state, response) {
             <span>Las nuevas solicitudes de Players aparecerán automáticamente en esta sección.</span>
           </div>`}
     </section>
+
+    <section class="team-roster__section team-roster__section--history">
+      <header class="team-roster__section-header">
+        <div>
+          <span>HISTORIAL</span>
+          <h2>Solicitudes procesadas</h2>
+        </div>
+        <span class="team-roster__counter">${history.length}</span>
+      </header>
+
+      ${history.length
+        ? `<div class="team-roster__requests">${history.map(renderRequestHistory).join("")}</div>`
+        : `<div class="team-roster__empty team-roster__empty--compact">
+            <i class="fa-regular fa-clock" aria-hidden="true"></i>
+            <strong>Aún no hay solicitudes procesadas.</strong>
+            <span>Las solicitudes aceptadas, rechazadas o canceladas permanecerán aquí como referencia.</span>
+          </div>`}
+    </section>
   `;
 
   state.querySelectorAll("[data-team-roster-link]").forEach((link) => {
@@ -155,6 +178,7 @@ function renderRoster(state, response) {
   state.querySelectorAll("[data-roster-action]").forEach((button) => {
     button.addEventListener("click", async () => {
       const playerId = button.dataset.playerId;
+      const requestId = button.dataset.requestId || "";
       const action = button.dataset.rosterAction;
       const teamId = response?.team?.id;
       if (!playerId || !teamId || !action) return;
@@ -166,9 +190,9 @@ function renderRoster(state, response) {
       try {
         if (action === "reject") {
           const reason = window.prompt("Motivo del rechazo (opcional):", "") || "";
-          await rejectTeamRequest({ teamId, playerId, reason });
+          await rejectTeamRequest({ teamId, playerId, requestId, reason });
         } else {
-          await approveTeamRequest({ teamId, playerId });
+          await approveTeamRequest({ teamId, playerId, requestId });
         }
 
         await loadRoster(state.closest(".team-roster-page") || state);
@@ -203,6 +227,31 @@ function renderMember(member) {
     </article>`;
 }
 
+
+function renderRequestHistory(request) {
+  const statusMeta = {
+    approved: ["APROBADA", "fa-circle-check"],
+    rejected: ["RECHAZADA", "fa-circle-xmark"],
+    cancelled: ["CANCELADA", "fa-ban"]
+  };
+
+  const [label, icon] = statusMeta[request.status] || ["PROCESADA", "fa-circle-check"];
+
+  return `
+    <article class="team-roster__request team-roster__request--history is-${escapeHtml(request.status)}">
+      <div class="team-roster__avatar">
+        <i class="fa-solid ${icon}" aria-hidden="true"></i>
+      </div>
+      <div class="team-roster__request-main">
+        <strong>${escapeHtml(request.gamertag || request.playerName)}</strong>
+        <span>${escapeHtml(request.playerName)} · ID: ${escapeHtml(request.playerId)}</span>
+        <small>Solicitud ${escapeHtml(label.toLowerCase())} · ${escapeHtml(formatDate(request.respondedAt) || formatDate(request.requestedAt) || "sin fecha")}</small>
+        ${request.reviewReason ? `<small>Motivo: ${escapeHtml(request.reviewReason)}</small>` : ""}
+      </div>
+      <div class="team-roster__counter">${escapeHtml(label)}</div>
+    </article>`;
+}
+
 function renderRequest(request) {
   return `
     <article class="team-roster__request" data-request-card>
@@ -215,8 +264,10 @@ function renderRequest(request) {
         <small>Solicitud enviada ${escapeHtml(formatDate(request.requestedAt) || "recientemente")}</small>
       </div>
       <div class="team-roster__request-actions">
-        <button type="button" data-roster-action="reject" data-player-id="${escapeHtml(request.playerId)}">RECHAZAR</button>
-        <button type="button" data-roster-action="approve" data-player-id="${escapeHtml(request.playerId)}">ACEPTAR</button>
+        <button type="button" data-roster-action="reject" data-player-id="${escapeHtml(request.playerId)}"
+          data-request-id="${escapeHtml(request.requestId || "")}">RECHAZAR</button>
+        <button type="button" data-roster-action="approve" data-player-id="${escapeHtml(request.playerId)}"
+          data-request-id="${escapeHtml(request.requestId || "")}">ACEPTAR</button>
       </div>
     </article>`;
 }

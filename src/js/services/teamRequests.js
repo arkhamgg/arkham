@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Roster Service
+// NEXUS — Team Requests Service
 // ========================================
 
 import { getAuth } from "firebase/auth";
@@ -12,12 +12,17 @@ async function getIdToken() {
   return user.getIdToken();
 }
 
-async function requestApi({ method = "GET", teamId, body = null }) {
+async function requestApi({ method = "GET", body = null, queryParams = {} }) {
   const token = await getIdToken();
   const query = new URLSearchParams();
-  if (teamId) query.set("teamId", teamId);
 
-  const response = await fetch(`/api/team-roster?${query.toString()}`, {
+  Object.entries(queryParams).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.set(key, value);
+    }
+  });
+
+  const response = await fetch(`/api/team-requests${query.toString() ? `?${query.toString()}` : ""}`, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -27,8 +32,9 @@ async function requestApi({ method = "GET", teamId, body = null }) {
   });
 
   const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    const error = new Error(data?.error || "No fue posible procesar el Roster.");
+    const error = new Error(data?.error || "No fue posible procesar la solicitud de Team.");
     error.data = data;
     error.status = response.status;
     throw error;
@@ -37,22 +43,28 @@ async function requestApi({ method = "GET", teamId, body = null }) {
   return data;
 }
 
-export async function getTeamRoster(teamId) {
-  return requestApi({ teamId });
-}
-
-export async function approveTeamRequest({ teamId, playerId, requestId = "" }) {
+export async function submitTeamRequest({ teamId }) {
   return requestApi({
     method: "POST",
-    teamId,
-    body: { action: "approve", teamId, playerId, requestId }
+    body: {
+      action: "submit",
+      teamId
+    }
   });
 }
 
-export async function rejectTeamRequest({ teamId, playerId, requestId = "", reason = "" }) {
+export async function cancelTeamRequest({ teamId }) {
   return requestApi({
     method: "POST",
-    teamId,
-    body: { action: "reject", teamId, playerId, requestId, reason }
+    body: {
+      action: "cancel",
+      teamId
+    }
+  });
+}
+
+export async function getMyTeamRequests() {
+  return requestApi({
+    queryParams: { mode: "mine" }
   });
 }

@@ -1129,3 +1129,171 @@
   }
   .player-competition-card__claim { width: 100%; }
 }
+
+
+/* ========================================
+   TEAM REQUEST STATUS
+   ======================================== */
+
+.competitive-profile-form__team-result-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: $space-4;
+  padding: $space-5;
+  border: 1px solid $color-800;
+  background: $color-900;
+}
+
+.competitive-profile-form__team-result-state > div:last-child {
+  display: grid;
+  gap: $space-1;
+}
+
+.competitive-profile-form__team-result-state span {
+  color: $color-red;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.competitive-profile-form__team-result-state strong {
+  color: $color-white;
+  font-size: $font-size-md;
+}
+
+.competitive-profile-form__team-result-state small {
+  color: $color-300;
+  line-height: 1.5;
+}
+
+.competitive-profile-form__team-result-state--rejected {
+  border-color: $color-700;
+}
+
+.competitive-profile-form__team-result-state--cancelled {
+  opacity: 0.72;
+}
+
+
+
+/* ========================================
+   PLAYER — TEAM REQUESTS
+   ======================================== */
+
+.player-team-requests {
+  display: grid;
+  gap: $space-5;
+  margin-top: $space-8;
+  padding-top: $space-8;
+  border-top: 1px solid $color-800;
+}
+
+.player-team-requests__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-5;
+}
+
+.player-team-requests__header > div {
+  display: grid;
+  gap: $space-2;
+}
+
+.player-team-requests__header span {
+  color: $color-red;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.player-team-requests__header h2 {
+  margin: 0;
+  color: $color-white;
+}
+
+.player-team-requests__header > strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 $space-2;
+  border: 1px solid $color-700;
+  color: $color-white;
+  font-size: $font-size-xs;
+}
+
+.player-team-requests__list {
+  display: grid;
+  gap: 1px;
+  border: 1px solid $color-800;
+  background: $color-800;
+}
+
+.player-team-request {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: $space-5;
+  padding: $space-5;
+  background: $color-900;
+}
+
+.player-team-request__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid $color-700;
+  color: $color-white;
+  background: $color-950;
+}
+
+.player-team-request__main {
+  display: grid;
+  gap: $space-1;
+  min-width: 0;
+}
+
+.player-team-request__main > span {
+  color: $color-300;
+  font-size: $font-size-xs;
+  letter-spacing: 0.08em;
+}
+
+.player-team-request__main > strong {
+  color: $color-white;
+  font-size: $font-size-md;
+}
+
+.player-team-request__main > small {
+  color: $color-300;
+  line-height: 1.5;
+}
+
+.player-team-request > time {
+  color: $color-300;
+  font-size: $font-size-xs;
+  white-space: nowrap;
+}
+
+.player-team-request.is-approved {
+  border-left: 2px solid $color-red;
+}
+
+.player-team-request.is-cancelled {
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .player-team-request {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .player-team-request > time {
+    grid-column: 1 / -1;
+  }
+}

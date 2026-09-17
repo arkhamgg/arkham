@@ -9,6 +9,7 @@ import { updateEntity } from "../services/firestore.js";
 import { uploadImage } from "../services/imagekit.js";
 import { getMyTournamentRegistrationRequests } from "../services/tournamentRegistration.js";
 import { getMyTournamentCompetitions, requestTournamentRecognition } from "../services/tournamentRecognition.js";
+import { submitTeamRequest, cancelTeamRequest, getMyTeamRequests } from "../services/teamRequests.js";
 
 const ROLE_OPTIONS = [
   ["streamer", "Streamer"],
@@ -25,6 +26,17 @@ function escapeHtml(value = "") {
 
 function getTeamName(team = {}) {
   return team.name || team.teamName || team.shortName || team.id || "Team";
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  const date = value?.toDate ? value.toDate() : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("es-GT", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(date);
 }
 
 export function PlayerView({ view = "competitions" } = {}) {
@@ -54,6 +66,7 @@ export function PlayerView({ view = "competitions" } = {}) {
 
   if (view === "requests") {
     loadPlayerTournamentRequests(page);
+    loadPlayerTeamRequests(page);
   } else if (view === "competitions") {
     loadPlayerCompetitions(page);
   } else {
@@ -187,6 +200,76 @@ async function loadPlayerTournamentRequests(page) {
   }
 }
 
+
+async function loadPlayerTeamRequests(page) {
+  const body = page.querySelector("[data-player-view-body]");
+  if (!body) return;
+
+  try {
+    const response = await getMyTeamRequests();
+    const requests = Array.isArray(response?.requests) ? response.requests : [];
+
+    const section = document.createElement("section");
+    section.className = "player-team-requests";
+    section.innerHTML = `
+      <header class="player-team-requests__header">
+        <div>
+          <span>TEAM</span>
+          <h2>Solicitudes de incorporación</h2>
+        </div>
+        <strong>${requests.filter((request) => request.status === "pending").length}</strong>
+      </header>
+      <div class="player-team-requests__list">
+        ${requests.length
+          ? requests.map(renderPlayerTeamRequest).join("")
+          : `<div class="player-requests-empty">
+              <i class="fa-solid fa-users" aria-hidden="true"></i>
+              <strong>Aún no tienes solicitudes a Teams.</strong>
+              <span>Cuando solicites incorporarte a un Team, el estado aparecerá aquí.</span>
+            </div>`}
+      </div>`;
+
+    body.appendChild(section);
+  } catch (error) {
+    console.error("NEXUS — Error cargando solicitudes de Team del Player:", error);
+
+    const section = document.createElement("section");
+    section.className = "player-team-requests";
+    section.innerHTML = `
+      <div class="player-requests-empty is-error">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <strong>No fue posible cargar tus solicitudes de Team.</strong>
+        <span>${escapeHtml(error?.message || "Intenta nuevamente más tarde.")}</span>
+      </div>`;
+
+    body.appendChild(section);
+  }
+}
+
+function renderPlayerTeamRequest(request) {
+  const meta = {
+    pending: ["EN REVISIÓN", "fa-hourglass-half", "is-pending", "El Team está revisando tu solicitud."],
+    approved: ["ACEPTADA", "fa-circle-check", "is-approved", "Tu incorporación al Team fue confirmada."],
+    rejected: ["RECHAZADA", "fa-circle-xmark", "is-rejected", request.reviewReason ? `Motivo: ${escapeHtml(request.reviewReason)}` : "El Team rechazó tu solicitud."],
+    cancelled: ["CANCELADA", "fa-ban", "is-cancelled", "La solicitud fue cancelada."]
+  };
+
+  const [label, icon, className, message] = meta[request.status] || meta.pending;
+
+  return `
+    <article class="player-team-request ${className}">
+      <div class="player-team-request__icon">
+        <i class="fa-solid ${icon}" aria-hidden="true"></i>
+      </div>
+      <div class="player-team-request__main">
+        <span>TEAM · ${escapeHtml(request.teamId || "NEXUS")}</span>
+        <strong>${escapeHtml(label)}</strong>
+        <small>${message}</small>
+      </div>
+      <time>${escapeHtml(formatDate(request.respondedAt || request.requestedAt) || "")}</time>
+    </article>`;
+}
+
 function PlayerProfileView() {
   const page = document.createElement("main");
   page.className = "player-profile-page";
@@ -272,7 +355,11 @@ export function PlayerCompetitiveProfileView() {
     let pendingTeamId = entity.teamRequest?.status === "pending"
       ? entity.teamRequest?.teamId || null
       : null;
-    let pendingRequestedAt = entity.teamRequest?.requestedAt || null;
+    let pendingRequestedAt = entity.teamRequest?.status === "pending"
+      ? entity.teamRequest?.requestedAt || null
+      : null;
+    let teamRequestStatus = entity.teamRequest?.status || null;
+    let teamRequestReason = entity.teamRequest?.reviewReason || null;
     let teamSearch = "";
     let editingIndex = null;
 
@@ -317,6 +404,22 @@ export function PlayerCompetitiveProfileView() {
               <strong>${escapeHtml(getTeamName(confirmed))}</strong>
               <small>ID: ${escapeHtml(confirmed.id)}</small>
               <button type="button" class="competitive-profile-form__team-action" data-change-team>CAMBIAR DE TEAM</button>
+            </div>` : ""}
+
+          ${!pending && teamRequestStatus && ["approved", "rejected", "cancelled"].includes(teamRequestStatus) ? `
+            <div class="competitive-profile-form__team-result-state competitive-profile-form__team-result-state--${escapeHtml(teamRequestStatus)}">
+              <div class="competitive-profile-form__team-pending-icon">
+                <i class="fa-solid ${teamRequestStatus === "approved" ? "fa-circle-check" : teamRequestStatus === "rejected" ? "fa-circle-xmark" : "fa-ban"}"></i>
+              </div>
+              <div>
+                <span>SOLICITUD ${teamRequestStatus === "approved" ? "ACEPTADA" : teamRequestStatus === "rejected" ? "RECHAZADA" : "CANCELADA"}</span>
+                <strong>${escapeHtml(getTeamLabel(entity.teamRequest?.teamId || ""))}</strong>
+                <small>${teamRequestStatus === "approved"
+                  ? "Este Team confirmó tu incorporación."
+                  : teamRequestStatus === "rejected"
+                    ? (teamRequestReason ? `Motivo: ${escapeHtml(teamRequestReason)}` : "El Team rechazó tu solicitud.")
+                    : "La solicitud fue cancelada."}</small>
+              </div>
             </div>` : ""}
 
           ${pending ? `
@@ -532,7 +635,7 @@ export function PlayerCompetitiveProfileView() {
       }
     }
 
-    function handleClick(event) {
+    async function handleClick(event) {
       const result = event.target.closest("[data-team-result]");
       if (result) {
         const team = teams.find((item) => item.id === result.dataset.teamId);
@@ -544,6 +647,8 @@ export function PlayerCompetitiveProfileView() {
         } else {
           pendingTeamId = team.id;
           pendingRequestedAt = new Date().toISOString();
+          teamRequestStatus = "pending";
+          teamRequestReason = null;
         }
 
         teamSearch = "";
@@ -587,10 +692,28 @@ export function PlayerCompetitiveProfileView() {
 
       const clearPending = event.target.closest("[data-clear-team-request]");
       if (clearPending) {
-        pendingTeamId = null;
-        pendingRequestedAt = null;
-        teamSearch = "";
-        render();
+        if (pendingTeamId) {
+          const teamId = pendingTeamId;
+          clearPending.disabled = true;
+          try {
+            await cancelTeamRequest({ teamId });
+            pendingTeamId = null;
+            pendingRequestedAt = null;
+            teamRequestStatus = "cancelled";
+            teamRequestReason = null;
+            entity.teamRequest = {
+              ...(entity.teamRequest || {}),
+              teamId,
+              status: "cancelled"
+            };
+            teamSearch = "";
+            render();
+          } catch (error) {
+            console.error("NEXUS — Error cancelando solicitud de Team:", error);
+            clearPending.disabled = false;
+            window.alert(error?.message || "No fue posible cancelar la solicitud.");
+          }
+        }
       }
     }
 
@@ -632,17 +755,31 @@ export function PlayerCompetitiveProfileView() {
           competitiveProfiles: clean
         };
 
-        if (pendingTeamId) {
-          update.teamRequest = {
-            teamId: pendingTeamId,
-            status: "pending",
-            requestedAt: pendingRequestedAt || new Date().toISOString()
-          };
-        } else {
-          update.teamRequest = null;
-        }
+        const hadPendingRequest = entity.teamRequest?.status === "pending";
+        const previousPendingTeamId = entity.teamRequest?.teamId || null;
 
         await updateEntity("players", context.id, update);
+
+        if (pendingTeamId) {
+          const requestResponse = await submitTeamRequest({ teamId: pendingTeamId });
+          teamRequestStatus = "pending";
+          teamRequestReason = null;
+          entity.teamRequest = {
+            teamId: pendingTeamId,
+            status: "pending",
+            requestId: requestResponse?.requestId || null
+          };
+        } else if (hadPendingRequest && previousPendingTeamId) {
+          await cancelTeamRequest({ teamId: previousPendingTeamId });
+          teamRequestStatus = "cancelled";
+          teamRequestReason = null;
+          entity.teamRequest = {
+            ...(entity.teamRequest || {}),
+            teamId: previousPendingTeamId,
+            status: "cancelled"
+          };
+        }
+
         message.textContent = "Perfil competitivo actualizado correctamente.";
         editingIndex = null;
         render();
