@@ -1,63 +1,437 @@
 // ========================================
-// TEAM — INITIAL MODULE
+// NEXUS — TEAM
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+// ========================================
+// TEAM OVERVIEW
+// ========================================
+
+.dashboard-main--team {
+
+  .dashboard-create--team {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dashboard-create__content {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
+.dashboard-create__team-identity {
+
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 180px;
+
+  gap: $space-3;
+
+  min-height: 180px;
+
+  padding: $space-5;
+
+  border: 1px solid $color-700;
+
+  background: rgba(5, 5, 5, 0.72);
+
+}
+
+
+.dashboard-create__team-identity-label {
+
+  color: $color-500;
+
+  font-size: $font-size-xs;
+
+  font-weight: 700;
+
+  letter-spacing: 0.14em;
+
+}
+
+
+.dashboard-create__team-identity-mark {
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 92px;
+  height: 92px;
+
+  border: 1px solid $color-700;
+
+  background: $color-900;
+
+}
+
+
+.dashboard-create__team-identity-mark img {
+
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+
+}
+
+
+.dashboard-create__team-identity-mark > span {
+
+  color: $color-white;
+
+  font-size: $font-size-xl;
+
+  font-weight: 700;
+
+  letter-spacing: -0.03em;
+
+}
+
+
+.dashboard-create__team-identity strong {
+
+  color: $color-white;
+
+  font-size: $font-size-sm;
+
+  font-weight: 700;
+
+  letter-spacing: 0.06em;
+
+}
+
+
+// ========================================
+// OVERVIEW CARDS
+// ========================================
+
+.dashboard-section--team-overview {
+
+  .dashboard-section__header {
+    margin-bottom: $space-6;
+  }
+}
+
+
+.dashboard-team-overview {
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: $space-5;
+
+}
+
+
+.dashboard-team-overview__card {
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+
+  column-gap: $space-5;
+  row-gap: $space-6;
+
+  min-height: 250px;
+
+  padding: $space-6;
+
+  border: 1px solid $color-800;
+
+  background: $color-900;
+
+  transition:
+    border-color $transition-base $ease-standard,
+    background $transition-base $ease-standard,
+    transform $transition-base $ease-standard;
+
+}
+
+
+.dashboard-team-overview__card:hover {
+
+  border-color: $color-700;
+
+  background: $color-950;
+
+  transform: translateY(-2px);
+
+}
+
+
+.dashboard-team-overview__icon {
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 48px;
+  height: 48px;
+
+  border: 1px solid $color-700;
+
+  color: $color-white;
+
+  background: $color-800;
+
+}
+
+
+.dashboard-team-overview__icon i {
+
+  font-size: $font-size-sm;
+
+}
+
+
+.dashboard-team-overview__body {
+
+  min-width: 0;
+
+}
+
+
+.dashboard-team-overview__eyebrow {
+
+  display: block;
+
+  margin-bottom: $space-2;
+
+  color: $color-red;
+
+  font-size: $font-size-xs;
+
+  font-weight: 700;
+
+  letter-spacing: 0.12em;
+
+}
+
+
+.dashboard-team-overview__body h3 {
+
+  margin: 0;
+
+  color: $color-white;
+
+  font-size: $font-size-xl;
+
+  font-weight: 700;
+
+  letter-spacing: -0.025em;
+
+}
+
+
+.dashboard-team-overview__body p {
+
+  max-width: 520px;
+
+  margin: $space-3 0 0;
+
+  color: $color-300;
+
+  font-size: $font-size-sm;
+
+  line-height: 1.6;
+
+}
+
+
+.dashboard-team-overview__link {
+
+  grid-column: 1 / -1;
+
+  align-self: end;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: $space-2;
+
+  width: fit-content;
+
+  color: $color-white;
+
+  font-size: $font-size-xs;
+
+  font-weight: 700;
+
+  letter-spacing: 0.06em;
+
+  text-decoration: none;
+
+  transition:
+    color $transition-fast $ease-standard,
+    gap $transition-fast $ease-standard;
+
+}
+
+
+.dashboard-team-overview__link:hover {
+
+  color: $color-red-light;
+
+  gap: $space-3;
+
+}
+
+
+// ========================================
+// TEAM MODULE PAGES
 // ========================================
 
 .team-page {
+
   min-height: 100%;
+
   padding: 48px;
+
 }
+
 
 .team-page__content {
+
   max-width: 1180px;
+
   margin: 0 auto;
+
 }
+
 
 .team-page__content > header {
-  margin-bottom: 32px;
+
+  margin-bottom: $space-8;
+
 }
+
 
 .team-page__content > header span {
+
   display: block;
-  margin-bottom: 8px;
-  font-size: 0.72rem;
+
+  margin-bottom: $space-2;
+
+  color: $color-red;
+
+  font-size: $font-size-xs;
+
   letter-spacing: 0.16em;
+
   font-weight: 700;
+
 }
+
 
 .team-page__content > header h1 {
-  margin: 0 0 10px;
+
+  margin: 0 0 $space-3;
+
 }
+
 
 .team-page__content > header p {
+
   margin: 0;
-  opacity: 0.72;
+
+  color: $color-300;
+
+  line-height: 1.6;
+
 }
+
 
 .team-page__placeholder {
+
   display: grid;
-  gap: 10px;
+
+  gap: $space-3;
+
   max-width: 720px;
-  padding: 32px;
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-  border-radius: 18px;
+
+  padding: $space-8;
+
+  border: 1px solid $color-800;
+
+  background: $color-900;
+
 }
+
 
 .team-page__placeholder i {
-  font-size: 1.4rem;
-  margin-bottom: 8px;
+
+  margin-bottom: $space-2;
+
+  color: $color-white;
+
+  font-size: $font-size-xl;
+
 }
+
 
 .team-page__placeholder strong {
-  font-size: 1.05rem;
+
+  color: $color-white;
+
+  font-size: $font-size-lg;
+
 }
+
 
 .team-page__placeholder span {
+
+  color: $color-300;
+
   line-height: 1.6;
-  opacity: 0.7;
+
 }
 
+
+// ========================================
+// RESPONSIVE
+// ========================================
+
+@media (max-width: 900px) {
+
+  .dashboard-team-overview {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
 @media (max-width: 768px) {
+
+  .dashboard-create__team-identity {
+    flex: 0 0 140px;
+    min-height: 140px;
+  }
+
+  .dashboard-create__team-identity-mark {
+    width: 68px;
+    height: 68px;
+  }
+
+  .dashboard-team-overview__card {
+    min-height: 0;
+    padding: $space-5;
+  }
+
   .team-page {
     padding: 28px 20px;
   }
+
 }

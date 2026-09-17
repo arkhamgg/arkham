@@ -1235,12 +1235,19 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
               <h2>Construye tu Team competitivo.</h2>
               <p>Administra tus divisiones, incorpora jugadores y prepara tus rosters para competir en NEXUS.</p>
             </div>
-            <div class="dashboard-create__team-identity">
-              ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo de ${escapeHtml(teamName)}">` : `<span>${escapeHtml(shortName)}</span>`}
+
+            <div class="dashboard-create__team-identity" aria-label="Identidad de ${escapeHtml(teamName)}">
+              <span class="dashboard-create__team-identity-label">TEAM</span>
+              <div class="dashboard-create__team-identity-mark">
+                ${logoUrl
+                  ? `<img src="${escapeHtml(logoUrl)}" alt="Logo de ${escapeHtml(teamName)}">`
+                  : `<span>${escapeHtml(shortName)}</span>`}
+              </div>
+              <strong>${escapeHtml(shortName)}</strong>
             </div>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section dashboard-section--team-overview">
             <header class="dashboard-section__header">
               <div>
                 <span class="dashboard-section__eyebrow">TEAM</span>
@@ -1250,20 +1257,32 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
             <div class="dashboard-team-overview">
               <article class="dashboard-team-overview__card">
-                <span>ROSTER</span>
-                <strong>Gestiona tus jugadores</strong>
-                <p>Administra incorporaciones, roles y miembros activos por división.</p>
-                <a href="/dashboard/team/roster" data-team-navigation>
-                  Abrir Roster <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                <div class="dashboard-team-overview__icon">
+                  <i class="fa-solid fa-users" aria-hidden="true"></i>
+                </div>
+                <div class="dashboard-team-overview__body">
+                  <span class="dashboard-team-overview__eyebrow">ROSTER</span>
+                  <h3>Gestiona tus jugadores</h3>
+                  <p>Administra incorporaciones, roles y miembros activos por división.</p>
+                </div>
+                <a href="/dashboard/team/roster" class="dashboard-team-overview__link" data-team-navigation>
+                  Abrir Roster
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </a>
               </article>
 
               <article class="dashboard-team-overview__card">
-                <span>DIVISIONES</span>
-                <strong>Organiza tus juegos</strong>
-                <p>Crea divisiones según los juegos competitivos disponibles en NEXUS.</p>
-                <a href="/dashboard/team/divisions" data-team-navigation>
-                  Gestionar divisiones <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                <div class="dashboard-team-overview__icon">
+                  <i class="fa-solid fa-gamepad" aria-hidden="true"></i>
+                </div>
+                <div class="dashboard-team-overview__body">
+                  <span class="dashboard-team-overview__eyebrow">DIVISIONES</span>
+                  <h3>Organiza tus juegos</h3>
+                  <p>Crea divisiones según los juegos competitivos disponibles en NEXUS.</p>
+                </div>
+                <a href="/dashboard/team/divisions" class="dashboard-team-overview__link" data-team-navigation>
+                  Gestionar divisiones
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </a>
               </article>
             </div>
