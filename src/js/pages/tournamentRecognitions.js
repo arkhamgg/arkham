@@ -87,7 +87,7 @@ function renderProLocked(page, subscription) {
         permanece bloqueada hasta que renueves tu suscripción.
       </p>
       ${periodEnd ? `<small>Último período registrado: ${escapeHtml(periodEnd)}</small>` : ""}
-      <a href="/dashboard/billing/upgrade" class="tournament-recognitions-page__locked-action">
+      <a href="/dashboard/billing/payment" class="tournament-recognitions-page__locked-action">
         Renovar Pro
         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
       </a>

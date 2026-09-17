@@ -340,7 +340,8 @@ function renderSuccess(
 // ========================================
 
 function renderPaymentForm(
-  billingData
+  billingData,
+  isProRenewal = false
 ) {
   const price =
     billingData?.price;
@@ -367,7 +368,11 @@ function renderPaymentForm(
             <i class="fa-solid fa-arrow-left"></i>
 
             <span>
-              Volver a planes
+              ${
+                isProRenewal
+                  ? "Volver a Billing"
+                  : "Volver a planes"
+              }
             </span>
           </button>
 
@@ -376,12 +381,19 @@ function renderPaymentForm(
           </span>
 
           <h1>
-            Activar Pro
+            ${
+              isProRenewal
+                ? "Renovar Pro"
+                : "Activar Pro"
+            }
           </h1>
 
           <p>
-            Completa la información de tu pago y adjunta
-            el comprobante para enviar la solicitud.
+            ${
+              isProRenewal
+                ? "Completa la información de tu pago y adjunta el comprobante para enviar la solicitud de renovación."
+                : "Completa la información de tu pago y adjunta el comprobante para enviar la solicitud."
+            }
           </p>
 
         </div>
@@ -1623,7 +1635,8 @@ function bindProofEvents(
 
 function bindPaymentEvents(
   root,
-  billingData
+  billingData,
+  isProRenewal = false
 ) {
   root
     .querySelectorAll(
@@ -1634,7 +1647,9 @@ function bindPaymentEvents(
 
         button.addEventListener(
           "click",
-          goBackToUpgrade
+          isProRenewal
+            ? goToBilling
+            : goBackToUpgrade
         );
 
       }
@@ -1721,30 +1736,51 @@ async function renderPaymentContent(
 
     const account =
       accountContext.account ||
-      accountContext;
+      accountContext ||
+      {};
+
+
+    const subscription =
+      accountContext.subscription ||
+      null;
 
 
     const currentPlanId =
       String(
+        subscription?.planId ||
         account?.planId ||
         PLAN_IDS.FREE
       ).toLowerCase();
 
 
+    const isProRenewal =
+      currentPlanId === PLAN_IDS.PRO &&
+      Boolean(
+        subscription?.id ||
+        account?.subscriptionId
+      );
+
+
     /*
      * ======================================
-     * PAYMENT PAGE ONLY SUPPORTS FREE → PRO
+     * PAYMENT PAGE
      * ======================================
+     *
+     * Supports:
+     * - Free → Pro
+     * - Pro → Pro (renewal)
+     *
+     * Other plan transitions remain blocked.
      */
 
     if (
-      currentPlanId !==
-      PLAN_IDS.FREE
+      currentPlanId !== PLAN_IDS.FREE &&
+      !isProRenewal
     ) {
 
       root.innerHTML =
         renderError(
-          "Esta página solo está disponible para cuentas Free que desean activar Pro."
+          "Esta página no está disponible para este plan."
         );
 
 
@@ -1757,7 +1793,7 @@ async function renderPaymentContent(
 
             button.addEventListener(
               "click",
-              goBackToBilling
+              goToBilling
             );
 
           }
@@ -1790,13 +1826,15 @@ async function renderPaymentContent(
 
     root.innerHTML =
       renderPaymentForm(
-        billingData
+        billingData,
+        isProRenewal
       );
 
 
     bindPaymentEvents(
       root,
-      billingData
+      billingData,
+      isProRenewal
     );
 
   } catch (error) {
@@ -1823,7 +1861,7 @@ async function renderPaymentContent(
 
           button.addEventListener(
             "click",
-            goBackToBilling
+            goToBilling
           );
 
         }
