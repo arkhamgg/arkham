@@ -59,6 +59,49 @@ function isOwner(tournament, event, uid) {
   return Boolean((event?.ownerId && event.ownerId === uid) || (tournament?.ownerId && tournament.ownerId === uid));
 }
 
+function toDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === "function") return value.toDate();
+  if (typeof value === "number" || typeof value === "string") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  return null;
+}
+
+function isEffectiveProSubscription(subscription, now = new Date()) {
+  if (!subscription || subscription.planId !== "pro") return false;
+
+  const status = String(subscription.status || "").toLowerCase();
+  if (status !== "active" && status !== "past_due") return false;
+
+  const periodEnd = toDate(subscription.currentPeriodEnd);
+
+  // Legacy subscriptions without currentPeriodEnd preserve the existing behavior.
+  if (periodEnd && now.getTime() >= periodEnd.getTime()) return false;
+
+  if (status === "past_due") {
+    const deadline = toDate(subscription.paymentDeadline);
+    if (!deadline || now.getTime() > deadline.getTime()) return false;
+  }
+
+  return true;
+}
+
+async function getOrganizerProAccess(db, uid) {
+  const accountSnap = await db.collection("accounts").doc(uid).get();
+  if (!accountSnap.exists) return false;
+
+  const account = accountSnap.data() || {};
+  if (!account.subscriptionId) return false;
+
+  const subscriptionSnap = await db.collection("subscriptions").doc(account.subscriptionId).get();
+  if (!subscriptionSnap.exists) return false;
+
+  return isEffectiveProSubscription(subscriptionSnap.data());
+}
+
 function competitionSummary(tournamentId, eventId, tournament, event, entityType, entityId) {
   const pro = event.pro || {};
   const participantId = `${entityType}_${entityId}`;
@@ -116,6 +159,18 @@ export default async function handler(req, res) {
     // One organizer can have several Tournament Pro events active or completed,
     // so the dashboard must aggregate all recognition records owned by uid.
     if (method === "GET" && mode === "list") {
+      const hasProAccess = await getOrganizerProAccess(db, uid);
+
+      if (!hasProAccess) {
+        return json(res, 200, {
+          success: true,
+          scope: "organizer",
+          proActive: false,
+          competitions: [],
+          recognitions: []
+        });
+      }
+
       const tournamentsSnap = await db.collection("tournaments").get();
       const competitions = [];
       const recognitions = [];
@@ -171,6 +226,7 @@ export default async function handler(req, res) {
       return json(res, 200, {
         success: true,
         scope: "organizer",
+        proActive: true,
         competitions,
         recognitions
       });
@@ -263,6 +319,13 @@ export default async function handler(req, res) {
     // ========================================
     if (action === "review") {
       if (!isOwner(tournament, event, uid)) return json(res, 403, { success: false, error: "No tienes permiso para revisar reconocimientos." });
+      if (!(await getOrganizerProAccess(db, uid))) {
+        return json(res, 403, {
+          success: false,
+          code: "PRO_SUBSCRIPTION_INACTIVE",
+          error: "Tu suscripción Pro no está vigente. Renueva Pro para gestionar reconocimientos."
+        });
+      }
       if (event.pro.status !== "finished") throw new Error("La competencia todavía no está finalizada.");
 
       const participantId = String(req.body?.participantId || "").trim();

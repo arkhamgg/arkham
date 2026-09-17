@@ -2,6 +2,9 @@
 // NEXUS — Tournament Recognition Management
 // ========================================
 
+import { getCurrentAccountContext } from "../services/account.js";
+import { hasEffectiveSubscriptionAccess } from "../services/subscription.js";
+import { getCurrentEntityContext } from "../services/entityContext.js";
 import { getTournamentRecognitionRequests, reviewTournamentRecognition } from "../services/tournamentRecognition.js";
 
 function escapeHtml(value = "") {
@@ -39,12 +42,56 @@ export function TournamentRecognitions() {
 
 async function load(page) {
   const content = page.querySelector("[data-recognition-content]");
+
   try {
+    const [accountContext, entityContext] = await Promise.all([
+      getCurrentAccountContext(),
+      getCurrentEntityContext()
+    ]);
+
+    const isTournament =
+      entityContext?.productId === "tournament";
+
+    const hasProAccess =
+      isTournament &&
+      accountContext?.subscription?.planId === "pro" &&
+      hasEffectiveSubscriptionAccess(accountContext.subscription);
+
+    if (!hasProAccess) {
+      renderProLocked(page, accountContext?.subscription);
+      return;
+    }
+
     const response = await getTournamentRecognitionRequests();
     render(page, response);
   } catch (error) {
     content.innerHTML = `<div class="tournament-recognitions-page__empty is-error"><strong>No fue posible cargar los reconocimientos.</strong><span>${escapeHtml(error?.message || "Intenta nuevamente.")}</span></div>`;
   }
+}
+
+function renderProLocked(page, subscription) {
+  const content = page.querySelector("[data-recognition-content]");
+  const periodEnd = subscription?.currentPeriodEnd
+    ? formatDate(subscription.currentPeriodEnd)
+    : null;
+
+  content.innerHTML = `
+    <section class="tournament-recognitions-page__locked">
+      <div class="tournament-recognitions-page__locked-icon">
+        <i class="fa-solid fa-lock" aria-hidden="true"></i>
+      </div>
+      <span class="tournament-recognitions-page__eyebrow">TOURNAMENT PRO</span>
+      <h2>Reconocimientos no disponibles</h2>
+      <p>
+        Tu suscripción Pro no está vigente. La gestión de reconocimientos
+        permanece bloqueada hasta que renueves tu suscripción.
+      </p>
+      ${periodEnd ? `<small>Último período registrado: ${escapeHtml(periodEnd)}</small>` : ""}
+      <a href="/dashboard/billing/upgrade" class="tournament-recognitions-page__locked-action">
+        Renovar Pro
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </section>`;
 }
 
 function render(page, response) {
@@ -148,4 +195,3 @@ function renderHistory(item) {
       </div>
     </article>`;
 }
-console("success")
