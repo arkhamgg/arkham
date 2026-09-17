@@ -8,6 +8,7 @@ import { getEntities } from "../services/firestore.js";
 import { updateEntity } from "../services/firestore.js";
 import { uploadImage } from "../services/imagekit.js";
 import { getMyTournamentRegistrationRequests } from "../services/tournamentRegistration.js";
+import { getMyTournamentCompetitions, requestTournamentRecognition } from "../services/tournamentRecognition.js";
 
 const ROLE_OPTIONS = [
   ["streamer", "Streamer"],
@@ -53,12 +54,70 @@ export function PlayerView({ view = "competitions" } = {}) {
 
   if (view === "requests") {
     loadPlayerTournamentRequests(page);
+  } else if (view === "competitions") {
+    loadPlayerCompetitions(page);
   } else {
     page.querySelector("[data-player-view-body]").innerHTML =
       `<span class="player-view-page__status">MÓDULO PLAYER · EN CONSTRUCCIÓN</span>`;
   }
 
   return page;
+}
+
+async function loadPlayerCompetitions(page) {
+  const body = page.querySelector("[data-player-view-body]");
+  if (!body) return;
+
+  try {
+    const response = await getMyTournamentCompetitions();
+    const competitions = Array.isArray(response?.competitions) ? response.competitions : [];
+
+    if (!competitions.length) {
+      body.innerHTML = `<div class="player-requests-empty"><i class="fa-regular fa-trophy" aria-hidden="true"></i><strong>Aún no tienes competencias registradas.</strong><span>Cuando participes en una competencia Pro aparecerá aquí.</span></div>`;
+      return;
+    }
+
+    const statusMeta = {
+      finished: { label: "FINALIZADA", className: "is-finished" },
+      live: { label: "EN VIVO", className: "is-live" },
+      published: { label: "PUBLICADA", className: "is-published" },
+      check_in: { label: "CHECK-IN", className: "is-checkin" }
+    };
+
+    body.innerHTML = `<div class="player-competitions-list">${competitions.map((competition) => {
+      const meta = statusMeta[competition.status] || { label: String(competition.status || "COMPETENCIA").toUpperCase(), className: "" };
+      const recognition = competition.recognition || {};
+      const recognitionLabel = recognition.eligible
+        ? recognition.status === "approved" ? "RECONOCIMIENTO APROBADO" : recognition.status === "requested" ? "RECONOCIMIENTO EN REVISIÓN" : recognition.status === "rejected" ? "RECONOCIMIENTO RECHAZADO" : "RECONOCIMIENTO DISPONIBLE"
+        : "SIN RECONOCIMIENTO";
+      const url = `/competitions/event?tournamentId=${encodeURIComponent(competition.tournamentId)}&eventId=${encodeURIComponent(competition.eventId)}`;
+      return `<article class="player-competition-card ${meta.className}">
+        <div class="player-competition-card__top"><span>${escapeHtml(meta.label)}</span><span>${escapeHtml(competition.gameId || "COMPETENCIA")}</span></div>
+        <div class="player-competition-card__main"><span>COMPETENCIA</span><h2>${escapeHtml(competition.name)}</h2><p>${escapeHtml(competition.format || "—")} · ${escapeHtml(competition.matchSystem || "—")}</p></div>
+        <div class="player-competition-card__result">
+          <span>RESULTADO</span><strong>${competition.position ? `${escapeHtml(String(competition.position))}.º lugar` : "Pendiente"}</strong>
+        </div>
+        ${recognition.eligible ? `<div class="player-competition-card__recognition ${recognition.status === "approved" ? "is-approved" : recognition.status === "rejected" ? "is-rejected" : recognition.status === "requested" ? "is-requested" : "is-available"}"><i class="fa-solid fa-award"></i><span>${escapeHtml(recognitionLabel)}</span></div>` : ""}
+        <footer><a href="${url}">VER COMPETENCIA <i class="fa-solid fa-arrow-right"></i></a>${recognition.eligible && ["not_requested", "rejected"].includes(recognition.status) ? `<button type="button" class="player-competition-card__claim" data-claim-tournament="${escapeHtml(competition.tournamentId)}" data-claim-event="${escapeHtml(competition.eventId)}">${recognition.status === "rejected" ? "RECLAMAR NUEVAMENTE" : "RECLAMAR RECONOCIMIENTO"}</button>` : ""}</footer>
+      </article>`;
+    }).join("")}</div>`;
+
+    body.querySelectorAll("[data-claim-tournament]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          await requestTournamentRecognition({ tournamentId: button.dataset.claimTournament, eventId: button.dataset.claimEvent });
+          await loadPlayerCompetitions(page);
+        } catch (error) {
+          window.alert(error?.message || "No fue posible reclamar el reconocimiento.");
+          button.disabled = false;
+        }
+      });
+    });
+  } catch (error) {
+    console.error("NEXUS — Error cargando competencias del Player:", error);
+    body.innerHTML = `<div class="player-requests-empty is-error"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><strong>No fue posible cargar tus competencias.</strong><span>${escapeHtml(error?.message || "Intenta nuevamente más tarde.")}</span></div>`;
+  }
 }
 
 async function loadPlayerTournamentRequests(page) {

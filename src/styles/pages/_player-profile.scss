@@ -1021,3 +1021,111 @@
     flex-direction: column;
   }
 }
+
+
+// ========================================
+// PLAYER — COMPETITIONS
+// ========================================
+
+.player-competitions-list {
+  display: grid;
+  gap: $space-5;
+}
+
+.player-competition-card {
+  border: 1px solid rgba($color-white, 0.08);
+  background: $color-900;
+  padding: $space-6;
+  display: grid;
+  gap: $space-5;
+}
+
+.player-competition-card__top,
+.player-competition-card__result,
+.player-competition-card__recognition,
+.player-competition-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+}
+
+.player-competition-card__top {
+  color: $color-300;
+  font-size: $font-size-xs;
+  letter-spacing: 0.08em;
+}
+
+.player-competition-card__main span,
+.player-competition-card__result span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  letter-spacing: 0.08em;
+}
+
+.player-competition-card__main h2 {
+  margin: $space-2 0;
+  color: $color-white;
+}
+
+.player-competition-card__main p {
+  margin: 0;
+  color: $color-300;
+}
+
+.player-competition-card__result strong {
+  color: $color-white;
+}
+
+.player-competition-card__recognition {
+  justify-content: flex-start;
+  border: 1px solid rgba($color-red, 0.25);
+  padding: $space-3 $space-4;
+  color: $color-100;
+  font-size: $font-size-sm;
+}
+
+.player-competition-card__recognition i {
+  color: $color-red;
+}
+
+.player-competition-card__recognition.is-approved { border-color: rgba($color-success, 0.35); }
+.player-competition-card__recognition.is-approved i { color: $color-success; }
+.player-competition-card__recognition.is-rejected i { color: $color-red-light; }
+.player-competition-card footer {
+  justify-content: flex-end;
+  border-top: 1px solid rgba($color-white, 0.06);
+  padding-top: $space-4;
+}
+
+.player-competition-card footer a {
+  color: $color-white;
+  text-decoration: none;
+  font-size: $font-size-sm;
+  font-weight: 700;
+}
+
+.player-competition-card footer a:hover { color: $color-red-light; }
+
+.player-competition-card__claim {
+  border: 1px solid $color-red;
+  background: $color-red;
+  color: $color-white;
+  padding: $space-3 $space-4;
+  cursor: pointer;
+  font: inherit;
+  font-size: $font-size-xs;
+  font-weight: 700;
+}
+
+.player-competition-card__claim:hover {
+  background: $color-red-light;
+}
+
+@media (max-width: 640px) {
+  .player-competition-card footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .player-competition-card__claim { width: 100%; }
+}

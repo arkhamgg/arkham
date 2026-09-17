@@ -109,7 +109,11 @@ export function getPublicTournamentBracketMarkup(event = {}, registrationState =
   const generated = bracket.generated === true;
   const requestStatus = registrationState?.request?.status || null;
   const rejectionReason = registrationState?.request?.rejectionReason || null;
-  const canShowRegistration = registrationState?.canRegister !== false;
+  const recognition = registrationState?.recognition || null;
+  const isFinished = pro.status === "finished";
+  const recognitionEligible = Boolean(isFinished && recognition?.eligible);
+  const recognitionStatus = recognition?.status || "not_requested";
+  const canShowRegistration = registrationState?.canRegister !== false && !isFinished;
   const stages = Array.isArray(bracket.stages) ? bracket.stages : [];
 
   if (!generated) {
@@ -127,7 +131,12 @@ export function getPublicTournamentBracketMarkup(event = {}, registrationState =
               <span>INSCRITOS</span>
               <strong class="public-bracket__counter">${count}/${escapeHtml(capacity)}</strong>
             </div>
-            ${canShowRegistration ? `
+            ${recognitionEligible ? `
+              <button type="button" class="public-bracket__registration-button public-bracket__registration-button--${escapeHtml(recognitionStatus)}" data-recognition-cta ${recognitionStatus === "requested" || recognitionStatus === "approved" ? "disabled" : ""}>
+                <span>${escapeHtml(recognitionStatus === "requested" ? "RECONOCIMIENTO EN REVISIÓN" : recognitionStatus === "approved" ? "RECONOCIMIENTO APROBADO" : recognitionStatus === "rejected" ? "VOLVER A RECLAMAR" : "RECLAMAR RECONOCIMIENTO")}</span>
+                <i class="fa-solid ${recognitionStatus === "approved" ? "fa-check" : recognitionStatus === "requested" ? "fa-hourglass-half" : recognitionStatus === "rejected" ? "fa-rotate-right" : "fa-award"}" aria-hidden="true"></i>
+              </button>
+            ` : canShowRegistration ? `
               <button type="button" class="public-bracket__registration-button public-bracket__registration-button--${escapeHtml(requestStatus || "available")}" data-registration-cta>
                 <span>${escapeHtml(requestStatus === "pending" ? "SOLICITUD EN REVISIÓN" : requestStatus === "approved" ? "ASIENTO CONFIRMADO" : requestStatus === "rejected" ? "VOLVER A INTENTAR" : "SOLICITAR ASIENTO")}</span>
                 <i class="fa-solid ${requestStatus === "approved" ? "fa-check" : requestStatus === "pending" ? "fa-hourglass-half" : requestStatus === "rejected" ? "fa-rotate-right" : "fa-arrow-right"}" aria-hidden="true"></i>
@@ -154,7 +163,12 @@ export function getPublicTournamentBracketMarkup(event = {}, registrationState =
               <span>INSCRITOS</span>
               <strong class="public-bracket__counter">${count}/${escapeHtml(capacity)}</strong>
             </div>
-            ${canShowRegistration ? `
+            ${recognitionEligible ? `
+              <button type="button" class="public-bracket__registration-button public-bracket__registration-button--${escapeHtml(recognitionStatus)}" data-recognition-cta ${recognitionStatus === "requested" || recognitionStatus === "approved" ? "disabled" : ""}>
+                <span>${escapeHtml(recognitionStatus === "requested" ? "RECONOCIMIENTO EN REVISIÓN" : recognitionStatus === "approved" ? "RECONOCIMIENTO APROBADO" : recognitionStatus === "rejected" ? "VOLVER A RECLAMAR" : "RECLAMAR RECONOCIMIENTO")}</span>
+                <i class="fa-solid ${recognitionStatus === "approved" ? "fa-check" : recognitionStatus === "requested" ? "fa-hourglass-half" : recognitionStatus === "rejected" ? "fa-rotate-right" : "fa-award"}" aria-hidden="true"></i>
+              </button>
+            ` : canShowRegistration ? `
               <button type="button" class="public-bracket__registration-button public-bracket__registration-button--${escapeHtml(requestStatus || "available")}" data-registration-cta>
                 <span>${escapeHtml(requestStatus === "pending" ? "SOLICITUD EN REVISIÓN" : requestStatus === "approved" ? "ASIENTO CONFIRMADO" : requestStatus === "rejected" ? "VOLVER A INTENTAR" : "SOLICITAR ASIENTO")}</span>
                 <i class="fa-solid ${requestStatus === "approved" ? "fa-check" : requestStatus === "pending" ? "fa-hourglass-half" : requestStatus === "rejected" ? "fa-rotate-right" : "fa-arrow-right"}" aria-hidden="true"></i>

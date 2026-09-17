@@ -13,6 +13,7 @@ import { updatePublicTournamentBracket } from "../components/publicTournamentBra
 import { openPublicTournamentRegistration } from "../components/publicTournamentRegistration.js";
 import { getMyTournamentRegistrationStatus } from "../services/tournamentRegistration.js";
 import { getCurrentSession, initializeSession } from "../services/session.js";
+import { getMyRecognitionStatus, requestTournamentRecognition } from "../services/tournamentRecognition.js";
 
 
 // ========================================
@@ -177,7 +178,8 @@ async function loadCompetition({
 
     let registrationState = {
       canRegister: registrationAccess.canRegister,
-      request: null
+      request: null,
+      recognition: null
     };
 
     renderer({
@@ -190,6 +192,32 @@ async function loadCompetition({
       eventId,
       registrationAccess: registrationState
     });
+
+    const bindRecognition = () => {
+      page.querySelectorAll("[data-public-bracket-mount] [data-recognition-cta]").forEach((button) => {
+        if (button.dataset.recognitionBound === "true") return;
+        button.dataset.recognitionBound = "true";
+        button.addEventListener("click", async () => {
+          if (registrationState.recognition?.status === "requested" || registrationState.recognition?.status === "approved") return;
+          try {
+            await initializeSession();
+            if (!getCurrentSession()) {
+              const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+              const loginUrl = `/login?returnTo=${encodeURIComponent(returnTo)}`;
+              window.history.pushState({}, "", loginUrl);
+              window.dispatchEvent(new PopStateEvent("popstate"));
+              return;
+            }
+            const response = await requestTournamentRecognition({ tournamentId, eventId });
+            registrationState = { ...registrationState, recognition: response?.recognition || registrationState.recognition };
+            updatePublicTournamentBracket(page, event, registrationState);
+            bindRecognition();
+          } catch (error) {
+            window.alert(error?.message || "No fue posible reclamar el reconocimiento.");
+          }
+        });
+      });
+    };
 
     const bindRegistration = () => {
       page.querySelectorAll("[data-public-bracket-mount] [data-registration-cta]").forEach((button) => {
@@ -217,23 +245,30 @@ async function loadCompetition({
     page.addEventListener("nexus:registration-submitted", async () => {
       try {
         const statusResponse = await getMyTournamentRegistrationStatus({ tournamentId, eventId });
-        registrationState = { ...registrationState, request: statusResponse?.request || null };
+        let recognitionResponse = null;
+        try { recognitionResponse = await getMyRecognitionStatus({ tournamentId, eventId }); } catch (recognitionError) { console.warn("NEXUS — No fue posible resolver el reconocimiento:", recognitionError); }
+        registrationState = { ...registrationState, request: statusResponse?.request || null, recognition: recognitionResponse?.eligible ? recognitionResponse.recognition : null };
         updatePublicTournamentBracket(page, event, registrationState);
         bindRegistration();
+        bindRecognition();
       } catch (error) {
         console.warn("NEXUS — No fue posible actualizar el estado de inscripción:", error);
       }
     });
 
     bindRegistration();
+    bindRecognition();
 
     try {
       await initializeSession();
       if (getCurrentSession()) {
         const statusResponse = await getMyTournamentRegistrationStatus({ tournamentId, eventId });
-        registrationState = { ...registrationState, request: statusResponse?.request || null };
+        let recognitionResponse = null;
+        try { recognitionResponse = await getMyRecognitionStatus({ tournamentId, eventId }); } catch (recognitionError) { console.warn("NEXUS — No fue posible resolver el reconocimiento:", recognitionError); }
+        registrationState = { ...registrationState, request: statusResponse?.request || null, recognition: recognitionResponse?.eligible ? recognitionResponse.recognition : null };
         updatePublicTournamentBracket(page, event, registrationState);
         bindRegistration();
+        bindRecognition();
       }
     } catch (error) {
       console.warn("NEXUS — No fue posible resolver el estado de inscripción pública:", error);
@@ -251,6 +286,7 @@ async function loadCompetition({
         if (!updatedEvent) return;
         updatePublicTournamentBracket(page, updatedEvent, registrationState);
         bindRegistration();
+        bindRecognition();
       }
     );
 
