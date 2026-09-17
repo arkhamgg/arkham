@@ -217,7 +217,7 @@ export function DashboardShell(Page) {
 
       onNavigate: view => {
 
-        const route =
+        let route =
           DASHBOARD_NAVIGATION_ROUTES[
             view
           ];
@@ -231,6 +231,32 @@ export function DashboardShell(Page) {
           );
 
           return;
+
+        }
+
+
+        // Reconocimientos pertenece a una competencia específica.
+        // Conservamos sus identificadores al navegar desde Tournament Pro.
+        if (
+          view === "tournament-recognitions"
+        ) {
+
+          const params =
+            new URLSearchParams(
+              window.location.search
+            );
+
+          const tournamentId =
+            params.get("tournamentId");
+
+          const eventId =
+            params.get("eventId");
+
+          if (tournamentId && eventId) {
+
+            route = `${route}?tournamentId=${encodeURIComponent(tournamentId)}&eventId=${encodeURIComponent(eventId)}`;
+
+          }
 
         }
 
