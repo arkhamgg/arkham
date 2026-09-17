@@ -111,6 +111,24 @@ function getActiveView(pathname) {
 
 
   // ========================================
+  // TEAM
+  // ========================================
+
+  const teamRoutes = {
+    "/dashboard/team/roster":
+      "team-roster",
+
+    "/dashboard/team/divisions":
+      "team-divisions"
+  };
+
+
+  if (teamRoutes[pathname]) {
+    return teamRoutes[pathname];
+  }
+
+
+  // ========================================
   // TOURNAMENT RECOGNITIONS
   // ========================================
 

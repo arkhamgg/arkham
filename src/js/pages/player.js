@@ -333,6 +333,16 @@ export function PlayerCompetitiveProfileView() {
               </div>
             </div>` : ""}
 
+          ${!confirmed && !pending && entity.teamRequest?.status === "rejected" ? `
+            <div class="competitive-profile-form__team-pending competitive-profile-form__team-pending--rejected">
+              <div class="competitive-profile-form__team-pending-icon"><i class="fa-solid fa-xmark"></i></div>
+              <div>
+                <span>SOLICITUD RECHAZADA</span>
+                <strong>${escapeHtml(getTeamLabel(entity.teamRequest.teamId))}</strong>
+                <small>${escapeHtml(entity.teamRequest.reviewReason || "El Team rechazó tu solicitud. Puedes volver a solicitar tu incorporación.")}</small>
+              </div>
+            </div>` : ""}
+
           ${!confirmed && !pending ? `
             <div class="competitive-profile-form__team-empty-state">
               <strong>Aún no tienes un Team</strong>
