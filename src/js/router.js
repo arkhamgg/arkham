@@ -13,7 +13,10 @@ import { CreateTeam } from "./pages/createTeam.js";
 import { CreatePlayer } from "./pages/createPlayer.js";
 import { Teams } from "./pages/teams.js";
 import { Players } from "./pages/players.js";
-import { PlayerView, PlayerCompetitiveProfileView } from "./pages/player.js";
+import {
+  PlayerView,
+  PlayerCompetitiveProfileView
+} from "./pages/player.js";
 import { TournamentBuilder } from "./pages/tournamentBuilder.js";
 import { TournamentPro } from "./pages/tournamentPro.js";
 import { CompetitionLanding } from "./pages/competitionLanding.js";
@@ -102,6 +105,7 @@ const routes = {
   "/players":
     Players,
 
+
   // ======================================
   // PLAYER
   // ======================================
@@ -136,8 +140,14 @@ const routes = {
   "/dashboard/player/competitive-profile":
     PlayerCompetitiveProfileView,
 
+
+  // ======================================
+  // TOURNAMENT RECOGNITIONS
+  // ======================================
+
   "/dashboard/tournaments/recognitions":
     TournamentRecognitions,
+
 
   // ======================================
   // TOURNAMENT
@@ -152,6 +162,7 @@ const routes = {
   "/dashboard/tournaments/pro":
     TournamentPro,
 
+
   // ======================================
   // BILLING
   // ======================================
@@ -165,12 +176,14 @@ const routes = {
   "/dashboard/billing/payment":
     Payment,
 
+
   // ======================================
   // CALENDAR
   // ======================================
 
   "/calendar":
     Calendar,
+
 
   // ======================================
   // ADMIN
@@ -255,6 +268,7 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
   "/dashboard/tournaments/new",
   "/dashboard/tournaments/edit",
   "/dashboard/tournaments/pro",
+  "/dashboard/tournaments/recognitions",
 
   // --------------------------------------
   // BILLING
@@ -605,12 +619,13 @@ export function Router(app) {
 
       // ====================================
       // RESET SCROLL POSITION
-      // ====================================
+      // ========================================
 
       window.scrollTo(
         0,
         0
       );
+
 
     } catch (error) {
 
@@ -637,6 +652,7 @@ export function Router(app) {
         app.appendChild(
           page
         );
+
 
       } catch (fallbackError) {
 
