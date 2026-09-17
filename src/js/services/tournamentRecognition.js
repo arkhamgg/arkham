@@ -46,7 +46,7 @@ export function getMyRecognitionStatus({ tournamentId, eventId }) {
   return requestApi({ mode: "status", tournamentId, eventId });
 }
 
-export function getTournamentRecognitionRequests({ tournamentId, eventId }) {
+export function getTournamentRecognitionRequests({ tournamentId = null, eventId = null } = {}) {
   return requestApi({ mode: "list", tournamentId, eventId });
 }
 

@@ -176,11 +176,18 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!entityType || !entityId) return json(res, 200, { success: true, hasProfile: false, competitions: [], recognitions: [] });
-
     // ========================================
     // PLAYER / TEAM — OWN COMPETITIONS
     // ========================================
+    // Organizer mode ("list") is intentionally handled above and does not
+    // require the current user to have a player/team entity profile.
+    if (!entityType || !entityId) {
+      const requestedAction = String(req.body?.action || "").toLowerCase();
+      if (requestedAction !== "review") {
+        return json(res, 200, { success: true, hasProfile: false, competitions: [], recognitions: [] });
+      }
+    }
+
     if (method === "GET" && mode === "mine") {
       const tournamentsSnap = await db.collection("tournaments").get();
       const competitions = [];
