@@ -62,7 +62,6 @@ import { AdminSubscriptions } from "./pages/adminSubscriptions.js";
 import { AdminBilling } from "./pages/adminBilling.js";
 import { AdminAudit } from "./pages/adminAudit.js";
 
-
 // ========================================
 // STATIC ROUTES
 // ========================================
@@ -135,7 +134,10 @@ const routes = {
       }),
 
   "/dashboard/player/profile":
-    PlayerView,
+    () =>
+      PlayerView({
+        view: "profile"
+      }),
 
   "/dashboard/player/competitive-profile":
     PlayerCompetitiveProfileView,
