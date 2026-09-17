@@ -13,7 +13,9 @@ import {
   completeCheckIn,
   setEventStatus,
   startMatch,
-  completeMatch
+  completeMatch,
+  getOfficialResults,
+  finalizeTournament
 } from "../services/tournamentProOperations.js";
 import { getTournamentRegistrationRequestsMarkup, loadTournamentRegistrationRequests, bindTournamentRegistrationRequests } from "../components/tournamentRegistrationRequests.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
@@ -95,6 +97,7 @@ export function TournamentPro() {
       let selectedSlotId = null;
       let replacementParticipantId = null;
       let modalOpen = false;
+      let finalizationModalOpen = false;
 
       const refresh = async () => {
         event = await getTournamentProEvent(tournamentId, eventId);
@@ -208,6 +211,16 @@ export function TournamentPro() {
         const checkInCompleted = pro.checkIn?.status === "completed";
         const eventLive = pro.status === "live";
         const eventFinished = pro.status === "finished";
+        const openMatches = stages
+          .flatMap((stage) => stage.matches || [])
+          .filter((match) => ["pending", "live"].includes(match.status));
+        let officialResults = [];
+        try {
+          officialResults = getOfficialResults(pro);
+        } catch {
+          officialResults = [];
+        }
+        const canFinalize = eventLive && openMatches.length === 0 && officialResults.length > 0;
         const canStart = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && assigned >= 2;
         const canAddParticipant = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && assigned < Number(capacity || 0);
         const selectedSlot = slots.find((slot) => slot.seed && `seed-${slot.seed}` === selectedSlotId);
@@ -292,12 +305,62 @@ export function TournamentPro() {
                   <i class="fa-solid fa-bolt" aria-hidden="true"></i> Pasar a competencia
                 </button>
               ` : eventLive ? `
-                <div><strong>Competencia en vivo</strong><span>La configuración estructural está bloqueada.</span></div>
+                <div>
+                  <strong>Competencia en vivo</strong>
+                  <span>${canFinalize ? "Todos los matches están resueltos. El organizador puede cerrar oficialmente la competencia." : "La configuración estructural está bloqueada hasta completar la competencia."}</span>
+                </div>
+                <button type="button" data-action="open-finalization" ${canFinalize ? "" : "disabled"}>
+                  <i class="fa-solid fa-flag-checkered" aria-hidden="true"></i> Finalizar torneo
+                </button>
               ` : `
                 <div><strong>Torneo finalizado</strong><span>La información histórica permanece disponible.</span></div>
               `}
             </div>
           </section>
+
+          ${finalizationModalOpen && eventLive ? `
+            <div class="tournament-pro-page__modal-backdrop tournament-pro-page__finalization-modal-backdrop" data-finalization-modal>
+              <section class="tournament-pro-page__modal tournament-pro-page__finalization-modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-finalization-title">
+                <header class="tournament-pro-page__modal-header">
+                  <div>
+                    <span class="tournament-pro-page__eyebrow">CIERRE OFICIAL</span>
+                    <h2 id="tournament-pro-finalization-title">Finalizar competencia</h2>
+                    <p>El resultado oficial proviene del bracket. El organizador solo define qué puestos recibirán reconocimiento.</p>
+                  </div>
+                  <button type="button" class="tournament-pro-page__modal-close" data-finalization-close aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                  </button>
+                </header>
+                <div class="tournament-pro-page__modal-body">
+                  <div class="tournament-pro-page__finalization-section">
+                    <span class="tournament-pro-page__eyebrow">RESULTADO OFICIAL</span>
+                    <div class="tournament-pro-page__official-results">
+                      ${officialResults.map((result) => `
+                        <label class="tournament-pro-page__official-result">
+                          <span class="tournament-pro-page__official-result-position">${result.position === 1 ? "🥇" : result.position === 2 ? "🥈" : "🥉"}</span>
+                          <span class="tournament-pro-page__official-result-copy">
+                            <strong>${escapeHtml(result.displayName)}</strong>
+                            <small>${result.position}.º lugar</small>
+                          </span>
+                          <input type="checkbox" value="${escapeAttr(String(result.position))}" data-recognition-position="${escapeAttr(String(result.position))}" checked>
+                        </label>
+                      `).join("") || `<div class="tournament-pro-page__empty">No hay un resultado oficial disponible.</div>`}
+                    </div>
+                  </div>
+                  <div class="tournament-pro-page__finalization-note">
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                    <span>Solo se muestran puestos que pueden determinarse con certeza a partir del bracket. La selección no modifica el resultado competitivo.</span>
+                  </div>
+                  <div class="tournament-pro-page__finalization-actions">
+                    <button type="button" data-finalization-close>Cancelar</button>
+                    <button type="button" class="tournament-pro-page__primary-action" data-action="finalize-tournament">
+                      <i class="fa-solid fa-trophy" aria-hidden="true"></i> Otorgar premios y cerrar
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          ` : ""}
 
           ${checkInOpen ? `
             <div class="tournament-pro-page__modal-backdrop tournament-pro-page__checkin-modal-backdrop" data-checkin-modal>
@@ -482,6 +545,22 @@ export function TournamentPro() {
           if (action === "start-tournament") return runOperation(() => setCheckInOpen({ tournamentId, eventId, event, open: true }));
           if (action === "complete-checkin") return runOperation(() => completeCheckIn({ tournamentId, eventId, event }));
           if (action === "live") return runOperation(() => setEventStatus({ tournamentId, eventId, event, status: "live" }));
+          if (action === "open-finalization") {
+            finalizationModalOpen = true;
+            render();
+            return;
+          }
+          if (action === "finalize-tournament") {
+            const recognizedPositions = [...page.querySelectorAll("[data-recognition-position]:checked")]
+              .map((input) => Number(input.value));
+            finalizationModalOpen = false;
+            return runOperation(() => finalizeTournament({
+              tournamentId,
+              eventId,
+              event,
+              recognizedPositions
+            }));
+          }
         }));
 
         page.querySelectorAll("[data-present]").forEach((button) => button.addEventListener("click", () => runOperation(() => setParticipantCheckIn({ tournamentId, eventId, event, participantId: button.dataset.present, present: true }))));
@@ -559,6 +638,12 @@ export function TournamentPro() {
           render();
         }));
 
+        page.querySelectorAll("[data-finalization-close], [data-finalization-modal]").forEach((element) => element.addEventListener("click", (clickEvent) => {
+          if (element.hasAttribute("data-finalization-modal") && clickEvent.target !== element) return;
+          finalizationModalOpen = false;
+          render();
+        }));
+
         const form = page.querySelector("[data-slot-search-form]");
         form?.addEventListener("submit", async (submitEvent) => {
           submitEvent.preventDefault();
@@ -631,7 +716,13 @@ export function TournamentPro() {
       };
 
       const handleModalKeydown = (event) => {
-        if (event.key !== "Escape" || !modalOpen) return;
+        if (event.key !== "Escape") return;
+        if (finalizationModalOpen) {
+          finalizationModalOpen = false;
+          render();
+          return;
+        }
+        if (!modalOpen) return;
         selectedSlotId = null;
         modalOpen = false;
         render();

@@ -1093,3 +1093,119 @@
     flex: 1;
   }
 }
+
+
+/* ========================================
+   Official finalization modal
+   ======================================== */
+
+.tournament-pro-page__finalization-modal {
+  width: min(680px, 100%);
+}
+
+.tournament-pro-page__finalization-section {
+  display: grid;
+  gap: $space-3;
+}
+
+.tournament-pro-page__official-results {
+  display: grid;
+  gap: $space-2;
+}
+
+.tournament-pro-page__official-result {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-950;
+  cursor: pointer;
+}
+
+.tournament-pro-page__official-result:hover {
+  border-color: $color-500;
+}
+
+.tournament-pro-page__official-result-position {
+  font-size: 20px;
+  text-align: center;
+}
+
+.tournament-pro-page__official-result-copy {
+  min-width: 0;
+}
+
+.tournament-pro-page__official-result-copy strong,
+.tournament-pro-page__official-result-copy small {
+  display: block;
+}
+
+.tournament-pro-page__official-result-copy strong {
+  color: $color-white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tournament-pro-page__official-result-copy small {
+  margin-top: 3px;
+  color: $color-500;
+  font-size: 11px;
+}
+
+.tournament-pro-page__official-result input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: $color-red;
+}
+
+.tournament-pro-page__finalization-note {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+  margin-top: $space-5;
+  padding: $space-3;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  color: $color-300;
+  background: $color-900;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tournament-pro-page__finalization-note i {
+  margin-top: 2px;
+  color: $color-info;
+}
+
+.tournament-pro-page__finalization-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-2;
+  margin-top: $space-6;
+}
+
+.tournament-pro-page__primary-action {
+  border-color: $color-red !important;
+  color: $color-white !important;
+  background: $color-red-dark !important;
+}
+
+.tournament-pro-page__primary-action:hover:not(:disabled) {
+  border-color: $color-red-light !important;
+  background: $color-red !important;
+}
+
+@media (max-width: 650px) {
+  .tournament-pro-page__finalization-actions {
+    flex-direction: column-reverse;
+  }
+
+  .tournament-pro-page__finalization-actions button {
+    width: 100%;
+  }
+}

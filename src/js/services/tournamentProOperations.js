@@ -5,7 +5,9 @@
 import {
   getMapEntity,
   updateMapEntity,
-  getEntities
+  getEntities,
+  createEntity,
+  getEntity
 } from "./firestore.js";
 
 import {
@@ -699,24 +701,9 @@ export async function setEventStatus({
   pro.status = status;
 
   if (status === TOURNAMENT_EVENT_STATUS.FINISHED) {
-    if (!pro.bracket.championId) {
-      throw new Error(
-        "El evento no puede finalizar sin campeón."
-      );
-    }
-
-    pro.results.completedAt =
-      new Date().toISOString();
-
-    pro.bracket.completedAt =
-      new Date().toISOString();
-
-    pro.results.winnerIds = [
-      pro.bracket.championId
-    ];
-
-    pro.results.standings =
-      buildStandings(pro);
+    throw new Error(
+      "La finalización oficial requiere seleccionar los puestos reconocidos."
+    );
   }
 
   return savePro(
@@ -828,6 +815,280 @@ export async function completeMatch({
       updatedMatch.loserId
     ].status = PARTICIPANT_STATUS.ELIMINATED;
   }
+
+  return savePro(
+    tournamentId,
+    eventId,
+    event,
+    pro
+  );
+}
+
+// ========================================
+// FINALIZACIÓN OFICIAL
+// ========================================
+//
+// La finalización no modifica el resultado del bracket.
+// El campeón y los puestos que puedan determinarse
+// provienen exclusivamente del resultado operativo.
+//
+// El organizador únicamente decide qué puestos reciben
+// reconocimiento.
+// ========================================
+
+export function getOfficialResults(pro) {
+  const bracket = pro?.bracket;
+  if (!bracket?.generated) {
+    throw new Error("El bracket todavía no está generado.");
+  }
+
+  const matches = (bracket.stages || [])
+    .flatMap((stage) => stage.matches || []);
+
+  const finalMatch =
+    matches.find(
+      (match) =>
+        match.bracket === "grand_final" &&
+        match.id === "GF-M1"
+    ) ||
+    [...matches]
+      .reverse()
+      .find(
+        (match) =>
+          match.bracket === "winners" &&
+          match.status === MATCH_STATUS.COMPLETED
+      );
+
+  const championId =
+    bracket.championId ||
+    finalMatch?.winnerId ||
+    null;
+
+  if (!championId) {
+    throw new Error(
+      "El evento no puede finalizar sin campeón."
+    );
+  }
+
+  const firstParticipant =
+    pro.participants?.[championId];
+
+  const results = [
+    {
+      position: 1,
+      participantId: championId,
+      displayName:
+        firstParticipant?.displayName ||
+        championId
+    }
+  ];
+
+  const runnerUpId =
+    finalMatch?.loserId ||
+    null;
+
+  if (runnerUpId && runnerUpId !== championId) {
+    const participant =
+      pro.participants?.[runnerUpId];
+
+    results.push({
+      position: 2,
+      participantId: runnerUpId,
+      displayName:
+        participant?.displayName ||
+        runnerUpId
+    });
+  }
+
+  return results;
+}
+
+export async function finalizeTournament({
+  tournamentId,
+  eventId,
+  event,
+  recognizedPositions = []
+}) {
+  const pro = ensureTournamentProState(event);
+
+  if (pro.status !== TOURNAMENT_EVENT_STATUS.LIVE) {
+    throw new Error(
+      "Solo puedes finalizar un torneo que está en vivo."
+    );
+  }
+
+  if (!pro.bracket?.generated) {
+    throw new Error("El bracket todavía no está generado.");
+  }
+
+  const allMatches =
+    pro.bracket.stages?.flatMap(
+      (stage) => stage.matches || []
+    ) || [];
+
+  const openMatch = allMatches.find(
+    (match) =>
+      match.status === MATCH_STATUS.PENDING ||
+      match.status === MATCH_STATUS.LIVE
+  );
+
+  if (openMatch) {
+    throw new Error(
+      "No puedes finalizar el torneo mientras existan matches pendientes o en vivo."
+    );
+  }
+
+  const officialResults =
+    getOfficialResults(pro);
+
+  const availablePositions =
+    new Set(
+      officialResults.map(
+        (result) => result.position
+      )
+    );
+
+  const positions =
+    [...new Set(
+      (Array.isArray(recognizedPositions)
+        ? recognizedPositions
+        : []
+      )
+        .map((position) => Number(position))
+        .filter(
+          (position) =>
+            Number.isInteger(position) &&
+            availablePositions.has(position)
+        )
+    )]
+      .sort((a, b) => a - b);
+
+  if (positions.length === 0) {
+    throw new Error(
+      "Selecciona al menos un puesto para otorgar reconocimiento."
+    );
+  }
+
+  const completedAt =
+    new Date().toISOString();
+
+  const standings =
+    officialResults.map(
+      (result) => ({
+        ...result
+      })
+    );
+
+  const recognitionRecords =
+    positions.map((position) => {
+      const result =
+        officialResults.find(
+          (item) =>
+            item.position === position
+        );
+
+      return {
+        position,
+        participantId:
+          result.participantId,
+        displayName:
+          result.displayName,
+        status:
+          RECOGNITION_STATUS.NOT_REQUESTED
+      };
+    });
+
+  pro.status =
+    TOURNAMENT_EVENT_STATUS.FINISHED;
+
+  pro.results = {
+    ...pro.results,
+    standings,
+    winnerIds: officialResults
+      .filter(
+        (result) =>
+          result.position === 1
+      )
+      .map(
+        (result) =>
+          result.participantId
+      ),
+    completedAt
+  };
+
+  pro.bracket.completedAt =
+    completedAt;
+
+  pro.recognition = {
+    enabled: true,
+    positions,
+    requests: {}
+  };
+
+  const history = {
+    competitionId: eventId,
+    tournamentId,
+    name: event.name || "",
+    gameId: event.gameId || null,
+    competitionOption:
+      event.competitionOption || null,
+    participationType:
+      event.participationType || null,
+    format:
+      event.format || null,
+    matchSystem:
+      event.matchSystem || null,
+    capacity:
+      event.capacity?.value ??
+      event.capacity ??
+      null,
+    dateTime:
+      event.dateTime ||
+      event.startDateTime ||
+      null,
+    location:
+      event.location || null,
+    registrationCost:
+      event.registrationCost ??
+      event.cost ??
+      null,
+    status: "completed",
+    results: {
+      first:
+        standings.find(
+          (result) => result.position === 1
+        ) || null,
+      second:
+        standings.find(
+          (result) => result.position === 2
+        ) || null,
+      third:
+        standings.find(
+          (result) => result.position === 3
+        ) || null
+    },
+    recognitions:
+      recognitionRecords,
+    completedAt
+  };
+
+  const existingHistory =
+    await getEntity(
+      "competitionHistory",
+      eventId
+    );
+
+  if (existingHistory) {
+    throw new Error(
+      "El historial de esta competencia ya existe."
+    );
+  }
+
+  await createEntity(
+    "competitionHistory",
+    history,
+    eventId
+  );
 
   return savePro(
     tournamentId,
