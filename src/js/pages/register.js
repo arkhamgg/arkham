@@ -67,54 +67,6 @@ export function Register() {
 
 
           <!-- ========================================
-               LIGA
-          ======================================== -->
-
-          <button
-            type="button"
-            class="register-type"
-            data-type="league"
-          >
-
-            <span class="register-type__number">
-              01
-            </span>
-
-            <span class="register-type__icon">
-
-              <i
-                class="fa-solid fa-trophy"
-                aria-hidden="true"
-              ></i>
-
-            </span>
-
-            <span class="register-type__content">
-
-              <strong>
-                LIGA
-              </strong>
-
-              <span>
-                Crea y administra una estructura
-                competitiva recurrente.
-              </span>
-
-            </span>
-
-            <span class="register-type__arrow">
-
-              <i
-                class="fa-solid fa-arrow-right"
-                aria-hidden="true"
-              ></i>
-
-            </span>
-
-          </button>
-
-
-          <!-- ========================================
                TORNEO
           ======================================== -->
 
@@ -125,7 +77,7 @@ export function Register() {
           >
 
             <span class="register-type__number">
-              02
+              01
             </span>
 
             <span class="register-type__icon">
@@ -173,7 +125,7 @@ export function Register() {
           >
 
             <span class="register-type__number">
-              03
+              02
             </span>
 
             <span class="register-type__icon">
@@ -221,7 +173,7 @@ export function Register() {
           >
 
             <span class="register-type__number">
-              04
+              03
             </span>
 
             <span class="register-type__icon">
