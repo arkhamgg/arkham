@@ -1209,6 +1209,80 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
 
   // ========================================
+  // TEAM DASHBOARD
+  // ========================================
+
+  function renderTeamDashboard(entityContext) {
+    const entity = entityContext?.entity || {};
+    const teamName = entity.name || entity.teamName || "Tu Team";
+    const shortName = entity.shortName || entity.tag || "TEAM";
+    const logoUrl = entity.logo?.url || entity.logoUrl || entity.photo?.url || "";
+
+    page.innerHTML = `
+      <section class="dashboard-main dashboard-main--team">
+        <header class="dashboard-header">
+          <div>
+            <span class="dashboard-header__eyebrow">MI TEAM</span>
+            <h1>${escapeHtml(teamName)}</h1>
+            <p>Gestiona la identidad competitiva, el roster y las divisiones de tu organización.</p>
+          </div>
+        </header>
+
+        <div class="dashboard-workspace">
+          <section class="dashboard-create dashboard-create--team">
+            <div class="dashboard-create__content">
+              <span class="dashboard-section__eyebrow">ORGANIZACIÓN</span>
+              <h2>Construye tu Team competitivo.</h2>
+              <p>Administra tus divisiones, incorpora jugadores y prepara tus rosters para competir en NEXUS.</p>
+            </div>
+            <div class="dashboard-create__team-identity">
+              ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo de ${escapeHtml(teamName)}">` : `<span>${escapeHtml(shortName)}</span>`}
+            </div>
+          </section>
+
+          <section class="dashboard-section">
+            <header class="dashboard-section__header">
+              <div>
+                <span class="dashboard-section__eyebrow">TEAM</span>
+                <h2>Tu organización</h2>
+              </div>
+            </header>
+
+            <div class="dashboard-team-overview">
+              <article class="dashboard-team-overview__card">
+                <span>ROSTER</span>
+                <strong>Gestiona tus jugadores</strong>
+                <p>Administra incorporaciones, roles y miembros activos por división.</p>
+                <a href="/dashboard/team/roster" data-team-navigation>
+                  Abrir Roster <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </a>
+              </article>
+
+              <article class="dashboard-team-overview__card">
+                <span>DIVISIONES</span>
+                <strong>Organiza tus juegos</strong>
+                <p>Crea divisiones según los juegos competitivos disponibles en NEXUS.</p>
+                <a href="/dashboard/team/divisions" data-team-navigation>
+                  Gestionar divisiones <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </a>
+              </article>
+            </div>
+          </section>
+        </div>
+      </section>
+    `;
+
+    page.querySelectorAll("[data-team-navigation]").forEach(link => {
+      link.addEventListener("click", event => {
+        event.preventDefault();
+        window.history.pushState({}, "", link.getAttribute("href"));
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      });
+    });
+  }
+
+
+  // ========================================
   // LOAD NEXUS CONTEXT
   // ========================================
 
@@ -1303,6 +1377,24 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
           );
 
         }
+
+        if (
+          entityContext.type ===
+            "team"
+        ) {
+
+          renderTeamDashboard(
+            entityContext
+          );
+
+          headerDescription.textContent =
+            `Gestionando ${
+              entityContext.entity?.name ||
+              "tu Team"
+            }.`;
+
+        }
+
 
         if (
           entityContext.type ===

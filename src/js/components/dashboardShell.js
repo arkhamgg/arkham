@@ -52,6 +52,12 @@ const DASHBOARD_NAVIGATION_ROUTES = {
   "tournament-recognitions":
     "/dashboard/tournaments/recognitions",
 
+  "team-roster":
+    "/dashboard/team/roster",
+
+  "team-divisions":
+    "/dashboard/team/divisions",
+
   competitions:
     "/competitions",
 

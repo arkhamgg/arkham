@@ -1,0 +1,63 @@
+// ========================================
+// TEAM — INITIAL MODULE
+// ========================================
+
+.team-page {
+  min-height: 100%;
+  padding: 48px;
+}
+
+.team-page__content {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.team-page__content > header {
+  margin-bottom: 32px;
+}
+
+.team-page__content > header span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+}
+
+.team-page__content > header h1 {
+  margin: 0 0 10px;
+}
+
+.team-page__content > header p {
+  margin: 0;
+  opacity: 0.72;
+}
+
+.team-page__placeholder {
+  display: grid;
+  gap: 10px;
+  max-width: 720px;
+  padding: 32px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  border-radius: 18px;
+}
+
+.team-page__placeholder i {
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+}
+
+.team-page__placeholder strong {
+  font-size: 1.05rem;
+}
+
+.team-page__placeholder span {
+  line-height: 1.6;
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .team-page {
+    padding: 28px 20px;
+  }
+}

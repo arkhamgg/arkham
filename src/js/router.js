@@ -26,6 +26,8 @@ import { Billing } from "./pages/billing.js";
 import { Upgrade } from "./pages/upgrade.js";
 import { Payment } from "./pages/payment.js";
 import { TournamentRecognitions } from "./pages/tournamentRecognitions.js";
+import { TeamRoster } from "./pages/teamRoster.js";
+import { TeamDivisions } from "./pages/teamDivisions.js";
 
 import { PublicShell } from "./components/publicShell.js";
 import { DashboardShell } from "./components/dashboardShell.js";
@@ -150,6 +152,16 @@ const routes = {
   "/dashboard/tournaments/recognitions":
     TournamentRecognitions,
 
+  // ======================================
+  // TEAM
+  // ======================================
+
+  "/dashboard/team/roster":
+    TeamRoster,
+
+  "/dashboard/team/divisions":
+    TeamDivisions,
+
 
   // ======================================
   // TOURNAMENT
@@ -271,6 +283,13 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
   "/dashboard/tournaments/edit",
   "/dashboard/tournaments/pro",
   "/dashboard/tournaments/recognitions",
+
+  // --------------------------------------
+  // TEAM
+  // --------------------------------------
+
+  "/dashboard/team/roster",
+  "/dashboard/team/divisions",
 
   // --------------------------------------
   // BILLING

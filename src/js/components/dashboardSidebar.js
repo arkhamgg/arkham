@@ -40,6 +40,31 @@ const NAVIGATION_BY_ENTITY = {
     }
   ],
 
+  team: [
+    {
+      group: "PRINCIPAL",
+      items: [
+        { id: "overview", label: "Overview", icon: "fa-grid-2" }
+      ]
+    },
+    {
+      group: "ORGANIZACIÓN",
+      items: [
+        { id: "team-roster", label: "Roster", icon: "fa-users" },
+        { id: "team-divisions", label: "Divisiones", icon: "fa-gamepad" }
+      ]
+    },
+    {
+      group: "EXPLORAR",
+      items: [
+        { id: "competitions", label: "Competencias", icon: "fa-trophy" },
+        { id: "teams", label: "Teams", icon: "fa-users" },
+        { id: "players", label: "Players", icon: "fa-user" },
+        { id: "calendar", label: "Calendario", icon: "fa-calendar-days" }
+      ]
+    }
+  ],
+
   tournament: [
     {
       group: "PRINCIPAL",
