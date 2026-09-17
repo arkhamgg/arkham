@@ -45,6 +45,8 @@ const DASHBOARD_NAVIGATION_ROUTES = {
   "competitive-profile":
     "/dashboard/player/competitive-profile",
 
+  "tournament-recognitions":
+    "/dashboard/tournaments/recognitions",
 
   competitions:
     "/competitions",
@@ -66,27 +68,65 @@ const DASHBOARD_NAVIGATION_ROUTES = {
 };
 
 
+// ========================================
+// ACTIVE VIEW
+// ========================================
+
 function getActiveView(pathname) {
 
   const playerRoutes = {
-    "/dashboard/player/competitions": "player-competitions",
-    "/dashboard/player/requests": "player-requests",
-    "/dashboard/player/results": "player-results",
-    "/dashboard/player/stats": "player-stats",
-    "/dashboard/player/profile": "profile",
-    "/dashboard/player/competitive-profile": "competitive-profile"
+    "/dashboard/player/competitions":
+      "player-competitions",
+
+    "/dashboard/player/requests":
+      "player-requests",
+
+    "/dashboard/player/results":
+      "player-results",
+
+    "/dashboard/player/stats":
+      "player-stats",
+
+    "/dashboard/player/profile":
+      "profile",
+
+    "/dashboard/player/competitive-profile":
+      "competitive-profile"
   };
+
 
   if (playerRoutes[pathname]) {
     return playerRoutes[pathname];
   }
 
+
+  // ========================================
+  // TOURNAMENT RECOGNITIONS
+  // ========================================
+
+  if (
+    pathname ===
+    "/dashboard/tournaments/recognitions"
+  ) {
+
+    return "tournament-recognitions";
+
+  }
+
+
+  // ========================================
+  // BILLING
+  // ========================================
+
   if (
     pathname ===
     "/dashboard/billing/upgrade"
   ) {
+
     return "upgrade-plan";
+
   }
+
 
   if (
     pathname ===
@@ -94,20 +134,34 @@ function getActiveView(pathname) {
     pathname ===
       "/dashboard/billing/payment"
   ) {
+
     return "billing";
+
   }
+
+
+  // ========================================
+  // OVERVIEW
+  // ========================================
 
   if (
     pathname ===
     "/dashboard"
   ) {
+
     return "overview";
+
   }
+
 
   return "overview";
 
 }
 
+
+// ========================================
+// NAVIGATION
+// ========================================
 
 function navigate(path) {
 
@@ -115,14 +169,18 @@ function navigate(path) {
     window.location.pathname ===
     path
   ) {
+
     return;
+
   }
+
 
   window.history.pushState(
     {},
     "",
     path
   );
+
 
   window.dispatchEvent(
     new PopStateEvent("popstate")
@@ -140,6 +198,7 @@ export function DashboardShell(Page) {
   const shell =
     document.createElement("div");
 
+
   shell.className =
     "dashboard-shell";
 
@@ -150,6 +209,7 @@ export function DashboardShell(Page) {
 
   const sidebar =
     DashboardSidebar({
+
       activeView:
         getActiveView(
           window.location.pathname
@@ -162,17 +222,23 @@ export function DashboardShell(Page) {
             view
           ];
 
+
         if (!route) {
+
           console.warn(
             "NEXUS — Vista de Dashboard no configurada:",
             view
           );
+
           return;
+
         }
+
 
         navigate(route);
 
       }
+
     });
 
 
@@ -188,19 +254,24 @@ export function DashboardShell(Page) {
   const content =
     document.createElement("div");
 
+
   content.className =
     "dashboard-shell__content";
 
 
   const page =
     Page({
+
       dashboardSidebar:
         sidebar
+
     });
+
 
   content.appendChild(
     page
   );
+
 
   shell.appendChild(
     content
@@ -234,6 +305,7 @@ async function loadDashboardContext(
     const accountContext =
       await getCurrentAccountContext();
 
+
     const entityContext =
       await getCurrentEntityContext();
 
@@ -264,14 +336,20 @@ async function loadDashboardContext(
         entityContext.type ||
         "Mi NEXUS";
 
+
       sidebar.setContext({
+
         type:
           entityContext.type,
+
         name:
           entityName,
+
         accessContext:
           access
+
       });
+
 
       return;
 
@@ -279,12 +357,16 @@ async function loadDashboardContext(
 
 
     sidebar.setContext({
+
       type:
         null,
+
       name:
         "Mi NEXUS",
+
       accessContext:
         access
+
     });
 
   } catch (error) {
