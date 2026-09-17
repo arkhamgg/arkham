@@ -22,6 +22,7 @@ import { Calendar } from "./pages/calendar.js";
 import { Billing } from "./pages/billing.js";
 import { Upgrade } from "./pages/upgrade.js";
 import { Payment } from "./pages/payment.js";
+import { TournamentRecognitions } from "./pages/tournamentRecognitions.js";
 
 import { PublicShell } from "./components/publicShell.js";
 import { DashboardShell } from "./components/dashboardShell.js";
@@ -134,6 +135,9 @@ const routes = {
 
   "/dashboard/player/competitive-profile":
     PlayerCompetitiveProfileView,
+
+  "/dashboard/tournaments/recognitions":
+    TournamentRecognitions,
 
   // ======================================
   // TOURNAMENT

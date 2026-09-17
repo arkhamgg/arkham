@@ -1,0 +1,203 @@
+@use "../abstracts/variables" as *;
+
+// ========================================
+// NEXUS — Tournament Recognitions
+// ========================================
+
+.tournament-recognitions-page {
+  min-height: 100%;
+}
+
+.tournament-recognitions-page__container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: $space-8;
+}
+
+.tournament-recognitions-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: $space-8;
+  margin-bottom: $space-8;
+}
+
+.tournament-recognitions-page__eyebrow,
+.tournament-recognitions-page__section-head > div > span,
+.tournament-recognitions-page__summary span,
+.tournament-recognition-card__eyebrow,
+.tournament-recognition-card__meta span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tournament-recognitions-page__header h1 {
+  margin: $space-2 0;
+  color: $color-white;
+}
+
+.tournament-recognitions-page__header p {
+  max-width: 720px;
+  margin: 0;
+  color: $color-300;
+}
+
+.tournament-recognitions-page__back {
+  color: $color-white;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tournament-recognitions-page__summary {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1px;
+  background: rgba($color-white, 0.08);
+  margin-bottom: $space-8;
+}
+
+.tournament-recognitions-page__summary > div {
+  background: $color-900;
+  padding: $space-5;
+}
+
+.tournament-recognitions-page__summary strong {
+  display: block;
+  margin-top: $space-2;
+  color: $color-white;
+}
+
+.tournament-recognitions-page__section {
+  margin-bottom: $space-10;
+}
+
+.tournament-recognitions-page__section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: $space-6;
+  margin-bottom: $space-5;
+}
+
+.tournament-recognitions-page__section-head > div {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+}
+
+.tournament-recognitions-page__section-head h2 {
+  margin: 0;
+  color: $color-white;
+}
+
+.tournament-recognitions-page__section-head p {
+  margin: 0;
+  color: $color-500;
+}
+
+.tournament-recognitions-page__list {
+  display: grid;
+  gap: $space-4;
+}
+
+.tournament-recognition-card {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) 230px auto;
+  align-items: center;
+  gap: $space-6;
+  border: 1px solid rgba($color-white, 0.08);
+  background: $color-900;
+  padding: $space-5;
+}
+
+.tournament-recognition-card__rank {
+  text-align: center;
+}
+
+.tournament-recognition-card__rank span {
+  display: block;
+  color: $color-white;
+  font-size: $font-size-xl;
+  font-weight: 700;
+}
+
+.tournament-recognition-card__rank small {
+  color: $color-500;
+}
+
+.tournament-recognition-card__main h3 {
+  margin: $space-1 0;
+  color: $color-white;
+}
+
+.tournament-recognition-card__main > span:last-child {
+  color: $color-300;
+}
+
+.tournament-recognition-card__meta span,
+.tournament-recognition-card__meta strong {
+  display: block;
+}
+
+.tournament-recognition-card__meta strong {
+  margin-top: $space-1;
+  color: $color-100;
+  font-size: $font-size-sm;
+}
+
+.tournament-recognition-card__actions {
+  display: flex;
+  gap: $space-3;
+}
+
+.tournament-recognition-card__actions button {
+  border: 1px solid rgba($color-white, 0.12);
+  background: transparent;
+  color: $color-100;
+  padding: $space-3 $space-4;
+  cursor: pointer;
+}
+
+.tournament-recognition-card__actions button.is-primary {
+  border-color: $color-red;
+  background: $color-red;
+  color: $color-white;
+}
+
+.tournament-recognition-card.is-approved { border-color: rgba($color-success, 0.25); }
+.tournament-recognition-card.is-rejected { border-color: rgba($color-error, 0.25); }
+
+.tournament-recognitions-page__empty,
+.tournament-recognitions-page__loading {
+  border: 1px dashed rgba($color-white, 0.1);
+  padding: $space-8;
+  text-align: center;
+  color: $color-300;
+}
+
+.tournament-recognitions-page__empty strong,
+.tournament-recognitions-page__empty span {
+  display: block;
+}
+
+.tournament-recognitions-page__empty strong { color: $color-white; margin-bottom: $space-2; }
+
+@media (max-width: 900px) {
+  .tournament-recognitions-page__header,
+  .tournament-recognitions-page__section-head { align-items: flex-start; flex-direction: column; }
+  .tournament-recognition-card { grid-template-columns: 70px 1fr; }
+  .tournament-recognition-card__meta { grid-column: 2; }
+  .tournament-recognition-card__actions { grid-column: 2; }
+}
+
+@media (max-width: 640px) {
+  .tournament-recognitions-page__container { padding: $space-5; }
+  .tournament-recognitions-page__summary { grid-template-columns: 1fr; }
+  .tournament-recognition-card { grid-template-columns: 1fr; }
+  .tournament-recognition-card__rank { text-align: left; }
+  .tournament-recognition-card__meta,
+  .tournament-recognition-card__actions { grid-column: auto; }
+  .tournament-recognition-card__actions { flex-direction: column; }
+}

@@ -40,6 +40,30 @@ const NAVIGATION_BY_ENTITY = {
     }
   ],
 
+  tournament: [
+    {
+      group: "PRINCIPAL",
+      items: [
+        { id: "overview", label: "Overview", icon: "fa-grid-2" }
+      ]
+    },
+    {
+      group: "OPERACIÓN",
+      items: [
+        { id: "tournament-recognitions", label: "Reconocimientos", icon: "fa-award" }
+      ]
+    },
+    {
+      group: "EXPLORAR",
+      items: [
+        { id: "competitions", label: "Competencias", icon: "fa-trophy" },
+        { id: "teams", label: "Equipos", icon: "fa-users" },
+        { id: "players", label: "Jugadores", icon: "fa-user" },
+        { id: "calendar", label: "Calendario", icon: "fa-calendar-days" }
+      ]
+    }
+  ],
+
   default: [
     {
       group: "PRINCIPAL",
