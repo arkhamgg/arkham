@@ -1280,19 +1280,48 @@ async function handlePaymentConfirmation(
      * cuándo NEXUS recibió la solicitud.
      */
 
+    const accountContext =
+      await getCurrentAccountContext();
+
+    const account =
+      accountContext?.account ||
+      accountContext ||
+      {};
+
+    const subscription =
+      accountContext?.subscription ||
+      null;
+
+    const currentPlanId =
+      String(
+        subscription?.planId ||
+        account?.planId ||
+        PLAN_IDS.FREE
+      ).toLowerCase();
+
+    const isProRenewal =
+      currentPlanId === PLAN_IDS.PRO &&
+      Boolean(subscription?.id || account?.subscriptionId);
+
     const paymentResponse =
       await createBillingPayment({
 
         subscriptionId:
-          null,
+          isProRenewal
+            ? subscription?.id ||
+              account?.subscriptionId
+            : null,
 
         currentPlanId:
-          PLAN_IDS.FREE,
+          isProRenewal
+            ? PLAN_IDS.PRO
+            : PLAN_IDS.FREE,
 
         planId:
           PLAN_IDS.PRO,
 
         period:
+          subscription?.period ||
           "monthly",
 
         method:

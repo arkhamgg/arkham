@@ -168,7 +168,12 @@ export function getBillingStatus(
     )
   ) {
 
-    return BILLING_STATUS.CURRENT;
+    return hasEffectiveSubscriptionAccess(
+      subscription,
+      now
+    )
+      ? BILLING_STATUS.CURRENT
+      : BILLING_STATUS.EXPIRED;
 
   }
 

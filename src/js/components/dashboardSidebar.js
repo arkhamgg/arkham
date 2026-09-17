@@ -299,12 +299,23 @@ export function DashboardSidebar({
                       >
 
                         <i
-                          class="fa-solid ${item.icon}"
+                          class="fa-solid ${
+                            item.id === "tournament-recognitions" &&
+                            !access?.hasCapability?.("recognition")
+                              ? "fa-lock"
+                              : item.icon
+                          }"
                           aria-hidden="true"
                         ></i>
 
                         <span>
                           ${item.label}
+                          ${
+                            item.id === "tournament-recognitions" &&
+                            !access?.hasCapability?.("recognition")
+                              ? " · Pro no vigente"
+                              : ""
+                          }
                         </span>
 
                       </button>
@@ -446,12 +457,23 @@ export function DashboardSidebar({
                       >
 
                         <i
-                          class="fa-solid ${item.icon}"
+                          class="fa-solid ${
+                            item.id === "tournament-recognitions" &&
+                            !access?.hasCapability?.("recognition")
+                              ? "fa-lock"
+                              : item.icon
+                          }"
                           aria-hidden="true"
                         ></i>
 
                         <span>
                           ${item.label}
+                          ${
+                            item.id === "tournament-recognitions" &&
+                            !access?.hasCapability?.("recognition")
+                              ? " · Pro no vigente"
+                              : ""
+                          }
                         </span>
 
                       </button>

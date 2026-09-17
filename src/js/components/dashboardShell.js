@@ -18,6 +18,10 @@ import {
   createSubscriptionAccess
 } from "../services/planService.js";
 
+import {
+  hasEffectiveSubscriptionAccess
+} from "../services/subscription.js";
+
 
 // ========================================
 // ROUTES
@@ -341,14 +345,23 @@ async function loadDashboardContext(
 
 
     if (
-      accountContext?.subscription?.status ===
-        "active" &&
+      hasEffectiveSubscriptionAccess(
+        accountContext?.subscription
+      ) &&
       entityContext?.productId
     ) {
 
       access =
         createSubscriptionAccess(
           accountContext.subscription,
+          entityContext.productId
+        );
+
+    } else if (entityContext?.productId) {
+
+      access =
+        createSubscriptionAccess(
+          accountContext?.subscription || null,
           entityContext.productId
         );
 

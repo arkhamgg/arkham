@@ -894,6 +894,58 @@ function renderSubscribedPlan(
         </section>
 
 
+        ${
+          summary?.planId === PLAN_IDS.PRO &&
+          !summary?.hasAccess
+            ? `
+              <section class="billing-page__section">
+
+                <article class="billing-page__payment-alert billing-page__payment-alert--rejected">
+
+                  <div class="billing-page__payment-alert-icon">
+                    <i class="fa-solid fa-lock"></i>
+                  </div>
+
+                  <div class="billing-page__payment-alert-content">
+
+                    <span class="billing-page__payment-alert-eyebrow">
+                      SUSCRIPCIÓN NO VIGENTE
+                    </span>
+
+                    <h2>
+                      Tu suscripción Pro ha vencido.
+                    </h2>
+
+                    <p>
+                      Las herramientas Pro están bloqueadas hasta que renueves tu suscripción.
+                      Tu plan Pro se conserva y volverá a activarse cuando NEXUS apruebe tu renovación.
+                    </p>
+
+                    <div class="billing-page__payment-alert-actions">
+
+                      <button
+                        type="button"
+                        class="billing-page__upgrade-button"
+                        data-billing-renew
+                      >
+                        <span>
+                          Renovar suscripción
+                        </span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                </article>
+
+              </section>
+            `
+            : ""
+        }
+
+
         <!-- BILLING SUMMARY -->
 
         <section class="billing-page__section">
@@ -1039,6 +1091,37 @@ function bindEvents(
   if (retryPaymentButton) {
 
     retryPaymentButton.addEventListener(
+      "click",
+      () => {
+
+        window.history.pushState(
+          {},
+          "",
+          "/dashboard/billing/payment"
+        );
+
+        window.dispatchEvent(
+          new PopStateEvent("popstate")
+        );
+
+      }
+    );
+
+  }
+
+
+  // ----------------------------------------
+  // RENEW SUBSCRIPTION
+  // ----------------------------------------
+
+  const renewButton =
+    root.querySelector(
+      "[data-billing-renew]"
+    );
+
+  if (renewButton) {
+
+    renewButton.addEventListener(
       "click",
       () => {
 
