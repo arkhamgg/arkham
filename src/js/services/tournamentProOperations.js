@@ -1247,3 +1247,4 @@ function buildStandings(pro) {
       })
     );
 }
+console.log("sucess")
