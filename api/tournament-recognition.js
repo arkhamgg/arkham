@@ -109,6 +109,73 @@ export default async function handler(req, res) {
     const profile = profileSnap.exists ? profileSnap.data() : null;
     const { entityType, entityId } = getEntityKey(profile);
 
+    // ========================================
+    // ORGANIZER — GLOBAL RECOGNITIONS
+    // ========================================
+    // This view is intentionally independent from a single tournament/event.
+    // One organizer can have several Tournament Pro events active or completed,
+    // so the dashboard must aggregate all recognition records owned by uid.
+    if (method === "GET" && mode === "list") {
+      const tournamentsSnap = await db.collection("tournaments").get();
+      const competitions = [];
+      const recognitions = [];
+
+      tournamentsSnap.forEach((doc) => {
+        const tournament = { id: doc.id, ...doc.data() };
+        const events = tournament.events && typeof tournament.events === "object" ? tournament.events : {};
+
+        Object.entries(events).forEach(([currentEventId, event]) => {
+          if (!event?.pro) return;
+
+          const owner = isOwner(tournament, event, uid);
+          if (!owner) return;
+
+          const entries = getRecognitionEntries(event);
+          if (!entries.length) return;
+
+          const competition = {
+            tournamentId: doc.id,
+            eventId: currentEventId,
+            name: event.name || tournament.name || tournament.title || "Competencia NEXUS",
+            tournamentName: tournament.name || tournament.title || "Torneo NEXUS",
+            status: event.pro?.status || event.status || null,
+            gameId: event.gameId || null,
+            dateTime: event.dateTime || event.startDateTime || null
+          };
+
+          competitions.push(competition);
+
+          entries.forEach((recognition) => {
+            recognitions.push({
+              ...recognition,
+              tournamentId: doc.id,
+              eventId: currentEventId,
+              competitionName: competition.name,
+              tournamentName: competition.tournamentName,
+              competitionStatus: competition.status,
+              gameId: competition.gameId,
+              dateTime: competition.dateTime
+            });
+          });
+        });
+      });
+
+      competitions.sort((a, b) => String(b.dateTime || "").localeCompare(String(a.dateTime || "")));
+      recognitions.sort((a, b) => {
+        const statusOrder = { requested: 0, rejected: 1, approved: 2, not_requested: 3 };
+        const statusDiff = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+        if (statusDiff !== 0) return statusDiff;
+        return String(b.reviewedAt || b.requestedAt || b.dateTime || "").localeCompare(String(a.reviewedAt || a.requestedAt || a.dateTime || ""));
+      });
+
+      return json(res, 200, {
+        success: true,
+        scope: "organizer",
+        competitions,
+        recognitions
+      });
+    }
+
     if (!entityType || !entityId) return json(res, 200, { success: true, hasProfile: false, competitions: [], recognitions: [] });
 
     // ========================================
@@ -137,18 +204,6 @@ export default async function handler(req, res) {
     if (!tournamentSnap.exists) throw new Error("No se encontró el torneo.");
     const tournament = { id: tournamentSnap.id, ...tournamentSnap.data() };
     const event = getEvent(tournament, eventId);
-
-    // ========================================
-    // ORGANIZER — LIST / FOLLOW-UP
-    // ========================================
-    if (method === "GET" && mode === "list") {
-      if (!isOwner(tournament, event, uid)) return json(res, 403, { success: false, error: "No tienes permiso para gestionar los reconocimientos." });
-      return json(res, 200, {
-        success: true,
-        competition: { tournamentId, eventId, name: event.name || tournament.name || tournament.title || "Competencia NEXUS", status: event.pro?.status || null },
-        recognitions: getRecognitionEntries(event)
-      });
-    }
 
     // ========================================
     // PLAYER — CURRENT RECOGNITION STATUS
