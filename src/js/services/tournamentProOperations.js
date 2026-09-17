@@ -125,15 +125,11 @@ export async function addParticipantToSlot({
     event.capacity
   );
 
-  const activeCount = Object.values(pro.participants)
-    .filter((participant) => ![
-      PARTICIPANT_STATUS.REJECTED,
-      PARTICIPANT_STATUS.WITHDRAWN,
-      PARTICIPANT_STATUS.NO_SHOW
-    ].includes(participant.status))
+  const occupiedSlotCount = Object.values(pro.bracket.slots || {})
+    .filter((slot) => Boolean(slot?.participantId))
     .length;
 
-  if (capacity > 0 && activeCount >= capacity) {
+  if (capacity > 0 && occupiedSlotCount >= capacity) {
     throw new Error("La capacidad del torneo ya está completa.");
   }
 
@@ -499,10 +495,9 @@ export async function approveParticipationRequest({
     }
 
     // Actualizar primera ronda del bracket.
+    // La aprobación NO resuelve BYEs.
+    // Los BYEs se determinan al cerrar el check-in.
     syncFirstRoundFromSlots(pro);
-
-    // Resolver BYEs que correspondan.
-    applyBracketByes(pro.bracket);
   } else {
     // El bracket todavía no existe.
     //
@@ -908,7 +903,7 @@ export async function reviewRecognition({
   );
 }
 
-function syncFirstRoundFromSlots(pro) {
+function syncFirstRoundFromSlots(pro, resolveByes = false) {
   const firstRound =
     pro.bracket?.stages?.find(
       (stage) =>
@@ -950,8 +945,8 @@ function syncFirstRoundFromSlots(pro) {
       match.status =
         MATCH_STATUS.PENDING;
     } else if (
-      participantAId ||
-      participantBId
+      resolveByes &&
+      (participantAId || participantBId)
     ) {
       match.status =
         MATCH_STATUS.BYE;
@@ -1105,7 +1100,8 @@ function validateMatchParticipants(
 
 function completeCheckInState(pro) {
   if (pro.bracket?.generated) {
-    syncFirstRoundFromSlots(pro);
+    // Solo al cerrar el check-in se determinan los BYEs.
+    syncFirstRoundFromSlots(pro, true);
     applyBracketByes(pro.bracket);
   }
 
