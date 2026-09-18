@@ -41,19 +41,26 @@ export async function getTeamDivisions(teamId) {
   return requestApi({ teamId });
 }
 
-export async function createTeamDivision({ teamId, name, gameId, description = "", players = [] }) {
+export async function createTeamDivision({ teamId, name, gameId, description = "" }) {
   return requestApi({
     method: "POST",
     teamId,
-    body: { teamId, name, gameId, description, players }
+    body: { teamId, name, gameId, description }
   });
 }
 
-export async function updateTeamDivision({ teamId, divisionId, name, description = "", status = "active" }) {
+export async function updateTeamDivision({
+  teamId,
+  divisionId,
+  name,
+  description = "",
+  status = "active",
+  players = []
+}) {
   return requestApi({
     method: "PATCH",
     teamId,
-    body: { teamId, divisionId, name, description, status }
+    body: { teamId, divisionId, name, description, status, players }
   });
 }
 

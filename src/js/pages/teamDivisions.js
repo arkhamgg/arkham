@@ -323,7 +323,13 @@ function bindDivisionEvents(state, { teamId, divisions, games, members }) {
 
     try {
       if (divisionId) {
-        await updateTeamDivision({ teamId, divisionId, name, description });
+        await updateTeamDivision({
+          teamId,
+          divisionId,
+          name,
+          description,
+          players: selectedMembers
+        });
       } else {
         await createTeamDivision({
           teamId,
@@ -367,15 +373,32 @@ function openModal(state, division, games, members) {
   title.textContent = division ? "Editar división" : "Crear división";
   submit.textContent = division ? "GUARDAR CAMBIOS" : "CREAR DIVISIÓN";
 
-  form._divisionMembers = division
-    ? []
-    : [];
   form._divisionRosterMembers = members;
   form._divisionGames = games;
 
-  if (builder) builder.hidden = Boolean(division);
+  const persistedMembers = division
+    ? members
+        .filter((member) => String(member?.divisionId || "") === String(division.id))
+        .map((member) => ({
+          playerId: String(member.playerId || "").trim(),
+          roleId: String(member.roleId || "").trim()
+        }))
+        .filter((member) => member.playerId)
+    : [];
+
+  form._divisionMembers = persistedMembers;
+
+  // El roster builder también se utiliza al editar para que lo guardado
+  // en teamRoster sea visible y pueda administrarse desde la división.
+  if (builder) builder.hidden = false;
   if (searchInput) searchInput.value = "";
-  if (selectedMembersBox) selectedMembersBox.innerHTML = renderSelectedMembers([]);
+  if (selectedMembersBox) {
+    selectedMembersBox.innerHTML = renderSelectedMembers(
+      persistedMembers,
+      members,
+      getRoleEntries(games.find((game) => game.id === gameSelect.value))
+    );
+  }
 
   const updateBuilder = () => updatePlayerBuilder(form, members, games);
   gameSelect.onchange = updateBuilder;
@@ -423,7 +446,20 @@ function renderPlayerResults(form, members) {
 
   const term = String(searchInput.value || "").trim().toLowerCase();
   const selected = new Set((form._divisionMembers || []).map((item) => item.playerId));
-  const available = members.filter((member) => !selected.has(member.playerId) && !member.divisionId);
+  const currentDivisionId = String(form.elements.divisionId?.value || "").trim();
+  const available = members.filter((member) => {
+    if (selected.has(member.playerId)) return false;
+
+    const memberDivisionId = String(member?.divisionId || "").trim();
+
+    // En edición, los Players de esta misma división siguen disponibles
+    // para volver a seleccionarse si fueron retirados del estado local.
+    if (currentDivisionId) {
+      return !memberDivisionId || memberDivisionId === currentDivisionId;
+    }
+
+    return !memberDivisionId;
+  });
   const filtered = term
     ? available.filter((member) => {
         const haystack = [member.playerId, member.playerName, member.gamertag].filter(Boolean).join(" ").toLowerCase();
