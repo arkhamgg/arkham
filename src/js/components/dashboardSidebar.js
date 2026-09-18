@@ -55,6 +55,13 @@ const NAVIGATION_BY_ENTITY = {
       ]
     },
     {
+      group: "COMPETITIVO",
+      items: [
+        { id: "team-competitions", label: "Mis competencias", icon: "fa-trophy" },
+        { id: "team-requests", label: "Solicitudes a torneo", icon: "fa-ticket" }
+      ]
+    },
+    {
       group: "EXPLORAR",
       items: [
         { id: "competitions", label: "Competencias", icon: "fa-trophy" },

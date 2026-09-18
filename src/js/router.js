@@ -28,6 +28,7 @@ import { Payment } from "./pages/payment.js";
 import { TournamentRecognitions } from "./pages/tournamentRecognitions.js";
 import { TeamRoster } from "./pages/teamRoster.js";
 import { TeamDivisions } from "./pages/teamDivisions.js";
+import { TeamCompetitions } from "./pages/teamCompetitions.js";
 
 import { PublicShell } from "./components/publicShell.js";
 import { DashboardShell } from "./components/dashboardShell.js";
@@ -162,6 +163,12 @@ const routes = {
   "/dashboard/team/divisions":
     TeamDivisions,
 
+  "/dashboard/team/competitions":
+    () => TeamCompetitions({ view: "competitions" }),
+
+  "/dashboard/team/requests":
+    () => TeamCompetitions({ view: "requests" }),
+
 
   // ======================================
   // TOURNAMENT
@@ -290,6 +297,8 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
 
   "/dashboard/team/roster",
   "/dashboard/team/divisions",
+  "/dashboard/team/competitions",
+  "/dashboard/team/requests",
 
   // --------------------------------------
   // BILLING
