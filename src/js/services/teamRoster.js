@@ -64,3 +64,10 @@ export async function removeTeamMember({ teamId, playerId }) {
     body: { action: "remove", teamId, playerId }
   });
 }
+export async function leaveTeam({ teamId }) {
+  return requestApi({
+    method: "POST",
+    teamId,
+    body: { action: "leave", teamId }
+  });
+}

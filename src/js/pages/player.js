@@ -10,6 +10,7 @@ import { uploadImage } from "../services/imagekit.js";
 import { getMyTournamentRegistrationRequests } from "../services/tournamentRegistration.js";
 import { getMyTournamentCompetitions, requestTournamentRecognition } from "../services/tournamentRecognition.js";
 import { submitTeamRequest, cancelTeamRequest, getMyTeamRequests } from "../services/teamRequests.js";
+import { leaveTeam } from "../services/teamRoster.js";
 
 const ROLE_OPTIONS = [
   ["streamer", "Streamer"],
@@ -413,7 +414,7 @@ export function PlayerCompetitiveProfileView() {
               <span>TEAM ACTUAL · CONFIRMADO</span>
               <strong>${escapeHtml(getTeamName(confirmed))}</strong>
               <small>ID: ${escapeHtml(confirmed.id)}</small>
-              <button type="button" class="competitive-profile-form__team-action" data-change-team>CAMBIAR DE TEAM</button>
+              <button type="button" class="competitive-profile-form__team-action" data-leave-team>SALIR DEL TEAM</button>
             </div>` : ""}
 
           ${!confirmed && !pending && teamMembershipStatus === "removed" ? `
@@ -720,17 +721,47 @@ export function PlayerCompetitiveProfileView() {
         return;
       }
 
-      const changeTeam = event.target.closest("[data-change-team]");
-      if (changeTeam) {
-        if (globalTeamId) {
-          window.alert("Ya perteneces a un Team confirmado. Para incorporarte a otro Team primero debes dejar de pertenecer al Team actual.");
-          return;
+      const leave = event.target.closest("[data-leave-team]");
+      if (leave) {
+        if (!globalTeamId) return;
+
+        const teamId = globalTeamId;
+        const teamLabel = getTeamLabel(teamId);
+        const confirmed = window.confirm(
+          `¿Quieres salir de ${teamLabel}? Después podrás buscar otro Team y enviar una nueva solicitud de incorporación.`
+        );
+        if (!confirmed) return;
+
+        leave.disabled = true;
+        leave.textContent = "SALIENDO...";
+
+        try {
+          await leaveTeam({ teamId });
+
+          globalTeamId = null;
+          pendingTeamId = null;
+          pendingRequestedAt = null;
+          teamRequestStatus = null;
+          teamRequestReason = null;
+          teamRequestTeamId = null;
+          teamMembershipStatus = "removed";
+
+          entity.teamId = null;
+          entity.teamMembershipStatus = "removed";
+          delete entity.teamRequest;
+
+          teamSearch = "";
+          render();
+
+          const input = state.querySelector("[data-team-search]");
+          input?.focus();
+        } catch (error) {
+          console.error("NEXUS — Error saliendo del Team:", error);
+          leave.disabled = false;
+          leave.textContent = "SALIR DEL TEAM";
+          window.alert(error?.message || "No fue posible salir del Team.");
         }
 
-        const wrap = state.querySelector("[data-team-search-wrap]");
-        if (wrap) wrap.hidden = false;
-        const input = state.querySelector("[data-team-search]");
-        input?.focus();
         return;
       }
 

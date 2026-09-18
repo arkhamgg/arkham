@@ -65,57 +65,6 @@ function rosterCollection(teamRef) {
   return teamRef.collection("teamRoster");
 }
 
-async function commitInChunks(db, operations) {
-  for (let index = 0; index < operations.length; index += 450) {
-    const batch = db.batch();
-    operations.slice(index, index + 450).forEach((operation) => operation(batch));
-    await batch.commit();
-  }
-}
-
-async function migrateLegacyDivisions(db, teamRef, team) {
-  const collection = divisionsCollection(teamRef);
-  const existing = await collection.limit(1).get();
-  if (!existing.empty) return;
-
-  const legacy = team.divisions && typeof team.divisions === "object" && !Array.isArray(team.divisions)
-    ? team.divisions
-    : {};
-
-  const entries = Object.entries(legacy);
-  if (!entries.length) return;
-
-  await commitInChunks(db, entries.map(([id, division]) => (batch) => {
-    batch.set(collection.doc(id), division, { merge: true });
-  }));
-
-  await teamRef.update({
-    divisions: FieldValue.delete(),
-    updatedAt: FieldValue.serverTimestamp()
-  });
-}
-
-async function migrateLegacyRoster(db, teamRef, teamId) {
-  const collection = rosterCollection(teamRef);
-  const existing = await collection.limit(1).get();
-  if (!existing.empty) return;
-
-  const legacy = await db.collection("teamRoster")
-    .where("teamId", "==", teamId)
-    .get();
-
-  if (legacy.empty) return;
-
-  await commitInChunks(db, legacy.docs.map((doc) => (batch) => {
-    batch.set(collection.doc(doc.id), {
-      ...doc.data(),
-      migratedFrom: "teamRoster",
-      migratedAt: FieldValue.serverTimestamp()
-    }, { merge: true });
-    batch.delete(doc.ref);
-  }));
-}
-
 function buildRoleMap(game) {
   const roles = game?.competitiveInfo?.roles || [];
   const roleMap = new Map();
@@ -176,9 +125,6 @@ export default async function handler(req, res) {
     const method = String(req.method || "GET").toUpperCase();
     const teamId = String(req.query?.teamId || req.body?.teamId || "").trim();
     const { team, teamRef } = await getOwnedTeam(db, uid, teamId);
-
-    await migrateLegacyDivisions(db, teamRef, team);
-    await migrateLegacyRoster(db, teamRef, teamId);
 
     const divisionsRef = divisionsCollection(teamRef);
 

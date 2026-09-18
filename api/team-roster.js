@@ -57,52 +57,36 @@ function normalizeRequest(doc) {
   };
 }
 
-async function commitInChunks(db, operations) {
-  for (let index = 0; index < operations.length; index += 450) {
-    const batch = db.batch();
-    operations.slice(index, index + 450).forEach((operation) => operation(batch));
-    await batch.commit();
-  }
-}
+async function syncRosterFromPlayerMembership(db, rosterRef, teamId) {
+  const [rosterSnap, playersSnap] = await Promise.all([
+    rosterRef.where("status", "==", "active").get(),
+    db.collection("players").where("teamId", "==", teamId).get()
+  ]);
 
-async function migrateLegacyRoster(db, teamRef, teamId) {
-  const target = teamRef.collection("teamRoster");
-  const existing = await target.limit(1).get();
-  if (!existing.empty) return;
+  const activePlayerIds = new Set(
+    rosterSnap.docs
+      .map((doc) => String(doc.data()?.playerId || ""))
+      .filter(Boolean)
+  );
 
-  const legacy = await db.collection("teamRoster")
-    .where("teamId", "==", teamId)
-    .get();
-  if (legacy.empty) return;
+  const missing = playersSnap.docs.filter((doc) => !activePlayerIds.has(doc.id));
+  if (!missing.length) return;
 
-  await commitInChunks(db, legacy.docs.map((doc) => (batch) => {
-    batch.set(target.doc(doc.id), {
-      ...doc.data(),
-      migratedFrom: "teamRoster",
-      migratedAt: FieldValue.serverTimestamp()
-    }, { merge: true });
-    batch.delete(doc.ref);
-  }));
-}
-
-async function migrateLegacyRequests(db, teamRef, teamId) {
-  const target = teamRef.collection("teamRequests");
-  const existing = await target.limit(1).get();
-  if (!existing.empty) return;
-
-  const legacy = await db.collection("teamRequests")
-    .where("teamId", "==", teamId)
-    .get();
-  if (legacy.empty) return;
-
-  await commitInChunks(db, legacy.docs.map((doc) => (batch) => {
-    batch.set(target.doc(doc.id), {
-      ...doc.data(),
-      migratedFrom: "teamRequests",
-      migratedAt: FieldValue.serverTimestamp()
-    }, { merge: true });
-    batch.delete(doc.ref);
-  }));
+  const batch = db.batch();
+  missing.forEach((doc) => {
+    const rosterDoc = rosterRef.doc();
+    batch.set(rosterDoc, {
+      playerId: doc.id,
+      divisionId: null,
+      roleId: null,
+      status: "active",
+      joinedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      reconciledAt: FieldValue.serverTimestamp()
+    });
+  });
+  await batch.commit();
 }
 
 export default async function handler(req, res) {
@@ -111,15 +95,71 @@ export default async function handler(req, res) {
     const db = getFirestore(app);
     const method = String(req.method || "GET").toUpperCase();
     const teamId = String(req.query?.teamId || req.body?.teamId || "").trim();
+    if (!teamId) return json(res, 400, { error: "No se indicó el Team." });
+
+    // Salida voluntaria: la ejecuta el Player, por lo que no requiere ser
+    // propietario del Team. El backend deriva el Player desde la cuenta.
+    const action = String(req.body?.action || "").trim().toLowerCase();
+    if (method === "POST" && action === "leave") {
+      const teamRef = db.collection("teams").doc(teamId);
+      const [teamSnap, profileSnap] = await Promise.all([
+        teamRef.get(),
+        db.collection("users").doc(uid).get()
+      ]);
+
+      if (!teamSnap.exists) return json(res, 404, { error: "No se encontró el Team." });
+
+      const profile = profileSnap.exists ? profileSnap.data() : null;
+      const playerId = String(profile?.entityType === "player" ? profile?.entityId || "" : "").trim();
+      if (!playerId) return json(res, 400, { error: "Tu cuenta NEXUS no tiene un perfil Player." });
+
+      const playerRef = db.collection("players").doc(playerId);
+      const playerSnap = await playerRef.get();
+      if (!playerSnap.exists) return json(res, 404, { error: "No se encontró tu perfil Player." });
+
+      const player = { id: playerSnap.id, ...playerSnap.data() };
+      if (player.teamId !== teamId) {
+        return json(res, 409, { error: "Este Player no pertenece a este Team." });
+      }
+
+      const rosterRef = teamRef.collection("teamRoster");
+      const rosterSnapshot = await rosterRef
+        .where("playerId", "==", playerId)
+        .where("status", "==", "active")
+        .get();
+
+      const batch = db.batch();
+      rosterSnapshot.docs.forEach((doc) => batch.update(doc.ref, {
+        status: "removed",
+        removedAt: FieldValue.serverTimestamp(),
+        removedBy: uid,
+        updatedAt: FieldValue.serverTimestamp()
+      }));
+
+      batch.update(playerRef, {
+        teamId: null,
+        teamMembershipStatus: "removed",
+        teamRequest: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      await batch.commit();
+
+      return json(res, 200, {
+        success: true,
+        action: "left",
+        playerId,
+        teamId,
+        rosterRecordsUpdated: rosterSnapshot.size
+      });
+    }
+
     const { team, teamRef } = await getOwnedTeam(db, uid, teamId);
     const rosterRef = teamRef.collection("teamRoster");
     const requestsRef = teamRef.collection("teamRequests");
 
-    await migrateLegacyRoster(db, teamRef, teamId);
-    await migrateLegacyRequests(db, teamRef, teamId);
-
     if (method === "GET") {
-      const [playersSnap, rosterSnap, requestSnap] = await Promise.all([
+        const [playersSnap, rosterSnap, requestSnap] = await Promise.all([
         db.collection("players").get(),
         rosterRef.where("status", "==", "active").get(),
         requestsRef.get()
@@ -162,7 +202,7 @@ export default async function handler(req, res) {
 
     if (method !== "POST") return json(res, 405, { error: "Método no permitido." });
 
-    const action = String(req.body?.action || "").trim().toLowerCase();
+    const rosterAction = String(req.body?.action || "").trim().toLowerCase();
     const playerId = String(req.body?.playerId || "").trim();
     const requestId = String(req.body?.requestId || "").trim();
     if (!playerId) return json(res, 400, { error: "No se indicó el Player." });
@@ -172,7 +212,7 @@ export default async function handler(req, res) {
     if (!playerSnap.exists) return json(res, 404, { error: "No se encontró el Player." });
     const player = { id: playerSnap.id, ...playerSnap.data() };
 
-    if (action === "remove") {
+    if (rosterAction === "remove") {
       if (player.teamId !== teamId) return json(res, 409, { error: "Este Player ya no pertenece a este Team." });
 
       const rosterSnapshot = await rosterRef
@@ -198,6 +238,7 @@ export default async function handler(req, res) {
       batch.update(playerRef, {
         teamId: null,
         teamMembershipStatus: "removed",
+        teamRequest: FieldValue.delete(),
         ...(competitiveProfiles ? { competitiveProfiles } : {}),
         updatedAt: FieldValue.serverTimestamp()
       });
@@ -230,7 +271,7 @@ export default async function handler(req, res) {
       return json(res, 409, { error: "Esta solicitud ya no está pendiente o pertenece a otro Team." });
     }
 
-    if (action === "approve") {
+    if (rosterAction === "approve") {
       if (player.teamId && player.teamId !== teamId) {
         return json(res, 409, { error: "Este Player ya pertenece a otro Team confirmado." });
       }
@@ -260,6 +301,7 @@ export default async function handler(req, res) {
       batch.update(playerRef, {
         teamId,
         teamMembershipStatus: "active",
+        teamRequest: FieldValue.delete(),
         updatedAt: FieldValue.serverTimestamp()
       });
       await batch.commit();
@@ -267,7 +309,7 @@ export default async function handler(req, res) {
       return json(res, 200, { success: true, action: "approved", playerId, rosterId: rosterDoc.id });
     }
 
-    if (action === "reject") {
+    if (rosterAction === "reject") {
       const reason = String(req.body?.reason || "").trim().slice(0, 300);
       const batch = db.batch();
       batch.update(requestRef, {

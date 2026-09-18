@@ -38,39 +38,24 @@ function normalizeRequest(doc) {
   };
 }
 
-async function commitInChunks(db, operations) {
-  for (let index = 0; index < operations.length; index += 450) {
-    const batch = db.batch();
-    operations.slice(index, index + 450).forEach((operation) => operation(batch));
-    await batch.commit();
+async function getPlayerRequestDocs(db, playerId) {
+  try {
+    const snapshot = await db.collectionGroup("teamRequests")
+      .where("playerId", "==", playerId)
+      .get();
+    return snapshot.docs;
+  } catch (queryError) {
+    console.warn("NEXUS — collectionGroup teamRequests no disponible; usando fallback por Team.", queryError);
+    const teamsSnapshot = await db.collection("teams").get();
+    const snapshots = await Promise.all(
+      teamsSnapshot.docs.map((teamDoc) =>
+        teamDoc.ref.collection("teamRequests")
+          .where("playerId", "==", playerId)
+          .get()
+      )
+    );
+    return snapshots.flatMap((snapshot) => snapshot.docs);
   }
-}
-
-async function migrateLegacyRequests(db, playerId = null, teamId = null) {
-  let query = db.collection("teamRequests");
-  if (playerId) query = query.where("playerId", "==", playerId);
-  if (teamId) query = query.where("teamId", "==", teamId);
-
-  const snapshot = await query.get();
-  if (snapshot.empty) return;
-
-  await commitInChunks(db, snapshot.docs.map((doc) => (batch) => {
-    const data = doc.data() || {};
-    const targetTeamId = String(data.teamId || teamId || "").trim();
-    if (!targetTeamId) return;
-
-    const target = db.collection("teams")
-      .doc(targetTeamId)
-      .collection("teamRequests")
-      .doc(doc.id);
-
-    batch.set(target, {
-      ...data,
-      migratedFrom: "teamRequests",
-      migratedAt: FieldValue.serverTimestamp()
-    }, { merge: true });
-    batch.delete(doc.ref);
-  }));
 }
 
 export default async function handler(req, res) {
@@ -86,13 +71,28 @@ export default async function handler(req, res) {
     if (method === "GET") {
       if (!playerId) return json(res, 400, { success: false, error: "Tu cuenta NEXUS no tiene un perfil Player." });
 
-      await migrateLegacyRequests(db, playerId);
+      let requestDocs = [];
+      try {
+        const snapshot = await db.collectionGroup("teamRequests")
+          .where("playerId", "==", playerId)
+          .get();
+        requestDocs = snapshot.docs;
+      } catch (queryError) {
+        // Fallback sin collection-group index: las solicitudes siguen siendo
+        // team-scoped, por lo que recorremos los Teams existentes.
+        console.warn("NEXUS — collectionGroup teamRequests no disponible; usando fallback por Team.", queryError);
+        const teamsSnapshot = await db.collection("teams").get();
+        const teamRequestsSnapshots = await Promise.all(
+          teamsSnapshot.docs.map((teamDoc) =>
+            teamDoc.ref.collection("teamRequests")
+              .where("playerId", "==", playerId)
+              .get()
+          )
+        );
+        requestDocs = teamRequestsSnapshots.flatMap((snapshot) => snapshot.docs);
+      }
 
-      const snapshot = await db.collectionGroup("teamRequests")
-        .where("playerId", "==", playerId)
-        .get();
-
-      const requests = snapshot.docs
+      const requests = requestDocs
         .map(normalizeRequest)
         .map(({ _ref, ...request }) => request)
         .sort((a, b) => String(b.requestedAt || "").localeCompare(String(a.requestedAt || "")));
@@ -117,14 +117,11 @@ export default async function handler(req, res) {
     const player = { id: playerSnap.id, ...playerSnap.data() };
     const requestsRef = teamRef.collection("teamRequests");
 
-    await migrateLegacyRequests(db, null, teamId);
-
     if (action === "submit") {
       if (player.teamId) return json(res, 409, { error: "Ya perteneces a un Team confirmado." });
 
-      const pendingSnapshot = await db.collectionGroup("teamRequests")
-        .where("playerId", "==", playerId)
-        .get();
+      const pendingDocs = await getPlayerRequestDocs(db, playerId);
+      const pendingSnapshot = { docs: pendingDocs };
 
       const pending = pendingSnapshot.docs
         .map(normalizeRequest)
@@ -178,11 +175,9 @@ export default async function handler(req, res) {
     }
 
     if (action === "cancel") {
-      const snapshot = await db.collectionGroup("teamRequests")
-        .where("playerId", "==", playerId)
-        .get();
+      const pendingDocs = await getPlayerRequestDocs(db, playerId);
 
-      const pending = snapshot.docs
+      const pending = pendingDocs
         .map(normalizeRequest)
         .filter((request) => request.teamId === teamId && request.status === "pending");
 
