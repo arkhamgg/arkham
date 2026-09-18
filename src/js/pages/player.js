@@ -644,15 +644,44 @@ export function PlayerCompetitiveProfileView() {
         if (team.id === globalTeamId) {
           pendingTeamId = null;
           pendingRequestedAt = null;
-        } else {
+          teamRequestStatus = entity.teamRequest?.status || null;
+          teamRequestReason = entity.teamRequest?.reviewReason || null;
+          teamSearch = "";
+          render();
+          return;
+        }
+
+        const results = state.querySelector("[data-team-results]");
+        const buttons = results?.querySelectorAll("[data-team-result]") || [];
+        buttons.forEach((button) => { button.disabled = true; });
+
+        try {
+          // Seleccionar un Team envía la solicitud inmediatamente.
+          // El endpoint cancela cualquier otra solicitud pendiente del Player
+          // antes de crear la nueva, manteniendo una sola solicitud activa.
+          const response = await submitTeamRequest({ teamId: team.id });
+
           pendingTeamId = team.id;
           pendingRequestedAt = new Date().toISOString();
           teamRequestStatus = "pending";
           teamRequestReason = null;
+          entity.teamRequest = {
+            ...(entity.teamRequest || {}),
+            teamId: team.id,
+            status: "pending",
+            requestedAt: pendingRequestedAt,
+            respondedAt: null,
+            respondedBy: null,
+            reviewReason: null,
+            requestId: response?.requestId || entity.teamRequest?.requestId || null
+          };
+          teamSearch = "";
+          render();
+        } catch (error) {
+          console.error("NEXUS — Error enviando solicitud de Team:", error);
+          buttons.forEach((button) => { button.disabled = false; });
+          window.alert(error?.message || "No fue posible enviar la solicitud al Team.");
         }
-
-        teamSearch = "";
-        render();
         return;
       }
 
@@ -760,16 +789,10 @@ export function PlayerCompetitiveProfileView() {
 
         await updateEntity("players", context.id, update);
 
-        if (pendingTeamId) {
-          const requestResponse = await submitTeamRequest({ teamId: pendingTeamId });
-          teamRequestStatus = "pending";
-          teamRequestReason = null;
-          entity.teamRequest = {
-            teamId: pendingTeamId,
-            status: "pending",
-            requestId: requestResponse?.requestId || null
-          };
-        } else if (hadPendingRequest && previousPendingTeamId) {
+        // Las solicitudes de Team se gestionan al seleccionar el Team, no al
+        // guardar todo el perfil competitivo. Aquí solo sincronizamos una
+        // eventual cancelación explícita con el estado persistido.
+        if (!pendingTeamId && hadPendingRequest && previousPendingTeamId) {
           await cancelTeamRequest({ teamId: previousPendingTeamId });
           teamRequestStatus = "cancelled";
           teamRequestReason = null;
