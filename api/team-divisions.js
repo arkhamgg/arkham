@@ -1,0 +1,191 @@
+// ========================================
+// NEXUS — Team Divisions API
+// ========================================
+
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirebaseAdminApp } from "./_lib/firebaseAdmin.js";
+
+function json(res, status, payload) {
+  return res.status(status).json(payload);
+}
+
+async function authenticate(req) {
+  const header = req.headers?.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) throw new Error("Debes iniciar sesión.");
+
+  const app = getFirebaseAdminApp();
+  const decoded = await getAuth(app).verifyIdToken(token);
+  return { app, uid: decoded.uid };
+}
+
+async function getOwnedTeam(db, uid, teamId) {
+  if (!teamId) throw new Error("No se indicó el Team.");
+
+  const ref = db.collection("teams").doc(teamId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new Error("No se encontró el Team.");
+
+  const team = { id: snap.id, ...snap.data() };
+  if (team.ownerId !== uid) {
+    const error = new Error("No tienes permisos para administrar este Team.");
+    error.status = 403;
+    throw error;
+  }
+
+  return { team, teamRef: ref };
+}
+
+function normalizeDivision(id, division = {}) {
+  return {
+    id,
+    name: String(division.name || "").trim(),
+    gameId: String(division.gameId || "").trim(),
+    gameName: String(division.gameName || "").trim(),
+    description: String(division.description || "").trim(),
+    status: division.status === "inactive" ? "inactive" : "active",
+    createdAt: division.createdAt || null,
+    updatedAt: division.updatedAt || null
+  };
+}
+
+function sortDivisions(divisions) {
+  return divisions.sort((a, b) =>
+    String(a.name || "").localeCompare(String(b.name || ""), "es")
+  );
+}
+
+export default async function handler(req, res) {
+  try {
+    const { app, uid } = await authenticate(req);
+    const db = getFirestore(app);
+    const method = String(req.method || "GET").toUpperCase();
+    const teamId = String(req.query?.teamId || req.body?.teamId || "").trim();
+    const { team, teamRef } = await getOwnedTeam(db, uid, teamId);
+
+    const divisions = team.divisions && typeof team.divisions === "object" && !Array.isArray(team.divisions)
+      ? team.divisions
+      : {};
+
+    if (method === "GET") {
+      const rosterSnap = await db.collection("teamRoster")
+        .where("teamId", "==", teamId)
+        .where("status", "==", "active")
+        .get();
+
+      const playerCounts = {};
+      rosterSnap.docs.forEach((doc) => {
+        const divisionId = doc.data()?.divisionId;
+        if (divisionId) playerCounts[divisionId] = (playerCounts[divisionId] || 0) + 1;
+      });
+
+      return json(res, 200, {
+        team: { id: team.id, name: team.name || team.teamName || "Team" },
+        divisions: sortDivisions(
+          Object.entries(divisions).map(([id, division]) => ({
+            ...normalizeDivision(id, division),
+            playerCount: playerCounts[id] || 0
+          }))
+        )
+      });
+    }
+
+    if (method !== "POST" && method !== "PATCH" && method !== "DELETE") {
+      return json(res, 405, { error: "Método no permitido." });
+    }
+
+    if (method === "POST") {
+      const name = String(req.body?.name || "").trim();
+      const gameId = String(req.body?.gameId || "").trim();
+      const description = String(req.body?.description || "").trim();
+
+      if (!name) return json(res, 400, { error: "El nombre de la división es obligatorio." });
+      if (!gameId) return json(res, 400, { error: "Debes seleccionar un juego." });
+
+      const gameSnap = await db.collection("games").doc(gameId).get();
+      if (!gameSnap.exists) return json(res, 400, { error: "El juego seleccionado no existe." });
+      const game = gameSnap.data();
+      if (game.status !== "active") return json(res, 400, { error: "El juego seleccionado no está disponible." });
+
+      const duplicate = Object.values(divisions).some((division) =>
+        String(division?.gameId || "") === gameId && String(division?.status || "active") === "active"
+      );
+      if (duplicate) {
+        return json(res, 409, { error: "Este Team ya tiene una división activa para ese juego." });
+      }
+
+      const divisionId = db.collection("teams").doc().id;
+      const division = {
+        name,
+        gameId,
+        gameName: String(game.name || game.title || gameId),
+        description,
+        status: "active",
+        playerCount: 0,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      };
+
+      await teamRef.update({
+        [`divisions.${divisionId}`]: division,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      return json(res, 201, {
+        division: normalizeDivision(divisionId, { ...division, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+      });
+    }
+
+    const divisionId = String(req.body?.divisionId || req.query?.divisionId || "").trim();
+    if (!divisionId || !divisions[divisionId]) {
+      return json(res, 404, { error: "No se encontró la división." });
+    }
+
+    if (method === "PATCH") {
+      const current = divisions[divisionId];
+      const name = String(req.body?.name ?? current.name ?? "").trim();
+      const description = String(req.body?.description ?? current.description ?? "").trim();
+      const status = req.body?.status === "inactive" ? "inactive" : "active";
+
+      if (!name) return json(res, 400, { error: "El nombre de la división es obligatorio." });
+
+      await teamRef.update({
+        [`divisions.${divisionId}.name`]: name,
+        [`divisions.${divisionId}.description`]: description,
+        [`divisions.${divisionId}.status`]: status,
+        [`divisions.${divisionId}.updatedAt`]: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      return json(res, 200, { ok: true });
+    }
+
+    const rosterSnap = await db.collection("teamRoster")
+      .where("teamId", "==", teamId)
+      .where("divisionId", "==", divisionId)
+      .where("status", "==", "active")
+      .limit(1)
+      .get();
+
+    const hasPlayers = !rosterSnap.empty;
+
+    if (hasPlayers) {
+      return json(res, 409, {
+        error: "No puedes eliminar una división que tiene Players asignados. Retira primero a sus jugadores."
+      });
+    }
+
+    await teamRef.update({
+      [`divisions.${divisionId}`]: FieldValue.delete(),
+      updatedAt: FieldValue.serverTimestamp()
+    });
+
+    return json(res, 200, { ok: true });
+  } catch (error) {
+    console.error("NEXUS — Team Divisions API:", error);
+    return json(res, error?.status || 500, {
+      error: error?.message || "No fue posible procesar las divisiones."
+    });
+  }
+}

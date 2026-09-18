@@ -1,743 +1,500 @@
 // ========================================
-// NEXUS — TEAM
+// NEXUS DESIGN SYSTEM
+// Team
 // ========================================
 
+// ----------------------------------------
+// Team Dashboard
+// ----------------------------------------
 @use "../abstracts/variables" as *;
-
-// ========================================
-// TEAM OVERVIEW
-// ========================================
-
-.dashboard-main--team {
-
-  .dashboard-create--team {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .dashboard-create__content {
-    position: relative;
-    z-index: 1;
-  }
-}
-
-
-.dashboard-create__team-identity {
-
-  position: relative;
-  z-index: 1;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  flex: 0 0 180px;
-
-  gap: $space-3;
-
-  min-height: 180px;
-
-  padding: $space-5;
-
-  border: 1px solid $color-700;
-
-  background: rgba(5, 5, 5, 0.72);
-
-}
-
-
-.dashboard-create__team-identity-label {
-
-  color: $color-500;
-
-  font-size: $font-size-xs;
-
-  font-weight: 700;
-
-  letter-spacing: 0.14em;
-
-}
-
-
-.dashboard-create__team-identity-mark {
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 92px;
-  height: 92px;
-
-  border: 1px solid $color-700;
-
-  background: $color-900;
-
-}
-
-
-.dashboard-create__team-identity-mark img {
-
-  display: block;
-
+.team-page {
   width: 100%;
-  height: 100%;
-
-  object-fit: contain;
-
 }
 
-
-.dashboard-create__team-identity-mark > span {
-
-  color: $color-white;
-
-  font-size: $font-size-xl;
-
-  font-weight: 700;
-
-  letter-spacing: -0.03em;
-
+.team-page__header {
+  margin-bottom: $space-8;
 }
 
-
-.dashboard-create__team-identity strong {
-
-  color: $color-white;
-
+.team-page__eyebrow {
+  margin: 0 0 $space-2;
+  color: $color-300;
   font-size: $font-size-sm;
-
-  font-weight: 700;
-
-  letter-spacing: 0.06em;
-
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-
-// ========================================
-// OVERVIEW CARDS
-// ========================================
-
-.dashboard-section--team-overview {
-
-  .dashboard-section__header {
-    margin-bottom: $space-6;
-  }
+.team-page__title {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-3xl;
+  line-height: 1.1;
 }
 
+.team-page__description {
+  max-width: 720px;
+  margin: $space-3 0 0;
+  color: $color-300;
+  font-size: $font-size-md;
+  line-height: 1.6;
+}
 
-.dashboard-team-overview {
+// ----------------------------------------
+// Team Hero
+// ----------------------------------------
 
+.team-hero {
+  position: relative;
+  overflow: hidden;
+  padding: $space-8;
+  margin-bottom: $space-8;
+  border: 1px solid $color-700;
+  border-radius: $radius-xl;
+  background: $color-900;
+  box-shadow: $shadow-md;
+}
+
+.team-hero__content {
+  position: relative;
+  z-index: $z-content;
+  display: flex;
+  align-items: center;
+  gap: $space-6;
+}
+
+.team-hero__identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.team-hero__name {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-3xl;
+  line-height: 1.1;
+}
+
+.team-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  margin-top: $space-3;
+  color: $color-300;
+  font-size: $font-size-sm;
+}
+
+.team-hero__description {
+  max-width: 720px;
+  margin: $space-4 0 0;
+  color: $color-300;
+  line-height: 1.6;
+}
+
+// ----------------------------------------
+// Team Overview
+// ----------------------------------------
+
+.team-overview {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-
   gap: $space-5;
-
 }
 
-
-.dashboard-team-overview__card {
-
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: auto auto;
-
-  column-gap: $space-5;
-  row-gap: $space-6;
-
-  min-height: 250px;
-
+.team-overview__card {
   padding: $space-6;
-
-  border: 1px solid $color-800;
-
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
   background: $color-900;
-
   transition:
     border-color $transition-base $ease-standard,
-    background $transition-base $ease-standard,
-    transform $transition-base $ease-standard;
+    transform $transition-base $ease-standard,
+    box-shadow $transition-base $ease-standard;
 
+  &:hover {
+    border-color: $color-500;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
 }
 
-
-.dashboard-team-overview__card:hover {
-
-  border-color: $color-700;
-
-  background: $color-950;
-
-  transform: translateY(-2px);
-
-}
-
-
-.dashboard-team-overview__icon {
-
+.team-overview__card-header {
   display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 48px;
-  height: 48px;
-
-  border: 1px solid $color-700;
-
-  color: $color-white;
-
-  background: $color-800;
-
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-4;
 }
 
-
-.dashboard-team-overview__icon i {
-
-  font-size: $font-size-sm;
-
-}
-
-
-.dashboard-team-overview__body {
-
-  min-width: 0;
-
-}
-
-
-.dashboard-team-overview__eyebrow {
-
-  display: block;
-
-  margin-bottom: $space-2;
-
-  color: $color-red;
-
-  font-size: $font-size-xs;
-
-  font-weight: 700;
-
-  letter-spacing: 0.12em;
-
-}
-
-
-.dashboard-team-overview__body h3 {
-
+.team-overview__card-title {
   margin: 0;
-
   color: $color-white;
-
-  font-size: $font-size-xl;
-
-  font-weight: 700;
-
-  letter-spacing: -0.025em;
-
-}
-
-
-.dashboard-team-overview__body p {
-
-  max-width: 520px;
-
-  margin: $space-3 0 0;
-
-  color: $color-300;
-
-  font-size: $font-size-sm;
-
-  line-height: 1.6;
-
-}
-
-
-.dashboard-team-overview__link {
-
-  grid-column: 1 / -1;
-
-  align-self: end;
-
-  display: inline-flex;
-  align-items: center;
-
-  gap: $space-2;
-
-  width: fit-content;
-
-  color: $color-white;
-
-  font-size: $font-size-xs;
-
-  font-weight: 700;
-
-  letter-spacing: 0.06em;
-
-  text-decoration: none;
-
-  transition:
-    color $transition-fast $ease-standard,
-    gap $transition-fast $ease-standard;
-
-}
-
-
-.dashboard-team-overview__link:hover {
-
-  color: $color-red-light;
-
-  gap: $space-3;
-
-}
-
-
-// ========================================
-// TEAM MODULE PAGES
-// ========================================
-
-.team-page {
-
-  min-height: 100%;
-
-  padding: 48px;
-
-}
-
-
-.team-page__content {
-
-  max-width: 1180px;
-
-  margin: 0 auto;
-
-}
-
-
-.team-page__content > header {
-
-  margin-bottom: $space-8;
-
-}
-
-
-.team-page__content > header span {
-
-  display: block;
-
-  margin-bottom: $space-2;
-
-  color: $color-red;
-
-  font-size: $font-size-xs;
-
-  letter-spacing: 0.16em;
-
-  font-weight: 700;
-
-}
-
-
-.team-page__content > header h1 {
-
-  margin: 0 0 $space-3;
-
-}
-
-
-.team-page__content > header p {
-
-  margin: 0;
-
-  color: $color-300;
-
-  line-height: 1.6;
-
-}
-
-
-.team-page__placeholder {
-
-  display: grid;
-
-  gap: $space-3;
-
-  max-width: 720px;
-
-  padding: $space-8;
-
-  border: 1px solid $color-800;
-
-  background: $color-900;
-
-}
-
-
-.team-page__placeholder i {
-
-  margin-bottom: $space-2;
-
-  color: $color-white;
-
-  font-size: $font-size-xl;
-
-}
-
-
-.team-page__placeholder strong {
-
-  color: $color-white;
-
   font-size: $font-size-lg;
-
 }
 
-
-.team-page__placeholder span {
-
+.team-overview__card-description {
+  margin: $space-2 0 0;
   color: $color-300;
-
-  line-height: 1.6;
-
+  font-size: $font-size-sm;
+  line-height: 1.5;
 }
 
-
-// ========================================
-// RESPONSIVE
-// ========================================
-
-@media (max-width: 900px) {
-
-  .dashboard-team-overview {
-    grid-template-columns: 1fr;
-  }
-
-}
-
-
-@media (max-width: 768px) {
-
-  .dashboard-create__team-identity {
-    flex: 0 0 140px;
-    min-height: 140px;
-  }
-
-  .dashboard-create__team-identity-mark {
-    width: 68px;
-    height: 68px;
-  }
-
-  .dashboard-team-overview__card {
-    min-height: 0;
-    padding: $space-5;
-  }
-
-  .team-page {
-    padding: 28px 20px;
-  }
-
-}
-
-// ========================================
-// TEAM ROSTER
-// ========================================
-
-.team-roster-page .team-page__content {
-  max-width: 1240px;
-}
-
-.team-roster__state {
-  display: grid;
-  gap: $space-8;
-}
-
-.team-roster__state > span {
-  color: $color-300;
-}
-
-.team-roster__stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: $space-5;
-}
-
-.team-roster__stats article {
-  display: grid;
-  gap: $space-2;
-  padding: $space-6;
-  border: 1px solid $color-800;
-  background: $color-900;
-}
-
-.team-roster__stats article.has-pending {
-  border-color: $color-red;
-}
-
-.team-roster__stats span,
-.team-roster__section-header > div > span {
-  color: $color-red;
-  font-size: $font-size-xs;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-}
-
-.team-roster__stats strong {
+.team-overview__card-value {
+  margin-top: $space-6;
   color: $color-white;
-  font-size: 42px;
-  line-height: 1;
+  font-size: $font-size-2xl;
+  font-weight: 700;
 }
 
-.team-roster__stats small {
-  color: $color-300;
+// ----------------------------------------
+// Team Divisions
+// ----------------------------------------
+
+.team-divisions {
+  width: 100%;
 }
 
-.team-roster__section {
-  border-top: 1px solid $color-800;
-  padding-top: $space-6;
-}
-
-.team-roster__section-header {
+.team-divisions__header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: $space-5;
-  margin-bottom: $space-5;
+  gap: $space-6;
+  margin-bottom: $space-6;
 }
 
-.team-roster__section-header h2 {
-  margin: $space-2 0 0;
-  color: $color-white;
-}
-
-.team-roster__section-header a {
-  display: inline-flex;
-  align-items: center;
-  gap: $space-2;
-  color: $color-white;
-  font-size: $font-size-xs;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.team-roster__section-header a:hover {
-  color: $color-red-light;
-}
-
-.team-roster__members,
-.team-roster__requests {
-  display: grid;
-  gap: 1px;
-  border: 1px solid $color-800;
-  background: $color-800;
-}
-
-.team-roster__member,
-.team-roster__request {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: $space-5;
-  padding: $space-5;
-  background: $color-900;
-}
-
-.team-roster__member {
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-}
-
-.team-roster__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border: 1px solid $color-700;
-  color: $color-white;
-  background: $color-950;
-}
-
-.team-roster__member-main,
-.team-roster__request-main {
-  display: grid;
-  gap: $space-1;
+.team-divisions__heading {
   min-width: 0;
 }
 
-.team-roster__member-main strong,
-.team-roster__request-main strong {
+.team-divisions__title {
+  margin: 0;
   color: $color-white;
-  font-size: $font-size-md;
+  font-size: $font-size-2xl;
 }
 
-.team-roster__member-main span,
-.team-roster__request-main span,
-.team-roster__request-main small {
+.team-divisions__description {
+  max-width: 680px;
+  margin: $space-2 0 0;
   color: $color-300;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+}
+
+.team-divisions__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-3;
+}
+
+.team-divisions__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-5;
+}
+
+.team-division-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: $space-6;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  transition:
+    border-color $transition-base $ease-standard,
+    transform $transition-base $ease-standard,
+    box-shadow $transition-base $ease-standard;
+
+  &:hover {
+    border-color: $color-500;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+}
+
+.team-division-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-4;
+}
+
+.team-division-card__identity {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  min-width: 0;
+}
+
+.team-division-card__icon {
+  display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-800;
+  color: $color-white;
+}
+
+.team-division-card__name {
+  margin: 0;
   overflow: hidden;
+  color: $color-white;
+  font-size: $font-size-lg;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.team-roster__member-meta {
-  display: grid;
-  gap: $space-1;
-  min-width: 150px;
-  text-align: right;
-}
-
-.team-roster__member-meta span {
-  color: $color-white;
-  font-size: $font-size-xs;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.team-roster__member-meta small {
+.team-division-card__game {
+  margin: $space-1 0 0;
   color: $color-300;
+  font-size: $font-size-sm;
 }
 
-.team-roster__member-actions {
-  display: flex;
-  align-items: center;
-}
-
-.team-roster__member-actions button {
-  min-height: 40px;
-  padding: 0 $space-4;
-  border: 1px solid $color-700;
-  color: $color-300;
-  background: transparent;
-  font-size: $font-size-xs;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-}
-
-.team-roster__member-actions button:hover {
-  border-color: $color-red;
-  color: $color-red-light;
-}
-
-.team-roster__member-actions button:disabled {
-  opacity: 0.5;
-  cursor: wait;
-}
-
-.team-roster__request-actions {
-  display: flex;
-  gap: $space-2;
-}
-
-.team-roster__request-actions button,
-.team-roster__empty button {
-  min-height: 40px;
-  padding: 0 $space-4;
-  border: 1px solid $color-700;
-  color: $color-white;
-  background: transparent;
-  font-size: $font-size-xs;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-}
-
-.team-roster__request-actions button:hover,
-.team-roster__empty button:hover {
-  border-color: $color-white;
-}
-
-.team-roster__request-actions button[data-roster-action="approve"] {
-  border-color: $color-red;
-  background: $color-red;
-}
-
-.team-roster__request-actions button[data-roster-action="approve"]:hover {
-  background: $color-red-light;
-  border-color: $color-red-light;
-}
-
-.team-roster__request-actions button:disabled {
-  opacity: 0.5;
-  cursor: wait;
-}
-
-.team-roster__counter {
+.team-division-card__status {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  height: 34px;
-  padding: 0 $space-2;
+  flex-shrink: 0;
+  padding: $space-1 $space-3;
   border: 1px solid $color-700;
-  color: $color-white;
-  font-size: $font-size-xs;
-  font-weight: 700;
-}
-
-.team-roster__empty {
-  display: grid;
-  justify-items: start;
-  gap: $space-2;
-  padding: $space-8;
-  border: 1px solid $color-800;
-  background: $color-900;
-}
-
-.team-roster__empty i {
-  margin-bottom: $space-2;
-  color: $color-white;
-  font-size: $font-size-xl;
-}
-
-.team-roster__empty strong {
-  color: $color-white;
-}
-
-.team-roster__empty span {
-  max-width: 680px;
+  border-radius: $radius-full;
   color: $color-300;
+  font-size: $font-size-xs;
+  font-weight: 600;
+}
+
+.team-division-card__status--active {
+  border-color: rgba(34, 197, 94, 0.35);
+  color: $color-success;
+}
+
+.team-division-card__status--inactive {
+  color: $color-500;
+}
+
+.team-division-card__description {
+  margin: $space-5 0 0;
+  color: $color-300;
+  font-size: $font-size-sm;
   line-height: 1.6;
 }
 
-.team-roster__empty--compact {
-  padding: $space-6;
+.team-division-card__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-3;
+  margin-top: $space-6;
 }
 
-.team-roster__empty--error {
-  border-color: $color-red;
+.team-division-card__stat {
+  padding: $space-3;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-800;
 }
 
-@media (max-width: 768px) {
-  .team-roster__stats {
+.team-division-card__stat-label {
+  display: block;
+  color: $color-500;
+  font-size: $font-size-xs;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.team-division-card__stat-value {
+  display: block;
+  margin-top: $space-1;
+  color: $color-white;
+  font-size: $font-size-lg;
+  font-weight: 700;
+}
+
+.team-division-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  margin-top: $space-6;
+  padding-top: $space-4;
+  border-top: 1px solid $color-700;
+}
+
+.team-division-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+// ----------------------------------------
+// Empty / Loading / Error States
+// ----------------------------------------
+
+.team-empty-state {
+  padding: $space-12 $space-6;
+  border: 1px dashed $color-700;
+  border-radius: $radius-lg;
+  background: $color-900;
+  text-align: center;
+}
+
+.team-empty-state__icon {
+  margin-bottom: $space-4;
+  color: $color-500;
+  font-size: $font-size-2xl;
+}
+
+.team-empty-state__title {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-lg;
+}
+
+.team-empty-state__description {
+  max-width: 560px;
+  margin: $space-2 auto 0;
+  color: $color-300;
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+.team-feedback {
+  margin-bottom: $space-5;
+  padding: $space-4;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+}
+
+.team-feedback--error {
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: $color-error;
+}
+
+.team-feedback--success {
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+  color: $color-success;
+}
+
+// ----------------------------------------
+// Division Modal / Form
+// ----------------------------------------
+
+.team-division-form {
+  display: grid;
+  gap: $space-5;
+}
+
+.team-division-form__field {
+  display: grid;
+  gap: $space-2;
+}
+
+.team-division-form__label {
+  color: $color-100;
+  font-size: $font-size-sm;
+  font-weight: 600;
+}
+
+.team-division-form__hint {
+  color: $color-500;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+}
+
+.team-division-form__input,
+.team-division-form__select,
+.team-division-form__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-800;
+  color: $color-white;
+  font-family: $font-family-base;
+  font-size: $font-size-md;
+  outline: none;
+  transition:
+    border-color $transition-fast $ease-standard,
+    box-shadow $transition-fast $ease-standard;
+
+  &:focus {
+    border-color: $color-500;
+    box-shadow: 0 0 0 3px rgba(82, 82, 91, 0.2);
+  }
+}
+
+.team-division-form__input,
+.team-division-form__select {
+  min-height: 44px;
+  padding: $space-3 $space-4;
+}
+
+.team-division-form__textarea {
+  min-height: 120px;
+  padding: $space-3 $space-4;
+  resize: vertical;
+}
+
+.team-division-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-3;
+  padding-top: $space-2;
+}
+
+// ----------------------------------------
+// Responsive
+// ----------------------------------------
+
+@media (max-width: 900px) {
+  .team-overview,
+  .team-divisions__grid {
     grid-template-columns: 1fr;
   }
 
-  .team-roster__section-header,
-  .team-roster__member,
-  .team-roster__request {
+  .team-divisions__header {
     align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .team-hero {
+    padding: $space-6;
   }
 
-  .team-roster__section-header {
+  .team-hero__content {
+    align-items: flex-start;
     flex-direction: column;
   }
 
-  .team-roster__member,
-  .team-roster__request {
-    grid-template-columns: auto minmax(0, 1fr);
+  .team-hero__name {
+    font-size: $font-size-2xl;
   }
 
-  .team-roster__member-meta,
-  .team-roster__member-actions,
-  .team-roster__request-actions {
-    grid-column: 1 / -1;
-    text-align: left;
+  .team-page__title {
+    font-size: $font-size-2xl;
   }
 
-  .team-roster__member-actions button {
+  .team-division-card {
+    padding: $space-5;
+  }
+
+  .team-division-card__header {
+    flex-direction: column;
+  }
+
+  .team-division-card__status {
+    align-self: flex-start;
+  }
+
+  .team-division-card__footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .team-division-card__actions {
     width: 100%;
-  }
-
-  .team-roster__request-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
   }
 }
