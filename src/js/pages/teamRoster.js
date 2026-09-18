@@ -6,7 +6,8 @@ import { getCurrentEntityContext } from "../services/entityContext.js";
 import {
   getTeamRoster,
   approveTeamRequest,
-  rejectTeamRequest
+  rejectTeamRequest,
+  removeTeamMember
 } from "../services/teamRoster.js";
 
 function escapeHtml(value = "") {
@@ -175,6 +176,30 @@ function renderRoster(state, response) {
     });
   });
 
+  state.querySelectorAll("[data-remove-member]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const playerId = button.dataset.playerId;
+      const teamId = response?.team?.id;
+      if (!playerId || !teamId) return;
+
+      const confirmed = window.confirm(
+        "¿Quieres expulsar a este Player del Roster? Podrá solicitar incorporarse a otro Team después de ser retirado."
+      );
+      if (!confirmed) return;
+
+      button.disabled = true;
+
+      try {
+        await removeTeamMember({ teamId, playerId });
+        await loadRoster(state.closest(".team-roster-page") || state);
+      } catch (error) {
+        console.error("NEXUS — Error expulsando Player del Team:", error);
+        button.disabled = false;
+        window.alert(error?.message || "No fue posible expulsar al Player.");
+      }
+    });
+  });
+
   state.querySelectorAll("[data-roster-action]").forEach((button) => {
     button.addEventListener("click", async () => {
       const playerId = button.dataset.playerId;
@@ -223,6 +248,11 @@ function renderMember(member) {
       <div class="team-roster__member-meta">
         <span>${member.divisionId ? escapeHtml(member.divisionId) : "SIN DIVISIÓN"}</span>
         <small>${member.roleId ? escapeHtml(member.roleId) : "Rol pendiente"}</small>
+      </div>
+      <div class="team-roster__member-actions">
+        <button type="button" data-remove-member data-player-id="${escapeHtml(member.playerId)}">
+          EXPULSAR
+        </button>
       </div>
     </article>`;
 }

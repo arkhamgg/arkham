@@ -360,6 +360,7 @@ export function PlayerCompetitiveProfileView() {
       : null;
     let teamRequestStatus = entity.teamRequest?.status || null;
     let teamRequestReason = entity.teamRequest?.reviewReason || null;
+    let teamMembershipStatus = entity.teamMembershipStatus || (globalTeamId ? "active" : null);
     let teamSearch = "";
     let editingIndex = null;
 
@@ -406,7 +407,19 @@ export function PlayerCompetitiveProfileView() {
               <button type="button" class="competitive-profile-form__team-action" data-change-team>CAMBIAR DE TEAM</button>
             </div>` : ""}
 
-          ${!pending && teamRequestStatus && ["approved", "rejected", "cancelled"].includes(teamRequestStatus) ? `
+          ${!confirmed && !pending && teamMembershipStatus === "removed" ? `
+            <div class="competitive-profile-form__team-result-state competitive-profile-form__team-result-state--removed">
+              <div class="competitive-profile-form__team-pending-icon">
+                <i class="fa-solid fa-user-minus"></i>
+              </div>
+              <div>
+                <span>TEAM ANTERIOR · RETIRADO</span>
+                <strong>${escapeHtml(getTeamLabel(entity.teamRoster?.teamId || ""))}</strong>
+                <small>Ya no perteneces a este Team. Ahora puedes buscar otro y enviar una nueva solicitud de incorporación.</small>
+              </div>
+            </div>` : ""}
+
+          ${!confirmed && !pending && teamMembershipStatus !== "removed" && teamRequestStatus && ["approved", "rejected", "cancelled"].includes(teamRequestStatus) ? `
             <div class="competitive-profile-form__team-result-state competitive-profile-form__team-result-state--${escapeHtml(teamRequestStatus)}">
               <div class="competitive-profile-form__team-pending-icon">
                 <i class="fa-solid ${teamRequestStatus === "approved" ? "fa-circle-check" : teamRequestStatus === "rejected" ? "fa-circle-xmark" : "fa-ban"}"></i>
@@ -446,7 +459,7 @@ export function PlayerCompetitiveProfileView() {
               </div>
             </div>` : ""}
 
-          ${!confirmed && !pending ? `
+          ${!confirmed && !pending && teamMembershipStatus !== "removed" ? `
             <div class="competitive-profile-form__team-empty-state">
               <strong>Aún no tienes un Team</strong>
               <span>Puedes buscar uno y enviar una solicitud de incorporación.</span>
@@ -644,49 +657,25 @@ export function PlayerCompetitiveProfileView() {
         if (team.id === globalTeamId) {
           pendingTeamId = null;
           pendingRequestedAt = null;
-          teamRequestStatus = entity.teamRequest?.status || null;
-          teamRequestReason = entity.teamRequest?.reviewReason || null;
-          teamSearch = "";
-          render();
-          return;
-        }
-
-        const results = state.querySelector("[data-team-results]");
-        const buttons = results?.querySelectorAll("[data-team-result]") || [];
-        buttons.forEach((button) => { button.disabled = true; });
-
-        try {
-          // Seleccionar un Team envía la solicitud inmediatamente.
-          // El endpoint cancela cualquier otra solicitud pendiente del Player
-          // antes de crear la nueva, manteniendo una sola solicitud activa.
-          const response = await submitTeamRequest({ teamId: team.id });
-
+        } else {
           pendingTeamId = team.id;
           pendingRequestedAt = new Date().toISOString();
           teamRequestStatus = "pending";
           teamRequestReason = null;
-          entity.teamRequest = {
-            ...(entity.teamRequest || {}),
-            teamId: team.id,
-            status: "pending",
-            requestedAt: pendingRequestedAt,
-            respondedAt: null,
-            respondedBy: null,
-            reviewReason: null,
-            requestId: response?.requestId || entity.teamRequest?.requestId || null
-          };
-          teamSearch = "";
-          render();
-        } catch (error) {
-          console.error("NEXUS — Error enviando solicitud de Team:", error);
-          buttons.forEach((button) => { button.disabled = false; });
-          window.alert(error?.message || "No fue posible enviar la solicitud al Team.");
         }
+
+        teamSearch = "";
+        render();
         return;
       }
 
       const changeTeam = event.target.closest("[data-change-team]");
       if (changeTeam) {
+        if (globalTeamId) {
+          window.alert("Ya perteneces a un Team confirmado. Para incorporarte a otro Team primero debes dejar de pertenecer al Team actual.");
+          return;
+        }
+
         const wrap = state.querySelector("[data-team-search-wrap]");
         if (wrap) wrap.hidden = false;
         const input = state.querySelector("[data-team-search]");
@@ -789,10 +778,16 @@ export function PlayerCompetitiveProfileView() {
 
         await updateEntity("players", context.id, update);
 
-        // Las solicitudes de Team se gestionan al seleccionar el Team, no al
-        // guardar todo el perfil competitivo. Aquí solo sincronizamos una
-        // eventual cancelación explícita con el estado persistido.
-        if (!pendingTeamId && hadPendingRequest && previousPendingTeamId) {
+        if (pendingTeamId) {
+          const requestResponse = await submitTeamRequest({ teamId: pendingTeamId });
+          teamRequestStatus = "pending";
+          teamRequestReason = null;
+          entity.teamRequest = {
+            teamId: pendingTeamId,
+            status: "pending",
+            requestId: requestResponse?.requestId || null
+          };
+        } else if (hadPendingRequest && previousPendingTeamId) {
           await cancelTeamRequest({ teamId: previousPendingTeamId });
           teamRequestStatus = "cancelled";
           teamRequestReason = null;

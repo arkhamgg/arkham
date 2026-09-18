@@ -155,6 +155,73 @@ export default async function handler(req, res) {
     }
 
     const player = { id: playerSnap.id, ...playerSnap.data() };
+
+    // ========================================
+    // REMOVE ACTIVE MEMBER
+    // ========================================
+
+    if (action === "remove") {
+      if (player.teamId !== teamId) {
+        return json(res, 409, {
+          error: "Este Player ya no pertenece a este Team."
+        });
+      }
+
+      const rosterSnapshot = await db
+        .collection("teamRoster")
+        .where("teamId", "==", teamId)
+        .where("playerId", "==", playerId)
+        .where("status", "==", "active")
+        .get();
+
+      const batch = db.batch();
+
+      rosterSnapshot.docs.forEach((rosterDoc) => {
+        batch.update(rosterDoc.ref, {
+          status: "removed",
+          removedAt: FieldValue.serverTimestamp(),
+          removedBy: uid,
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      });
+
+      const competitiveProfiles = Array.isArray(player.competitiveProfiles)
+        ? player.competitiveProfiles.map((profile) => ({
+            ...profile,
+            availability: profile?.availability === "in_team"
+              ? "looking_for_team"
+              : profile?.availability
+          }))
+        : null;
+
+      batch.update(playerRef, {
+        teamId: null,
+        teamMembershipStatus: "removed",
+        teamRoster: {
+          ...(player.teamRoster || {}),
+          status: "removed",
+          teamId,
+          leftAt: FieldValue.serverTimestamp(),
+          removedAt: FieldValue.serverTimestamp(),
+          removedBy: uid
+        },
+        ...(competitiveProfiles
+          ? { competitiveProfiles }
+          : {}),
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      await batch.commit();
+
+      return json(res, 200, {
+        success: true,
+        action: "removed",
+        playerId,
+        teamId,
+        rosterRecordsUpdated: rosterSnapshot.size
+      });
+    }
+
     const legacyRequest = player.teamRequest || null;
 
     let requestRef = null;
@@ -217,6 +284,7 @@ export default async function handler(req, res) {
 
       batch.update(playerRef, {
         teamId,
+        teamMembershipStatus: "active",
         teamRequest: {
           ...request,
           status: "approved",

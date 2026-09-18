@@ -56,3 +56,11 @@ export async function rejectTeamRequest({ teamId, playerId, requestId = "", reas
     body: { action: "reject", teamId, playerId, requestId, reason }
   });
 }
+
+export async function removeTeamMember({ teamId, playerId }) {
+  return requestApi({
+    method: "POST",
+    teamId,
+    body: { action: "remove", teamId, playerId }
+  });
+}

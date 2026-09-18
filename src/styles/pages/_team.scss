@@ -539,6 +539,10 @@
   background: $color-900;
 }
 
+.team-roster__member {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
 .team-roster__avatar {
   display: flex;
   align-items: center;
@@ -588,6 +592,33 @@
 
 .team-roster__member-meta small {
   color: $color-300;
+}
+
+.team-roster__member-actions {
+  display: flex;
+  align-items: center;
+}
+
+.team-roster__member-actions button {
+  min-height: 40px;
+  padding: 0 $space-4;
+  border: 1px solid $color-700;
+  color: $color-300;
+  background: transparent;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.team-roster__member-actions button:hover {
+  border-color: $color-red;
+  color: $color-red-light;
+}
+
+.team-roster__member-actions button:disabled {
+  opacity: 0.5;
+  cursor: wait;
 }
 
 .team-roster__request-actions {
@@ -695,9 +726,14 @@
   }
 
   .team-roster__member-meta,
+  .team-roster__member-actions,
   .team-roster__request-actions {
     grid-column: 1 / -1;
     text-align: left;
+  }
+
+  .team-roster__member-actions button {
+    width: 100%;
   }
 
   .team-roster__request-actions {
