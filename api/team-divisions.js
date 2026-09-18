@@ -23,8 +23,8 @@ async function authenticate(req) {
 async function getOwnedTeam(db, uid, teamId) {
   if (!teamId) throw new Error("No se indicó el Team.");
 
-  const ref = db.collection("teams").doc(teamId);
-  const snap = await ref.get();
+  const teamRef = db.collection("teams").doc(teamId);
+  const snap = await teamRef.get();
   if (!snap.exists) throw new Error("No se encontró el Team.");
 
   const team = { id: snap.id, ...snap.data() };
@@ -34,7 +34,7 @@ async function getOwnedTeam(db, uid, teamId) {
     throw error;
   }
 
-  return { team, teamRef: ref };
+  return { team, teamRef };
 }
 
 function normalizeDivision(id, division = {}) {
@@ -45,6 +45,7 @@ function normalizeDivision(id, division = {}) {
     gameName: String(division.gameName || "").trim(),
     description: String(division.description || "").trim(),
     status: division.status === "inactive" ? "inactive" : "active",
+    playerCount: Number(division.playerCount || 0),
     createdAt: division.createdAt || null,
     updatedAt: division.updatedAt || null
   };
@@ -56,6 +57,118 @@ function sortDivisions(divisions) {
   );
 }
 
+function divisionsCollection(teamRef) {
+  return teamRef.collection("divisions");
+}
+
+function rosterCollection(teamRef) {
+  return teamRef.collection("teamRoster");
+}
+
+async function commitInChunks(db, operations) {
+  for (let index = 0; index < operations.length; index += 450) {
+    const batch = db.batch();
+    operations.slice(index, index + 450).forEach((operation) => operation(batch));
+    await batch.commit();
+  }
+}
+
+async function migrateLegacyDivisions(db, teamRef, team) {
+  const collection = divisionsCollection(teamRef);
+  const existing = await collection.limit(1).get();
+  if (!existing.empty) return;
+
+  const legacy = team.divisions && typeof team.divisions === "object" && !Array.isArray(team.divisions)
+    ? team.divisions
+    : {};
+
+  const entries = Object.entries(legacy);
+  if (!entries.length) return;
+
+  await commitInChunks(db, entries.map(([id, division]) => (batch) => {
+    batch.set(collection.doc(id), division, { merge: true });
+  }));
+
+  await teamRef.update({
+    divisions: FieldValue.delete(),
+    updatedAt: FieldValue.serverTimestamp()
+  });
+}
+
+async function migrateLegacyRoster(db, teamRef, teamId) {
+  const collection = rosterCollection(teamRef);
+  const existing = await collection.limit(1).get();
+  if (!existing.empty) return;
+
+  const legacy = await db.collection("teamRoster")
+    .where("teamId", "==", teamId)
+    .get();
+
+  if (legacy.empty) return;
+
+  await commitInChunks(db, legacy.docs.map((doc) => (batch) => {
+    batch.set(collection.doc(doc.id), {
+      ...doc.data(),
+      migratedFrom: "teamRoster",
+      migratedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    batch.delete(doc.ref);
+  }));
+}
+
+function buildRoleMap(game) {
+  const roles = game?.competitiveInfo?.roles || [];
+  const roleMap = new Map();
+
+  const registerRole = (role, fallbackId = "") => {
+    if (typeof role === "string") {
+      const value = role.trim();
+      if (value) roleMap.set(value.toLowerCase(), value);
+      return;
+    }
+
+    if (!role || typeof role !== "object") return;
+
+    const identifiers = [
+      role.id,
+      role.roleId,
+      role.key,
+      role.value,
+      role.slug,
+      role.code,
+      fallbackId,
+      role.name,
+      role.label
+    ]
+      .filter((value) => value !== undefined && value !== null)
+      .map((value) => String(value).trim())
+      .filter(Boolean);
+
+    identifiers.forEach((identifier) => roleMap.set(identifier.toLowerCase(), identifier));
+  };
+
+  if (Array.isArray(roles)) {
+    roles.forEach((role) => registerRole(role));
+  } else if (roles && typeof roles === "object") {
+    Object.entries(roles).forEach(([id, role]) => registerRole(role, id));
+  }
+
+  return roleMap;
+}
+
+async function getRosterByPlayer(teamRef) {
+  const snapshot = await rosterCollection(teamRef)
+    .where("status", "==", "active")
+    .get();
+
+  const map = new Map();
+  snapshot.docs.forEach((doc) => {
+    const data = doc.data() || {};
+    if (data.playerId) map.set(String(data.playerId), { id: doc.id, ...data });
+  });
+  return { snapshot, map };
+}
+
 export default async function handler(req, res) {
   try {
     const { app, uid } = await authenticate(req);
@@ -64,34 +177,35 @@ export default async function handler(req, res) {
     const teamId = String(req.query?.teamId || req.body?.teamId || "").trim();
     const { team, teamRef } = await getOwnedTeam(db, uid, teamId);
 
-    const divisions = team.divisions && typeof team.divisions === "object" && !Array.isArray(team.divisions)
-      ? team.divisions
-      : {};
+    await migrateLegacyDivisions(db, teamRef, team);
+    await migrateLegacyRoster(db, teamRef, teamId);
+
+    const divisionsRef = divisionsCollection(teamRef);
 
     if (method === "GET") {
-      const rosterSnap = await db.collection("teamRoster")
-        .where("teamId", "==", teamId)
-        .where("status", "==", "active")
-        .get();
+      const [divisionSnap, rosterSnap] = await Promise.all([
+        divisionsRef.get(),
+        rosterCollection(teamRef).where("status", "==", "active").get()
+      ]);
 
       const playerCounts = {};
       rosterSnap.docs.forEach((doc) => {
-        const divisionId = doc.data()?.divisionId;
+        const divisionId = String(doc.data()?.divisionId || "").trim();
         if (divisionId) playerCounts[divisionId] = (playerCounts[divisionId] || 0) + 1;
       });
 
       return json(res, 200, {
         team: { id: team.id, name: team.name || team.teamName || "Team" },
         divisions: sortDivisions(
-          Object.entries(divisions).map(([id, division]) => ({
-            ...normalizeDivision(id, division),
-            playerCount: playerCounts[id] || 0
+          divisionSnap.docs.map((doc) => ({
+            ...normalizeDivision(doc.id, doc.data()),
+            playerCount: playerCounts[doc.id] || 0
           }))
         )
       });
     }
 
-    if (method !== "POST" && method !== "PATCH" && method !== "DELETE") {
+    if (!["POST", "PATCH", "DELETE"].includes(method)) {
       return json(res, 405, { error: "Método no permitido." });
     }
 
@@ -106,110 +220,45 @@ export default async function handler(req, res) {
 
       const gameSnap = await db.collection("games").doc(gameId).get();
       if (!gameSnap.exists) return json(res, 400, { error: "El juego seleccionado no existe." });
-      const game = gameSnap.data();
+      const game = gameSnap.data() || {};
       if (game.status !== "active") return json(res, 400, { error: "El juego seleccionado no está disponible." });
 
-      const duplicate = Object.values(divisions).some((division) =>
-        String(division?.gameId || "") === gameId && String(division?.status || "active") === "active"
-      );
-      if (duplicate) {
+      const activeDivisions = await divisionsRef.where("status", "==", "active").get();
+      if (activeDivisions.docs.some((doc) => String(doc.data()?.gameId || "") === gameId)) {
         return json(res, 409, { error: "Este Team ya tiene una división activa para ese juego." });
       }
 
-      const roles = game?.competitiveInfo?.roles || [];
-      const roleMap = new Map();
-
-      const registerRole = (role, fallbackId = "") => {
-        if (typeof role === "string") {
-          const value = role.trim();
-          if (value) roleMap.set(value, role);
-          return;
-        }
-
-        if (!role || typeof role !== "object") return;
-
-        const identifiers = [
-          role.id,
-          role.roleId,
-          role.key,
-          role.value,
-          role.slug,
-          role.code,
-          fallbackId,
-          role.name,
-          role.label
-        ]
-          .filter((value) => value !== undefined && value !== null)
-          .map((value) => String(value).trim())
-          .filter(Boolean);
-
-        identifiers.forEach((identifier) => {
-          roleMap.set(identifier, role);
-        });
-      };
-
-      if (Array.isArray(roles)) {
-        roles.forEach((role) => registerRole(role));
-      } else if (roles && typeof roles === "object") {
-        Object.entries(roles).forEach(([id, role]) => registerRole(role, id));
-      }
-
+      const roleMap = buildRoleMap(game);
+      const { map: rosterByPlayer } = await getRosterByPlayer(teamRef);
       const normalizedPlayers = [];
       const playerIds = new Set();
 
       for (const item of players) {
         const playerId = String(item?.playerId || "").trim();
         const roleId = String(item?.roleId || "").trim();
-
         if (!playerId || playerIds.has(playerId)) continue;
         playerIds.add(playerId);
 
-        const matchingRoleId = roleId
-          ? [...roleMap.keys()].find((identifier) =>
-              String(identifier).trim().toLowerCase() === roleId.toLowerCase()
-            )
-          : null;
-
-        if (!roleId || !matchingRoleId) {
+        const canonicalRoleId = roleMap.get(roleId.toLowerCase());
+        if (!canonicalRoleId) {
           return json(res, 400, {
             error: `El rol seleccionado para el Player ${playerId} no pertenece a la configuración competitiva de este juego.`
           });
         }
 
-        // Persistimos el identificador canónico que existe en la configuración del juego.
-        item.roleId = String(matchingRoleId);
-
-        normalizedPlayers.push({ playerId, roleId });
-      }
-
-      const rosterSnapshot = await db
-        .collection("teamRoster")
-        .where("teamId", "==", teamId)
-        .where("status", "==", "active")
-        .get();
-
-      const rosterByPlayer = new Map();
-      rosterSnapshot.docs.forEach((doc) => {
-        const data = doc.data() || {};
-        if (data.playerId) rosterByPlayer.set(String(data.playerId), { id: doc.id, ...data });
-      });
-
-      for (const item of normalizedPlayers) {
-        const roster = rosterByPlayer.get(item.playerId);
+        const roster = rosterByPlayer.get(playerId);
         if (!roster) {
-          return json(res, 409, {
-            error: `El Player ${item.playerId} no pertenece al Roster activo de este Team.`
-          });
+          return json(res, 409, { error: `El Player ${playerId} no pertenece al Roster activo de este Team.` });
+        }
+        if (roster.divisionId) {
+          return json(res, 409, { error: `El Player ${playerId} ya pertenece a otra división de este Team.` });
         }
 
-        if (roster.divisionId && String(roster.divisionId) !== "") {
-          return json(res, 409, {
-            error: `El Player ${item.playerId} ya pertenece a otra división de este Team.`
-          });
-        }
+        normalizedPlayers.push({ playerId, roleId: canonicalRoleId });
       }
 
-      const divisionId = db.collection("teams").doc().id;
+      const divisionRef = divisionsRef.doc();
+      const now = new Date().toISOString();
       const division = {
         name,
         gameId,
@@ -222,35 +271,38 @@ export default async function handler(req, res) {
       };
 
       const batch = db.batch();
-      batch.update(teamRef, {
-        [`divisions.${divisionId}`]: division,
-        updatedAt: FieldValue.serverTimestamp()
-      });
-
+      batch.set(divisionRef, division);
       normalizedPlayers.forEach((item) => {
         const roster = rosterByPlayer.get(item.playerId);
-        batch.update(db.collection("teamRoster").doc(roster.id), {
-          divisionId,
+        batch.update(rosterCollection(teamRef).doc(roster.id), {
+          divisionId: divisionRef.id,
           roleId: item.roleId,
           updatedAt: FieldValue.serverTimestamp()
         });
       });
-
+      batch.update(teamRef, { updatedAt: FieldValue.serverTimestamp() });
       await batch.commit();
 
       return json(res, 201, {
-        division: normalizeDivision(divisionId, { ...division, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }),
+        division: normalizeDivision(divisionRef.id, {
+          ...division,
+          createdAt: now,
+          updatedAt: now
+        }),
         playerCount: normalizedPlayers.length
       });
     }
 
     const divisionId = String(req.body?.divisionId || req.query?.divisionId || "").trim();
-    if (!divisionId || !divisions[divisionId]) {
+    const divisionRef = divisionsRef.doc(divisionId);
+    const divisionSnap = await divisionRef.get();
+
+    if (!divisionId || !divisionSnap.exists) {
       return json(res, 404, { error: "No se encontró la división." });
     }
 
     if (method === "PATCH") {
-      const current = divisions[divisionId];
+      const current = divisionSnap.data() || {};
       const name = String(req.body?.name ?? current.name ?? "").trim();
       const description = String(req.body?.description ?? current.description ?? "").trim();
       const status = req.body?.status === "inactive" ? "inactive" : "active";
@@ -259,165 +311,85 @@ export default async function handler(req, res) {
       if (!name) return json(res, 400, { error: "El nombre de la división es obligatorio." });
 
       const gameSnap = await db.collection("games").doc(String(current.gameId || "")).get();
-      if (!gameSnap.exists) {
-        return json(res, 400, { error: "No se encontró la configuración del juego de esta división." });
-      }
+      if (!gameSnap.exists) return json(res, 400, { error: "No se encontró la configuración del juego de esta división." });
 
-      const game = gameSnap.data() || {};
-      const roles = game?.competitiveInfo?.roles || [];
-      const roleMap = new Map();
-
-      const registerRole = (role, fallbackId = "") => {
-        if (typeof role === "string") {
-          const value = role.trim();
-          if (value) roleMap.set(value.toLowerCase(), value);
-          return;
-        }
-
-        if (!role || typeof role !== "object") return;
-
-        const identifiers = [
-          role.id,
-          role.roleId,
-          role.key,
-          role.value,
-          role.slug,
-          role.code,
-          fallbackId,
-          role.name,
-          role.label
-        ]
-          .filter((value) => value !== undefined && value !== null)
-          .map((value) => String(value).trim())
-          .filter(Boolean);
-
-        identifiers.forEach((identifier) => roleMap.set(identifier.toLowerCase(), identifier));
-      };
-
-      if (Array.isArray(roles)) {
-        roles.forEach((role) => registerRole(role));
-      } else if (roles && typeof roles === "object") {
-        Object.entries(roles).forEach(([id, role]) => registerRole(role, id));
-      }
-
+      const roleMap = buildRoleMap(gameSnap.data() || {});
+      const { snapshot: rosterSnapshot, map: rosterByPlayer } = await getRosterByPlayer(teamRef);
       const normalizedPlayers = [];
-      const playerIds = new Set();
+      const selectedIds = new Set();
 
       for (const item of players) {
         const playerId = String(item?.playerId || "").trim();
         const roleId = String(item?.roleId || "").trim();
-
-        if (!playerId || playerIds.has(playerId)) continue;
-        playerIds.add(playerId);
+        if (!playerId || selectedIds.has(playerId)) continue;
+        selectedIds.add(playerId);
 
         const canonicalRoleId = roleMap.get(roleId.toLowerCase());
-        if (!roleId || !canonicalRoleId) {
+        if (!canonicalRoleId) {
           return json(res, 400, {
             error: `El rol seleccionado para el Player ${playerId} no pertenece a la configuración competitiva de este juego.`
           });
         }
 
-        normalizedPlayers.push({ playerId, roleId: canonicalRoleId });
-      }
-
-      const rosterSnapshot = await db
-        .collection("teamRoster")
-        .where("teamId", "==", teamId)
-        .where("status", "==", "active")
-        .get();
-
-      const rosterByPlayer = new Map();
-      rosterSnapshot.docs.forEach((doc) => {
-        const data = doc.data() || {};
-        if (data.playerId) {
-          rosterByPlayer.set(String(data.playerId), { id: doc.id, ...data });
-        }
-      });
-
-      for (const item of normalizedPlayers) {
-        const roster = rosterByPlayer.get(item.playerId);
-
-        if (!roster) {
-          return json(res, 409, {
-            error: `El Player ${item.playerId} no pertenece al Roster activo de este Team.`
-          });
-        }
+        const roster = rosterByPlayer.get(playerId);
+        if (!roster) return json(res, 409, { error: `El Player ${playerId} no pertenece al Roster activo de este Team.` });
 
         const existingDivisionId = String(roster.divisionId || "").trim();
         if (existingDivisionId && existingDivisionId !== divisionId) {
-          return json(res, 409, {
-            error: `El Player ${item.playerId} ya pertenece a otra división de este Team.`
-          });
+          return json(res, 409, { error: `El Player ${playerId} ya pertenece a otra división de este Team.` });
         }
+
+        normalizedPlayers.push({ playerId, roleId: canonicalRoleId });
       }
 
-      const currentDivisionPlayers = rosterSnapshot.docs.filter(
-        (doc) => String(doc.data()?.divisionId || "").trim() === divisionId
-      );
-
-      const selectedIds = new Set(normalizedPlayers.map((item) => item.playerId));
       const batch = db.batch();
+      rosterSnapshot.docs
+        .filter((doc) => String(doc.data()?.divisionId || "") === divisionId)
+        .forEach((doc) => {
+          if (!selectedIds.has(String(doc.data()?.playerId || ""))) {
+            batch.update(doc.ref, {
+              divisionId: FieldValue.delete(),
+              roleId: FieldValue.delete(),
+              updatedAt: FieldValue.serverTimestamp()
+            });
+          }
+        });
 
-      // Players retirados de la división vuelven a quedar disponibles
-      // en el Roster global del Team.
-      currentDivisionPlayers.forEach((doc) => {
-        const playerId = String(doc.data()?.playerId || "").trim();
-        if (!selectedIds.has(playerId)) {
-          batch.update(doc.ref, {
-            divisionId: FieldValue.delete(),
-            roleId: FieldValue.delete(),
-            updatedAt: FieldValue.serverTimestamp()
-          });
-        }
-      });
-
-      // Players seleccionados quedan vinculados a esta división y su rol.
       normalizedPlayers.forEach((item) => {
         const roster = rosterByPlayer.get(item.playerId);
-        batch.update(db.collection("teamRoster").doc(roster.id), {
+        batch.update(rosterCollection(teamRef).doc(roster.id), {
           divisionId,
           roleId: item.roleId,
           updatedAt: FieldValue.serverTimestamp()
         });
       });
 
-      batch.update(teamRef, {
-        [`divisions.${divisionId}.name`]: name,
-        [`divisions.${divisionId}.description`]: description,
-        [`divisions.${divisionId}.status`]: status,
-        [`divisions.${divisionId}.playerCount`]: normalizedPlayers.length,
-        [`divisions.${divisionId}.updatedAt`]: FieldValue.serverTimestamp(),
+      batch.update(divisionRef, {
+        name,
+        description,
+        status,
+        playerCount: normalizedPlayers.length,
         updatedAt: FieldValue.serverTimestamp()
       });
 
       await batch.commit();
-
-      return json(res, 200, {
-        ok: true,
-        playerCount: normalizedPlayers.length
-      });
+      return json(res, 200, { ok: true, playerCount: normalizedPlayers.length });
     }
 
-    const rosterSnap = await db.collection("teamRoster")
-      .where("teamId", "==", teamId)
+    const assigned = await rosterCollection(teamRef)
       .where("divisionId", "==", divisionId)
       .where("status", "==", "active")
       .limit(1)
       .get();
 
-    const hasPlayers = !rosterSnap.empty;
-
-    if (hasPlayers) {
+    if (!assigned.empty) {
       return json(res, 409, {
         error: "No puedes eliminar una división que tiene Players asignados. Retira primero a sus jugadores."
       });
     }
 
-    await teamRef.update({
-      [`divisions.${divisionId}`]: FieldValue.delete(),
-      updatedAt: FieldValue.serverTimestamp()
-    });
-
+    await divisionRef.delete();
+    await teamRef.update({ updatedAt: FieldValue.serverTimestamp() });
     return json(res, 200, { ok: true });
   } catch (error) {
     console.error("NEXUS — Team Divisions API:", error);

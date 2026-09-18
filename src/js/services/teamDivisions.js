@@ -41,11 +41,11 @@ export async function getTeamDivisions(teamId) {
   return requestApi({ teamId });
 }
 
-export async function createTeamDivision({ teamId, name, gameId, description = "" }) {
+export async function createTeamDivision({ teamId, name, gameId, description = "", players = [] }) {
   return requestApi({
     method: "POST",
     teamId,
-    body: { teamId, name, gameId, description }
+    body: { teamId, name, gameId, description, players }
   });
 }
 

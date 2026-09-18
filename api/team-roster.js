@@ -14,29 +14,22 @@ async function authenticate(req) {
   const header = req.headers?.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) throw new Error("Debes iniciar sesión.");
-
   const app = getFirebaseAdminApp();
   const decoded = await getAuth(app).verifyIdToken(token);
-
   return { app, uid: decoded.uid };
 }
 
 async function getOwnedTeam(db, uid, teamId) {
   if (!teamId) throw new Error("No se indicó el Team.");
-
   const teamRef = db.collection("teams").doc(teamId);
-  const teamSnap = await teamRef.get();
-
-  if (!teamSnap.exists) throw new Error("No se encontró el Team.");
-
-  const team = { id: teamSnap.id, ...teamSnap.data() };
-
+  const snap = await teamRef.get();
+  if (!snap.exists) throw new Error("No se encontró el Team.");
+  const team = { id: snap.id, ...snap.data() };
   if (team.ownerId !== uid) {
     const error = new Error("No tienes permisos para administrar este Team.");
     error.status = 403;
     throw error;
   }
-
   return { team, teamRef };
 }
 
@@ -46,20 +39,70 @@ function playerName(player = {}) {
     .join(" ") || player.id || "Player";
 }
 
-function normalizeRequest(player = {}) {
-  const request = player.teamRequest;
-  if (!request?.teamId || !request?.status) return null;
-
+function normalizeRequest(doc) {
+  const data = doc.data() || {};
   return {
-    playerId: player.id,
-    playerName: playerName(player),
-    gamertag: player.gamertag || "",
-    teamId: request.teamId,
-    status: String(request.status).toLowerCase(),
-    requestedAt: request.requestedAt || null,
-    respondedAt: request.respondedAt || null,
-    reviewReason: request.reviewReason || null
+    id: doc.id,
+    requestId: doc.id,
+    teamId: data.teamId || doc.ref.parent.parent?.id || null,
+    playerId: data.playerId || null,
+    status: String(data.status || "pending").toLowerCase(),
+    type: data.type || "player_request",
+    requestedAt: data.requestedAt || null,
+    respondedAt: data.respondedAt || null,
+    respondedBy: data.respondedBy || null,
+    reviewReason: data.reviewReason || null,
+    createdAt: data.createdAt || data.requestedAt || null,
+    _ref: doc.ref
   };
+}
+
+async function commitInChunks(db, operations) {
+  for (let index = 0; index < operations.length; index += 450) {
+    const batch = db.batch();
+    operations.slice(index, index + 450).forEach((operation) => operation(batch));
+    await batch.commit();
+  }
+}
+
+async function migrateLegacyRoster(db, teamRef, teamId) {
+  const target = teamRef.collection("teamRoster");
+  const existing = await target.limit(1).get();
+  if (!existing.empty) return;
+
+  const legacy = await db.collection("teamRoster")
+    .where("teamId", "==", teamId)
+    .get();
+  if (legacy.empty) return;
+
+  await commitInChunks(db, legacy.docs.map((doc) => (batch) => {
+    batch.set(target.doc(doc.id), {
+      ...doc.data(),
+      migratedFrom: "teamRoster",
+      migratedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    batch.delete(doc.ref);
+  }));
+}
+
+async function migrateLegacyRequests(db, teamRef, teamId) {
+  const target = teamRef.collection("teamRequests");
+  const existing = await target.limit(1).get();
+  if (!existing.empty) return;
+
+  const legacy = await db.collection("teamRequests")
+    .where("teamId", "==", teamId)
+    .get();
+  if (legacy.empty) return;
+
+  await commitInChunks(db, legacy.docs.map((doc) => (batch) => {
+    batch.set(target.doc(doc.id), {
+      ...doc.data(),
+      migratedFrom: "teamRequests",
+      migratedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    batch.delete(doc.ref);
+  }));
 }
 
 export default async function handler(req, res) {
@@ -68,202 +111,138 @@ export default async function handler(req, res) {
     const db = getFirestore(app);
     const method = String(req.method || "GET").toUpperCase();
     const teamId = String(req.query?.teamId || req.body?.teamId || "").trim();
+    const { team, teamRef } = await getOwnedTeam(db, uid, teamId);
+    const rosterRef = teamRef.collection("teamRoster");
+    const requestsRef = teamRef.collection("teamRequests");
 
-    const { team } = await getOwnedTeam(db, uid, teamId);
+    await migrateLegacyRoster(db, teamRef, teamId);
+    await migrateLegacyRequests(db, teamRef, teamId);
 
     if (method === "GET") {
-      const playersSnap = await db.collection("players").get();
-      const players = playersSnap.docs.map((document) => ({
-        id: document.id,
-        ...document.data()
-      }));
+      const [playersSnap, rosterSnap, requestSnap] = await Promise.all([
+        db.collection("players").get(),
+        rosterRef.where("status", "==", "active").get(),
+        requestsRef.get()
+      ]);
 
-      const members = players
-        .filter((player) => player.teamId === teamId)
-        .map((player) => ({
-          playerId: player.id,
+      const players = new Map(playersSnap.docs.map((doc) => [doc.id, { id: doc.id, ...doc.data() }]));
+
+      const members = rosterSnap.docs.map((doc) => {
+        const roster = doc.data() || {};
+        const player = players.get(String(roster.playerId || ""));
+        if (!player) return null;
+        return {
+          rosterId: doc.id,
+          playerId: String(roster.playerId || ""),
           playerName: playerName(player),
           gamertag: player.gamertag || "",
           teamId,
-          divisionId: player.teamRoster?.divisionId || null,
-          roleId: player.teamRoster?.roleId || null,
-          joinedAt: player.teamRoster?.joinedAt || null
-        }));
+          divisionId: roster.divisionId || null,
+          roleId: roster.roleId || null,
+          joinedAt: roster.joinedAt || null,
+          status: roster.status || "active"
+        };
+      }).filter(Boolean);
 
-      const requestSnapshot = await db
-        .collection("teamRequests")
-        .where("teamId", "==", teamId)
-        .get();
-
-      const requests = requestSnapshot.docs
-        .map((document) => ({
-          id: document.id,
-          requestId: document.id,
-          ...document.data()
-        }))
+      const requests = requestSnap.docs
+        .map(normalizeRequest)
         .filter((request) => request.type === "player_request")
-        .map((request) => ({
-          ...request,
-          status: String(request.status || "pending").toLowerCase(),
-          playerName: playerName(players.find((player) => player.id === request.playerId) || {}),
-          gamertag: players.find((player) => player.id === request.playerId)?.gamertag || ""
-        }));
+        .map(({ _ref, ...request }) => {
+          const player = players.get(request.playerId);
+          return {
+            ...request,
+            playerName: playerName(player || {}),
+            gamertag: player?.gamertag || ""
+          };
+        })
+        .sort((a, b) => String(b.requestedAt || "").localeCompare(String(a.requestedAt || "")));
 
-      // Compatibilidad con solicitudes creadas por la versión anterior,
-      // que todavía viven únicamente dentro de players/{playerId}.teamRequest.
-      const legacyRequests = players
-        .map((player) => normalizeRequest(player))
-        .filter((request) => request?.teamId === teamId)
-        .filter((request) => !requests.some((item) => item.playerId === request.playerId))
-        .map((request) => ({
-          ...request,
-          requestId: null,
-          id: null
-        }));
-
-      requests.push(...legacyRequests);
-
-      requests.sort((a, b) =>
-        String(b.requestedAt || "").localeCompare(String(a.requestedAt || ""))
-      );
-
-      return json(res, 200, {
-        success: true,
-        team,
-        members,
-        requests
-      });
+      return json(res, 200, { success: true, team, members, requests });
     }
 
-    if (method !== "POST") {
-      return json(res, 405, { error: "Método no permitido." });
-    }
+    if (method !== "POST") return json(res, 405, { error: "Método no permitido." });
 
     const action = String(req.body?.action || "").trim().toLowerCase();
     const playerId = String(req.body?.playerId || "").trim();
     const requestId = String(req.body?.requestId || "").trim();
-
-    if (!playerId) {
-      return json(res, 400, { error: "No se indicó el Player." });
-    }
+    if (!playerId) return json(res, 400, { error: "No se indicó el Player." });
 
     const playerRef = db.collection("players").doc(playerId);
     const playerSnap = await playerRef.get();
-
-    if (!playerSnap.exists) {
-      return json(res, 404, { error: "No se encontró el Player." });
-    }
-
+    if (!playerSnap.exists) return json(res, 404, { error: "No se encontró el Player." });
     const player = { id: playerSnap.id, ...playerSnap.data() };
 
-    // ========================================
-    // REMOVE ACTIVE MEMBER
-    // ========================================
-
     if (action === "remove") {
-      if (player.teamId !== teamId) {
-        return json(res, 409, {
-          error: "Este Player ya no pertenece a este Team."
-        });
-      }
+      if (player.teamId !== teamId) return json(res, 409, { error: "Este Player ya no pertenece a este Team." });
 
-      const rosterSnapshot = await db
-        .collection("teamRoster")
-        .where("teamId", "==", teamId)
+      const rosterSnapshot = await rosterRef
         .where("playerId", "==", playerId)
         .where("status", "==", "active")
         .get();
 
       const batch = db.batch();
-
-      rosterSnapshot.docs.forEach((rosterDoc) => {
-        batch.update(rosterDoc.ref, {
-          status: "removed",
-          removedAt: FieldValue.serverTimestamp(),
-          removedBy: uid,
-          updatedAt: FieldValue.serverTimestamp()
-        });
-      });
+      rosterSnapshot.docs.forEach((doc) => batch.update(doc.ref, {
+        status: "removed",
+        removedAt: FieldValue.serverTimestamp(),
+        removedBy: uid,
+        updatedAt: FieldValue.serverTimestamp()
+      }));
 
       const competitiveProfiles = Array.isArray(player.competitiveProfiles)
         ? player.competitiveProfiles.map((profile) => ({
             ...profile,
-            availability: profile?.availability === "in_team"
-              ? "looking_for_team"
-              : profile?.availability
+            availability: profile?.availability === "in_team" ? "looking_for_team" : profile?.availability
           }))
         : null;
 
       batch.update(playerRef, {
         teamId: null,
         teamMembershipStatus: "removed",
-        teamRoster: {
-          ...(player.teamRoster || {}),
-          status: "removed",
-          teamId,
-          leftAt: FieldValue.serverTimestamp(),
-          removedAt: FieldValue.serverTimestamp(),
-          removedBy: uid
-        },
-        ...(competitiveProfiles
-          ? { competitiveProfiles }
-          : {}),
+        ...(competitiveProfiles ? { competitiveProfiles } : {}),
         updatedAt: FieldValue.serverTimestamp()
       });
 
       await batch.commit();
-
-      return json(res, 200, {
-        success: true,
-        action: "removed",
-        playerId,
-        teamId,
-        rosterRecordsUpdated: rosterSnapshot.size
-      });
+      return json(res, 200, { success: true, action: "removed", playerId, teamId, rosterRecordsUpdated: rosterSnapshot.size });
     }
 
-    const legacyRequest = player.teamRequest || null;
-
     let requestRef = null;
-    let request = legacyRequest;
+    let request = null;
 
     if (requestId) {
-      requestRef = db.collection("teamRequests").doc(requestId);
+      requestRef = requestsRef.doc(requestId);
       const requestSnap = await requestRef.get();
-
-      if (!requestSnap.exists) {
-        return json(res, 404, { error: "No se encontró la solicitud." });
-      }
-
+      if (!requestSnap.exists) return json(res, 404, { error: "No se encontró la solicitud." });
       request = { id: requestSnap.id, ...requestSnap.data() };
-
-      if (
-        request.teamId !== teamId ||
-        request.playerId !== playerId ||
-        request.status !== "pending"
-      ) {
-        return json(res, 409, {
-          error: "Esta solicitud ya no está pendiente o pertenece a otro Team."
-        });
+    } else {
+      const pendingSnapshot = await requestsRef
+        .where("playerId", "==", playerId)
+        .where("status", "==", "pending")
+        .limit(1)
+        .get();
+      if (!pendingSnapshot.empty) {
+        requestRef = pendingSnapshot.docs[0].ref;
+        request = { id: pendingSnapshot.docs[0].id, ...pendingSnapshot.docs[0].data() };
       }
-    } else if (legacyRequest?.teamId !== teamId || legacyRequest?.status !== "pending") {
-      return json(res, 409, {
-        error: "Esta solicitud ya no está pendiente o pertenece a otro Team."
-      });
+    }
+
+    if (!request || request.teamId !== teamId || request.playerId !== playerId || request.status !== "pending") {
+      return json(res, 409, { error: "Esta solicitud ya no está pendiente o pertenece a otro Team." });
     }
 
     if (action === "approve") {
       if (player.teamId && player.teamId !== teamId) {
-        return json(res, 409, {
-          error: "Este Player ya pertenece a otro Team confirmado."
-        });
+        return json(res, 409, { error: "Este Player ya pertenece a otro Team confirmado." });
       }
 
-      const rosterRef = db.collection("teamRoster").doc();
-      const batch = db.batch();
+      const existingRoster = await rosterRef.where("playerId", "==", playerId).where("status", "==", "active").limit(1).get();
+      if (!existingRoster.empty) {
+        return json(res, 409, { error: "Este Player ya está activo en el Roster de este Team." });
+      }
 
-      batch.set(rosterRef, {
-        teamId,
+      const rosterDoc = rosterRef.doc();
+      const batch = db.batch();
+      batch.set(rosterDoc, {
         playerId,
         divisionId: null,
         roleId: null,
@@ -272,96 +251,52 @@ export default async function handler(req, res) {
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       });
-
-      if (requestRef) {
-        batch.update(requestRef, {
-          status: "approved",
-          respondedAt: FieldValue.serverTimestamp(),
-          respondedBy: uid,
-          updatedAt: FieldValue.serverTimestamp()
-        });
-      }
-
+      batch.update(requestRef, {
+        status: "approved",
+        respondedAt: FieldValue.serverTimestamp(),
+        respondedBy: uid,
+        updatedAt: FieldValue.serverTimestamp()
+      });
       batch.update(playerRef, {
         teamId,
         teamMembershipStatus: "active",
-        teamRequest: {
-          ...request,
-          status: "approved",
-          respondedAt: FieldValue.serverTimestamp(),
-          respondedBy: uid
-        },
-        teamRoster: {
-          rosterId: rosterRef.id,
-          divisionId: null,
-          roleId: null,
-          status: "active",
-          joinedAt: FieldValue.serverTimestamp()
-        },
         updatedAt: FieldValue.serverTimestamp()
       });
-
       await batch.commit();
 
-      return json(res, 200, {
-        success: true,
-        action: "approved",
-        playerId,
-        rosterId: rosterRef.id
-      });
+      return json(res, 200, { success: true, action: "approved", playerId, rosterId: rosterDoc.id });
     }
 
     if (action === "reject") {
       const reason = String(req.body?.reason || "").trim().slice(0, 300);
-
-      if (requestRef) {
-        const batch = db.batch();
-
-        batch.update(requestRef, {
+      const batch = db.batch();
+      batch.update(requestRef, {
+        status: "rejected",
+        respondedAt: FieldValue.serverTimestamp(),
+        respondedBy: uid,
+        reviewReason: reason || null,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+      // Mantener el snapshot actual en Player evita romper la UI existente;
+      // el historial y la fuente de verdad siguen estando en teamRequests.
+      batch.update(playerRef, {
+        teamRequest: {
+          teamId,
           status: "rejected",
           respondedAt: FieldValue.serverTimestamp(),
           respondedBy: uid,
           reviewReason: reason || null,
-          updatedAt: FieldValue.serverTimestamp()
-        });
-
-        batch.update(playerRef, {
-          teamRequest: {
-            ...request,
-            status: "rejected",
-            respondedAt: FieldValue.serverTimestamp(),
-            respondedBy: uid,
-            reviewReason: reason || null
-          },
-          updatedAt: FieldValue.serverTimestamp()
-        });
-
-        await batch.commit();
-      } else {
-        await playerRef.update({
-          teamRequest: {
-            ...request,
-            status: "rejected",
-            respondedAt: FieldValue.serverTimestamp(),
-            respondedBy: uid,
-            reviewReason: reason || null
-          },
-          updatedAt: FieldValue.serverTimestamp()
-        });
-      }
-
-      return json(res, 200, {
-        success: true,
-        action: "rejected",
-        playerId
+          requestId: request.id
+        },
+        updatedAt: FieldValue.serverTimestamp()
       });
+      await batch.commit();
+      return json(res, 200, { success: true, action: "rejected", playerId });
     }
 
     return json(res, 400, { error: "Acción de Roster no reconocida." });
   } catch (error) {
     console.error("NEXUS — Team Roster API error:", error);
-    return json(res, error?.status || 500, {
-      error: error?.message || "No fue posible procesar el Roster."
-    });
+    return json(res, error?.status || 500, { error: error?.message || "No fue posible procesar el Roster." });
   }
 }

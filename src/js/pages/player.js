@@ -329,9 +329,10 @@ export function PlayerCompetitiveProfileView() {
       return;
     }
 
-    const [games, teams] = await Promise.all([
+    const [games, teams, teamRequestsResponse] = await Promise.all([
       getGames(),
-      getEntities("teams")
+      getEntities("teams"),
+      getMyTeamRequests().catch(() => ({ requests: [] }))
     ]);
 
     const state = page.querySelector("[data-competitive-profile-state]");
@@ -351,15 +352,23 @@ export function PlayerCompetitiveProfileView() {
     if (!rows.length) rows.push({ gameId: "", roleIds: [], availability: "available" });
 
     // Team es una relación global. teamId solo representa una pertenencia CONFIRMADA.
+    // Las solicitudes viven dentro de teams/{teamId}/teamRequests y esta vista
+    // usa esa colección como fuente de verdad mediante getMyTeamRequests().
+    const teamRequests = Array.isArray(teamRequestsResponse?.requests)
+      ? teamRequestsResponse.requests
+      : [];
+    const latestTeamRequest = teamRequests[0] || entity.teamRequest || null;
+
     let globalTeamId = entity.teamId || null;
-    let pendingTeamId = entity.teamRequest?.status === "pending"
-      ? entity.teamRequest?.teamId || null
+    let pendingTeamId = latestTeamRequest?.status === "pending"
+      ? latestTeamRequest?.teamId || null
       : null;
-    let pendingRequestedAt = entity.teamRequest?.status === "pending"
-      ? entity.teamRequest?.requestedAt || null
+    let pendingRequestedAt = latestTeamRequest?.status === "pending"
+      ? latestTeamRequest?.requestedAt || null
       : null;
-    let teamRequestStatus = entity.teamRequest?.status || null;
-    let teamRequestReason = entity.teamRequest?.reviewReason || null;
+    let teamRequestStatus = latestTeamRequest?.status || null;
+    let teamRequestReason = latestTeamRequest?.reviewReason || null;
+    let teamRequestTeamId = latestTeamRequest?.teamId || null;
     let teamMembershipStatus = entity.teamMembershipStatus || (globalTeamId ? "active" : null);
     let teamSearch = "";
     let editingIndex = null;
@@ -426,7 +435,7 @@ export function PlayerCompetitiveProfileView() {
               </div>
               <div>
                 <span>SOLICITUD ${teamRequestStatus === "approved" ? "ACEPTADA" : teamRequestStatus === "rejected" ? "RECHAZADA" : "CANCELADA"}</span>
-                <strong>${escapeHtml(getTeamLabel(entity.teamRequest?.teamId || ""))}</strong>
+                <strong>${escapeHtml(getTeamLabel(teamRequestTeamId || ""))}</strong>
                 <small>${teamRequestStatus === "approved"
                   ? "Este Team confirmó tu incorporación."
                   : teamRequestStatus === "rejected"
@@ -454,8 +463,8 @@ export function PlayerCompetitiveProfileView() {
               <div class="competitive-profile-form__team-pending-icon"><i class="fa-solid fa-xmark"></i></div>
               <div>
                 <span>SOLICITUD RECHAZADA</span>
-                <strong>${escapeHtml(getTeamLabel(entity.teamRequest.teamId))}</strong>
-                <small>${escapeHtml(entity.teamRequest.reviewReason || "El Team rechazó tu solicitud. Puedes volver a solicitar tu incorporación.")}</small>
+                <strong>${escapeHtml(getTeamLabel(teamRequestTeamId || ""))}</strong>
+                <small>${escapeHtml(teamRequestReason || "El Team rechazó tu solicitud. Puedes volver a solicitar tu incorporación.")}</small>
               </div>
             </div>` : ""}
 
@@ -684,6 +693,7 @@ export function PlayerCompetitiveProfileView() {
           pendingRequestedAt = new Date().toISOString();
           teamRequestStatus = "pending";
           teamRequestReason = null;
+          teamRequestTeamId = selectedTeamId;
           entity.teamRequest = {
             ...(entity.teamRequest || {}),
             teamId: selectedTeamId,
@@ -760,6 +770,7 @@ export function PlayerCompetitiveProfileView() {
             pendingRequestedAt = null;
             teamRequestStatus = "cancelled";
             teamRequestReason = null;
+            teamRequestTeamId = teamId;
             entity.teamRequest = {
               ...(entity.teamRequest || {}),
               teamId,
