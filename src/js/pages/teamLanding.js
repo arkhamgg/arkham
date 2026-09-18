@@ -3,7 +3,7 @@
 // ========================================
 
 import { getCurrentEntityContext } from "../services/entityContext.js";
-import { getCurrentAccountContext } from "../services/account.js";
+import { getCurrentTeamBilling } from "../services/billingPayment.js";
 import { createSubscriptionAccess } from "../services/planService.js";
 import { hasEffectiveSubscriptionAccess } from "../services/subscription.js";
 import { CAPABILITIES } from "../services/capabilities.js";
@@ -63,18 +63,24 @@ async function loadLanding(page) {
       return;
     }
 
-    const [accountContext, landingData] = await Promise.all([
-      getCurrentAccountContext(),
+    const [teamBilling, landingData] = await Promise.all([
+      getCurrentTeamBilling(context.id),
       getTeamLandingConfig(context.id)
     ]);
 
+    // Team Billing is entity-scoped. Do not use the account-level
+    // subscription here because older accounts may still have a
+    // different/legacy subscription associated with the account.
+    const teamSubscription =
+      teamBilling?.subscription || null;
+
     const access = createSubscriptionAccess(
-      accountContext?.subscription || null,
+      teamSubscription,
       context.productId
     );
 
     const hasLanding =
-      hasEffectiveSubscriptionAccess(accountContext?.subscription) &&
+      hasEffectiveSubscriptionAccess(teamSubscription) &&
       access.hasCapability(CAPABILITIES.PUBLIC_LANDING);
 
     if (!landingData?.team) {
