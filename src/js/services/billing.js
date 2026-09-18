@@ -435,8 +435,8 @@ export function getNextBillingDate(
   }
 
   return (
-    subscription.nextBillingAt ||
-    subscription.currentPeriodEnd ||
+    toDate(subscription.nextBillingAt) ||
+    toDate(subscription.currentPeriodEnd) ||
     null
   );
 
@@ -688,17 +688,6 @@ function toDate(
   // ----------------------------------------
   // DATE
   // ----------------------------------------
-
-  if (
-    value instanceof Date
-  ) {
-
-    return value;
-
-  }
-
-
-  // ----------------------------------------
   // FIRESTORE TIMESTAMP
   // ----------------------------------------
 
@@ -760,6 +749,45 @@ function toDate(
     )
       ? null
       : date;
+
+  }
+
+
+  // ----------------------------------------
+  // SERIALIZED FIRESTORE TIMESTAMP
+  // ----------------------------------------
+
+  if (
+    typeof value === "object"
+  ) {
+
+    const seconds =
+      value.seconds ??
+      value._seconds;
+
+    const nanoseconds =
+      value.nanoseconds ??
+      value._nanoseconds ??
+      0;
+
+    if (
+      typeof seconds === "number" &&
+      typeof nanoseconds === "number"
+    ) {
+
+      const date =
+        new Date(
+          seconds * 1000 +
+          nanoseconds / 1000000
+        );
+
+      return Number.isNaN(
+        date.getTime()
+      )
+        ? null
+        : date;
+
+    }
 
   }
 
