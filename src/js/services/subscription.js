@@ -661,6 +661,51 @@ function toDate(
   }
 
 
+  // ----------------------------------------
+  // SERIALIZED FIRESTORE TIMESTAMP
+  // ----------------------------------------
+  //
+  // Cuando una fecha atraviesa una API JSON,
+  // Firestore Timestamp puede llegar como:
+  // { seconds, nanoseconds }
+  // o como:
+  // { _seconds, _nanoseconds }
+
+  if (
+    typeof value === "object" &&
+    (
+      Number.isFinite(value.seconds) ||
+      Number.isFinite(value._seconds)
+    )
+  ) {
+
+    const seconds =
+      Number.isFinite(value.seconds)
+        ? value.seconds
+        : value._seconds;
+
+    const nanoseconds =
+      Number.isFinite(value.nanoseconds)
+        ? value.nanoseconds
+        : Number.isFinite(value._nanoseconds)
+          ? value._nanoseconds
+          : 0;
+
+    const date =
+      new Date(
+        seconds * 1000 +
+        nanoseconds / 1000000
+      );
+
+    return Number.isNaN(
+      date.getTime()
+    )
+      ? null
+      : date;
+
+  }
+
+
   if (
     typeof value ===
     "number"
