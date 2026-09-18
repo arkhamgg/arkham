@@ -2,40 +2,19 @@
 // ARKHAM — Reloads Service
 // ========================================
 
-import { auth } from "./firebase.js";
+const RELOADS_API = "/api/admin?resource=public-reloads";
 
-const RELOADS_API = "/api/reloads";
-
-async function getFirebaseIdToken() {
-  const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("Debes iniciar sesión para realizar esta operación.");
-  }
-
-  return await user.getIdToken();
-}
-
-async function apiRequest(url, options = {}) {
-  const token = await getFirebaseIdToken();
-
+async function request(url, options = {}) {
   const response = await fetch(url, {
     ...options,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
       ...(options.headers || {})
     }
   });
 
-  let data = null;
-
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
+  const data = await response.json().catch(() => null);
 
   if (!response.ok || data?.success === false) {
     throw new Error(
@@ -48,62 +27,33 @@ async function apiRequest(url, options = {}) {
 }
 
 export async function getReloadGames() {
-  const response = await fetch(
-    `${RELOADS_API}?resource=games`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json"
-      }
-    }
+  const data = await request(
+    `${RELOADS_API}&action=games`,
+    { method: "GET" }
   );
-
-  const data = await response.json();
-
-  if (!response.ok || data?.success === false) {
-    throw new Error(
-      data?.error ||
-      "No fue posible cargar los juegos disponibles."
-    );
-  }
 
   return data.games || [];
 }
 
 export async function getReloadProducts(gameId) {
-  if (!gameId) {
+  const normalizedGameId = String(gameId ?? "").trim();
+
+  if (!normalizedGameId) {
     throw new Error("Debes indicar el juego.");
   }
 
-  const response = await fetch(
-    `${RELOADS_API}?resource=products&gameId=${encodeURIComponent(gameId)}`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json"
-      }
-    }
+  const data = await request(
+    `${RELOADS_API}&action=products&gameId=${encodeURIComponent(normalizedGameId)}`,
+    { method: "GET" }
   );
-
-  const data = await response.json();
-
-  if (!response.ok || data?.success === false) {
-    throw new Error(
-      data?.error ||
-      "No fue posible cargar los productos de recarga."
-    );
-  }
 
   return data.products || [];
 }
 
 export async function getReloadOrders() {
-  const data = await apiRequest(
-    `${RELOADS_API}?resource=orders`,
-    { method: "GET" }
+  throw new Error(
+    "La consulta de órdenes está disponible únicamente desde el panel administrativo."
   );
-
-  return data.orders || [];
 }
 
 export async function createReloadOrder({
@@ -112,23 +62,36 @@ export async function createReloadOrder({
   gameData,
   whatsapp
 } = {}) {
-  if (!gameId) {
+  const normalizedGameId = String(gameId ?? "").trim();
+  const normalizedProductId = String(productId ?? "").trim();
+  const normalizedWhatsapp = String(whatsapp ?? "").trim();
+
+  if (!normalizedGameId) {
     throw new Error("Debes indicar el juego.");
   }
 
-  if (!productId) {
+  if (!normalizedProductId) {
     throw new Error("Debes indicar el producto.");
   }
 
-  const data = await apiRequest(
-    `${RELOADS_API}?resource=orders`,
+  if (!gameData || typeof gameData !== "object" || Array.isArray(gameData)) {
+    throw new Error("Debes indicar los datos necesarios para la recarga.");
+  }
+
+  if (!normalizedWhatsapp) {
+    throw new Error("Debes indicar un número de WhatsApp.");
+  }
+
+  const data = await request(
+    RELOADS_API,
     {
       method: "POST",
       body: JSON.stringify({
-        gameId,
-        productId,
+        action: "create-order",
+        gameId: normalizedGameId,
+        productId: normalizedProductId,
         gameData,
-        whatsapp
+        whatsapp: normalizedWhatsapp
       })
     }
   );

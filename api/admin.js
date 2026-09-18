@@ -24,6 +24,7 @@ import { handle as handlePaymentReject } from "./_lib/admin/paymentReject.js";
 import { handle as handleBilling } from "./_lib/admin/billing.js";
 import { handle as handleAudit } from "./_lib/admin/audit.js";
 import { handle as handleReloads } from "./_lib/admin/reloads.js";
+import { handle as handlePublicReloads } from "./_lib/reloads/public.js";
 
 const HANDLERS = {
   accounts: handleAccounts,
@@ -34,7 +35,8 @@ const HANDLERS = {
   "payment-reject": handlePaymentReject,
   billing: handleBilling,
   audit: handleAudit,
-  reloads: handleReloads
+  reloads: handleReloads,
+  "public-reloads": handlePublicReloads
 };
 
 function errorResponse(res, message, status = 400) {
