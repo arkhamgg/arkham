@@ -7,6 +7,14 @@ import {
 } from "../services/account.js";
 
 import {
+  getCurrentEntityContext
+} from "../services/entityContext.js";
+
+import {
+  getCurrentTeamBilling
+} from "../services/billingPayment.js";
+
+import {
   getBillingSummary,
   BILLING_STATUS
 } from "../services/billing.js";
@@ -1184,6 +1192,36 @@ async function renderBillingContent(
     renderLoading();
 
   try {
+
+    // --------------------------------------
+    // ENTITY CONTEXT
+    // --------------------------------------
+
+    const entityContext =
+      await getCurrentEntityContext();
+
+    if (entityContext?.type === "team") {
+
+      const teamBilling =
+        await getCurrentTeamBilling(
+          entityContext.id
+        );
+
+      root.innerHTML =
+        renderTeamBilling(
+          teamBilling?.team ||
+            entityContext.entity ||
+            {},
+          teamBilling?.subscription ||
+            null,
+          teamBilling?.payment ||
+            null
+        );
+
+      bindEvents(root);
+      return;
+
+    }
 
     // --------------------------------------
     // ACCOUNT

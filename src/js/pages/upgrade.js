@@ -8,6 +8,14 @@ import {
 } from "../services/account.js";
 
 import {
+  getCurrentEntityContext
+} from "../services/entityContext.js";
+
+import {
+  getCurrentTeamBilling
+} from "../services/billingPayment.js";
+
+import {
   PLAN_IDS
 } from "../services/plans.js";
 
@@ -638,6 +646,194 @@ function bindEvents(
 
 
 // ========================================
+// TEAM UPGRADE
+// ========================================
+
+function renderTeamUpgrade(
+  team,
+  subscription
+) {
+
+  const currentPlan =
+    String(
+      subscription?.planId ||
+      team?.planId ||
+      PLAN_IDS.FREE
+    ).toLowerCase();
+
+  return `
+    <section class="upgrade-page">
+
+      <div class="upgrade-page__container">
+
+        <header class="upgrade-page__header">
+
+          <div>
+            <span class="upgrade-page__eyebrow">
+              TEAM BILLING
+            </span>
+
+            <h1>
+              Mejora tu Team
+            </h1>
+
+            <p>
+              Activa Team Pro y habilita la Landing
+              personalizada de tu organización dentro de NEXUS.
+            </p>
+          </div>
+
+        </header>
+
+        <section class="upgrade-page__section">
+
+          <div class="upgrade-page__plan-grid">
+
+            <article class="upgrade-page__plan-card">
+
+              <div class="upgrade-page__plan-top">
+
+                <div>
+                  <span class="upgrade-page__plan-label">
+                    PLAN ACTUAL
+                  </span>
+
+                  <h2>Free</h2>
+                </div>
+
+                <div class="upgrade-page__plan-icon">
+                  <i class="fa-solid fa-users"></i>
+                </div>
+
+              </div>
+
+              <p class="upgrade-page__plan-description">
+                Perfil público básico para mostrar la identidad
+                y trayectoria competitiva de tu Team.
+              </p>
+
+            </article>
+
+            <article class="
+              upgrade-page__plan-card
+              upgrade-page__plan-card--pro
+            ">
+
+              <div class="upgrade-page__pro-badge">
+                <i class="fa-solid fa-crown"></i>
+                TEAM PRO
+              </div>
+
+              <div class="upgrade-page__plan-top">
+
+                <div>
+                  <span class="upgrade-page__plan-label">
+                    PLAN PROFESIONAL
+                  </span>
+
+                  <h2>Pro</h2>
+
+                </div>
+
+                <div class="upgrade-page__plan-icon">
+                  <i class="fa-solid fa-crown"></i>
+                </div>
+
+              </div>
+
+              <p class="upgrade-page__plan-description">
+                Presencia profesional para tu Team dentro
+                del ecosistema NEXUS.
+              </p>
+
+              <div class="upgrade-page__divider"></div>
+
+              <ul class="upgrade-page__feature-list">
+
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Landing pública personalizada.</span>
+                </li>
+
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Background e identidad visual del Team.</span>
+                </li>
+
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Color principal para la identidad visual.</span>
+                </li>
+
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Capacidades Pro del producto Team.</span>
+                </li>
+
+              </ul>
+
+              <div class="upgrade-page__plan-footer">
+
+                <span>Disponible para actualizar</span>
+
+                <strong>Team Pro</strong>
+
+              </div>
+
+            </article>
+
+          </div>
+
+        </section>
+
+        <section class="upgrade-page__cta">
+
+          <div class="upgrade-page__cta-content">
+
+            <span class="upgrade-page__eyebrow">
+              TEAM PRO
+            </span>
+
+            <h2>
+              Construye la presencia de tu Team en NEXUS.
+            </h2>
+
+            <p>
+              El pago será enviado a revisión administrativa
+              antes de activar la suscripción.
+            </p>
+
+            ${
+              currentPlan === PLAN_IDS.FREE
+                ? `
+                  <button
+                    type="button"
+                    class="upgrade-page__cta-button"
+                    data-upgrade-payment
+                  >
+                    Continuar al pago
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                `
+                : `
+                  <span class="upgrade-page__plan-footer">
+                    Tu Team ya tiene un plan ${escapeHtml(currentPlan)}.
+                  </span>
+                `
+            }
+
+          </div>
+
+        </section>
+
+      </div>
+
+    </section>
+  `;
+}
+
+
+// ========================================
 // LOAD PAGE
 // ========================================
 
@@ -650,6 +846,34 @@ async function renderUpgradeContent(
 
 
   try {
+
+    // ------------------------------------
+    // ENTITY CONTEXT
+    // ------------------------------------
+
+    const entityContext =
+      await getCurrentEntityContext();
+
+    if (entityContext?.type === "team") {
+
+      const teamBilling =
+        await getCurrentTeamBilling(
+          entityContext.id
+        );
+
+      root.innerHTML =
+        renderTeamUpgrade(
+          teamBilling?.team ||
+            entityContext.entity ||
+            {},
+          teamBilling?.subscription ||
+            null
+        );
+
+      bindEvents(root);
+      return;
+
+    }
 
     // ------------------------------------
     // ACCOUNT

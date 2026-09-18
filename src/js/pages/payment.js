@@ -7,6 +7,14 @@ import {
 } from "../services/account.js";
 
 import {
+  getCurrentEntityContext
+} from "../services/entityContext.js";
+
+import {
+  getCurrentTeamBilling
+} from "../services/billingPayment.js";
+
+import {
   PLAN_IDS
 } from "../services/plans.js";
 
@@ -1291,6 +1299,124 @@ async function handlePaymentConfirmation(
      * createdAt representa automáticamente
      * cuándo NEXUS recibió la solicitud.
      */
+
+    const entityContext =
+      await getCurrentEntityContext();
+
+    if (entityContext?.type === "team") {
+
+      const teamBilling =
+        await getCurrentTeamBilling(
+          entityContext.id
+        );
+
+      const team =
+        teamBilling?.team ||
+        entityContext.entity ||
+        {};
+
+      const teamSubscription =
+        teamBilling?.subscription ||
+        null;
+
+      const currentTeamPlanId =
+        String(
+          teamSubscription?.planId ||
+          team?.planId ||
+          PLAN_IDS.FREE
+        ).toLowerCase();
+
+      const isTeamProRenewal =
+        currentTeamPlanId === PLAN_IDS.PRO &&
+        Boolean(teamSubscription?.id);
+
+      const paymentResponse =
+        await createBillingPayment({
+
+          productId: "team",
+          entityType: "team",
+          entityId: entityContext.id,
+
+          subscriptionId:
+            isTeamProRenewal
+              ? teamSubscription.id
+              : null,
+
+          planId: PLAN_IDS.PRO,
+
+          period:
+            teamSubscription?.period ||
+            "monthly",
+
+          method:
+            validation.method,
+
+          paymentDate:
+            validation.paymentDate,
+
+          paymentTime:
+            validation.paymentTime,
+
+          reference:
+            validation.reference
+
+        });
+
+      const payment =
+        paymentResponse?.payment ||
+        paymentResponse;
+
+      const paymentId =
+        payment?.id ||
+        paymentResponse?.id;
+
+      if (!paymentId) {
+        throw new Error(
+          "El pago fue creado, pero no recibimos su identificador."
+        );
+      }
+
+      setSubmittingState(
+        root,
+        true,
+        "uploading"
+      );
+
+      await uploadBillingPaymentProof(
+        validation.proofFile,
+        paymentId
+      );
+
+      setSubmittingState(
+        root,
+        true,
+        "submitting"
+      );
+
+      const submittedPayment =
+        await submitBillingPayment(
+          paymentId
+        );
+
+      if (!submittedPayment) {
+        throw new Error(
+          "El pago fue creado pero no pudo enviarse a revisión."
+        );
+      }
+
+      root.innerHTML =
+        renderSuccess(
+          submittedPayment
+        );
+
+      bindEvents(root);
+      return;
+
+    }
+
+    // --------------------------------------
+    // ACCOUNT / TOURNAMENT
+    // --------------------------------------
 
     const accountContext =
       await getCurrentAccountContext();
