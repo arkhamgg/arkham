@@ -1696,3 +1696,831 @@ body.is-modal-open {
     flex-direction: column;
   }
 }
+
+// ========================================
+// TEAM LANDING CONFIGURATION
+// ========================================
+
+.team-landing__state {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  color: $color-500;
+}
+
+.team-landing__toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-6;
+  margin-bottom: $space-5;
+  padding-bottom: $space-4;
+  border-bottom: 1px solid $color-800;
+}
+
+.team-landing__toolbar > div {
+  display: grid;
+  gap: $space-1;
+}
+
+.team-landing__toolbar > div > span,
+.team-landing__panel header > span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.team-landing__toolbar h2 {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-2xl;
+}
+
+.team-landing__toolbar small {
+  color: $color-500;
+}
+
+.team-landing__view,
+.team-landing__locked a {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-3 $space-4;
+  color: $color-white;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  text-decoration: none;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .08em;
+  transition: $transition-fast;
+}
+
+.team-landing__view:hover,
+.team-landing__locked a:hover {
+  border-color: $color-red;
+  color: $color-red-light;
+}
+
+.team-landing__editor {
+  display: grid;
+  gap: $space-4;
+}
+
+.team-landing__panel {
+  padding: $space-5;
+  background: $color-950;
+  border: 1px solid $color-800;
+  border-radius: $radius-lg;
+}
+
+.team-landing__panel > header {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-4;
+  padding-bottom: $space-4;
+  margin-bottom: $space-4;
+  border-bottom: 1px solid $color-800;
+}
+
+.team-landing__panel > header > div {
+  display: grid;
+  gap: $space-1;
+}
+
+.team-landing__panel > header strong {
+  color: $color-white;
+}
+
+.team-landing__panel > header small {
+  color: $color-500;
+}
+
+.team-landing__identity {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+}
+
+.team-landing__logo {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  background: $color-900;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.team-landing__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.team-landing__logo span {
+  color: $color-white;
+  font-weight: 700;
+  font-size: $font-size-xl;
+}
+
+.team-landing__identity > div:last-child {
+  display: grid;
+  gap: $space-1;
+}
+
+.team-landing__identity strong {
+  color: $color-white;
+  font-size: $font-size-lg;
+}
+
+.team-landing__identity span,
+.team-landing__hint {
+  color: $color-500;
+  font-size: $font-size-sm;
+}
+
+.team-landing__hint {
+  margin: $space-4 0 0;
+}
+
+.team-landing__color-field {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.team-landing__color-field input[type="color"] {
+  width: 64px;
+  height: 48px;
+  padding: 3px;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-900;
+  cursor: pointer;
+}
+
+.team-landing__color-field input[type="text"] {
+  max-width: 160px;
+  min-height: 48px;
+  padding: 0 $space-3;
+  color: $color-white;
+  background: $color-900;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  font: inherit;
+}
+
+.team-landing__upload {
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) auto;
+  align-items: center;
+  gap: $space-4;
+}
+
+.team-landing__background-preview {
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  gap: $space-2;
+  color: $color-500;
+  background-color: $color-900;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.team-landing__background-preview i {
+  font-size: $font-size-xl;
+}
+
+.team-landing__upload-button {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-3 $space-4;
+  color: $color-white;
+  background: $color-900;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  cursor: pointer;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .08em;
+  transition: $transition-fast;
+}
+
+.team-landing__upload-button:hover {
+  border-color: $color-red;
+}
+
+.team-landing__upload-button.is-loading {
+  opacity: .6;
+  pointer-events: none;
+}
+
+.team-landing__upload > span,
+.team-landing__sponsor + .team-landing__hint {
+  color: $color-500;
+  font-size: $font-size-xs;
+}
+
+.team-landing__sponsors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: $space-3;
+}
+
+.team-landing__sponsor {
+  position: relative;
+  display: grid;
+  gap: $space-2;
+  padding: $space-3;
+  background: $color-900;
+  border: 1px solid $color-800;
+  border-radius: $radius-md;
+}
+
+.team-landing__sponsor-logo {
+  height: 90px;
+  display: grid;
+  place-items: center;
+  background: $color-black;
+  border-radius: $radius-sm;
+}
+
+.team-landing__sponsor-logo img {
+  max-width: 90%;
+  max-height: 78px;
+  object-fit: contain;
+}
+
+.team-landing__sponsor > span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.team-landing__sponsor > button {
+  position: absolute;
+  top: $space-2;
+  right: $space-2;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: $color-500;
+  background: $color-950;
+  border: 1px solid $color-700;
+  border-radius: $radius-sm;
+  cursor: pointer;
+}
+
+.team-landing__sponsor > button:hover {
+  color: $color-red-light;
+  border-color: $color-red;
+}
+
+.team-landing__sponsors-empty {
+  min-height: 110px;
+  display: grid;
+  place-items: center;
+  gap: $space-2;
+  color: $color-500;
+  border: 1px dashed $color-700;
+  border-radius: $radius-md;
+}
+
+.team-landing__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  padding-top: $space-2;
+}
+
+.team-landing__actions > span {
+  color: $color-500;
+  font-size: $font-size-sm;
+}
+
+.team-landing__save {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-3 $space-5;
+  color: $color-white;
+  background: $color-red;
+  border: 1px solid $color-red;
+  border-radius: $radius-md;
+  cursor: pointer;
+  font: inherit;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.team-landing__save:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.team-landing__locked,
+.team-landing__error {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  justify-items: center;
+  align-content: center;
+  gap: $space-3;
+  padding: $space-8;
+  text-align: center;
+  background: $color-950;
+  border: 1px solid $color-800;
+  border-radius: $radius-lg;
+}
+
+.team-landing__locked-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  color: $color-red-light;
+  border: 1px solid $color-red;
+  border-radius: $radius-full;
+}
+
+.team-landing__locked > span {
+  color: $color-red-light;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.team-landing__locked h2 {
+  margin: 0;
+  color: $color-white;
+}
+
+.team-landing__locked p {
+  max-width: 600px;
+  margin: 0;
+  color: $color-500;
+}
+
+.team-landing__error i {
+  color: $color-error;
+  font-size: $font-size-2xl;
+}
+
+.team-landing__error strong {
+  color: $color-white;
+}
+
+.team-landing__error span {
+  color: $color-500;
+}
+
+// ========================================
+// PUBLIC TEAM LANDING
+// ========================================
+
+.public-team-landing {
+  --team-primary: #E30613;
+  min-height: 100vh;
+  color: $color-white;
+  background: $color-black;
+}
+
+.public-team-landing__shell {
+  min-height: 100vh;
+}
+
+.public-team-landing__hero {
+  position: relative;
+  min-height: min(720px, 78vh);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: $color-950;
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid $color-800;
+}
+
+.public-team-landing__hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(5,5,5,.12), rgba(5,5,5,.92) 78%, $color-black);
+}
+
+.public-team-landing__nav,
+.public-team-landing__hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.public-team-landing__nav {
+  display: flex;
+  justify-content: space-between;
+  padding: $space-6 clamp($space-4, 5vw, $space-12);
+  color: $color-300;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
+.public-team-landing__hero-content {
+  width: min(1180px, calc(100% - 2 * #{$container-padding}));
+  margin: 0 auto;
+  padding: $space-12 0;
+}
+
+.public-team-landing__logo {
+  width: 112px;
+  height: 112px;
+  display: grid;
+  place-items: center;
+  margin-bottom: $space-5;
+  background: rgba(5,5,5,.74);
+  border: 1px solid var(--team-primary);
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.public-team-landing__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.public-team-landing__logo span {
+  color: $color-white;
+  font-size: $font-size-3xl;
+  font-weight: 700;
+}
+
+.public-team-landing__tag,
+.public-team-landing__section header small {
+  color: var(--team-primary);
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
+.public-team-landing__hero h1 {
+  max-width: 900px;
+  margin: $space-2 0;
+  color: $color-white;
+  font-size: clamp(3rem, 8vw, 7rem);
+  line-height: .9;
+  letter-spacing: -.05em;
+}
+
+.public-team-landing__hero p {
+  max-width: 700px;
+  margin: 0;
+  color: $color-300;
+  font-size: $font-size-lg;
+}
+
+.public-team-landing__socials {
+  display: flex;
+  gap: $space-2;
+  margin-top: $space-5;
+}
+
+.public-team-landing__socials a {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: $color-white;
+  border: 1px solid $color-700;
+  border-radius: $radius-full;
+  text-decoration: none;
+}
+
+.public-team-landing__socials a:hover {
+  color: var(--team-primary);
+  border-color: var(--team-primary);
+}
+
+.public-team-landing__content {
+  width: min(1180px, calc(100% - 2 * #{$container-padding}));
+  margin: 0 auto;
+}
+
+.public-team-landing__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-right: 1px solid $color-800;
+  border-bottom: 1px solid $color-800;
+}
+
+.public-team-landing__stats article {
+  display: grid;
+  gap: $space-2;
+  padding: $space-6;
+  border-left: 1px solid $color-800;
+}
+
+.public-team-landing__stats strong {
+  color: $color-white;
+  font-size: $font-size-3xl;
+}
+
+.public-team-landing__stats span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+.public-team-landing__section {
+  padding: $space-12 0;
+  border-bottom: 1px solid $color-800;
+}
+
+.public-team-landing__section > header {
+  display: flex;
+  gap: $space-5;
+  align-items: flex-start;
+  margin-bottom: $space-6;
+}
+
+.public-team-landing__section > header > span {
+  color: var(--team-primary);
+  font-size: $font-size-sm;
+  font-weight: 700;
+}
+
+.public-team-landing__section > header > div {
+  display: grid;
+  gap: $space-2;
+}
+
+.public-team-landing__section h2 {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-3xl;
+}
+
+.public-team-landing__divisions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: $space-4;
+}
+
+.public-team-landing__division {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: $space-2;
+  padding: $space-5;
+  background: $color-950;
+  border: 1px solid $color-800;
+  border-left: 3px solid var(--team-primary);
+  border-radius: $radius-md;
+}
+
+.public-team-landing__division > span,
+.public-team-landing__player > div > span {
+  color: var(--team-primary);
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.public-team-landing__division h3,
+.public-team-landing__player h3 {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-lg;
+}
+
+.public-team-landing__division p {
+  margin: 0;
+  color: $color-500;
+  font-size: $font-size-sm;
+}
+
+.public-team-landing__roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: $space-3;
+}
+
+.public-team-landing__player {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3;
+  background: $color-950;
+  border: 1px solid $color-800;
+  border-radius: $radius-md;
+}
+
+.public-team-landing__player-photo {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  color: $color-500;
+  background: $color-900;
+  border: 1px solid $color-700;
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.public-team-landing__player-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-team-landing__player > div:nth-child(2) {
+  min-width: 0;
+}
+
+.public-team-landing__player small {
+  color: $color-500;
+}
+
+.public-team-landing__player > strong {
+  color: $color-300;
+  font-size: $font-size-xs;
+  letter-spacing: .06em;
+}
+
+.public-team-landing__sponsors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-4;
+}
+
+.public-team-landing__sponsors div {
+  min-width: 150px;
+  height: 90px;
+  display: grid;
+  place-items: center;
+  padding: $space-3;
+  background: $color-950;
+  border: 1px solid $color-800;
+  border-radius: $radius-md;
+}
+
+.public-team-landing__sponsors img {
+  max-width: 140px;
+  max-height: 70px;
+  object-fit: contain;
+}
+
+.public-team-landing__empty {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  gap: $space-2;
+  color: $color-500;
+  border: 1px dashed $color-700;
+  border-radius: $radius-md;
+}
+
+.public-team-landing__footer {
+  width: min(1180px, calc(100% - 2 * #{$container-padding}));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  padding: $space-8 0;
+}
+
+.public-team-landing__footer span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.public-team-landing__footer strong {
+  color: $color-white;
+}
+
+.public-team-landing__footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  color: $color-white;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-decoration: none;
+}
+
+.public-team-landing__footer a:hover {
+  color: var(--team-primary);
+}
+
+.public-team-landing__state,
+.public-team-basic {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  justify-items: center;
+  gap: $space-3;
+  padding: $space-8;
+  text-align: center;
+}
+
+.public-team-landing__state {
+  color: $color-500;
+}
+
+.public-team-landing__state--error i {
+  color: $color-error;
+  font-size: $font-size-2xl;
+}
+
+.public-team-basic__logo {
+  width: 120px;
+  height: 120px;
+  display: grid;
+  place-items: center;
+  background: $color-950;
+  border: 1px solid $color-800;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.public-team-basic__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.public-team-basic__logo span {
+  color: $color-white;
+  font-size: $font-size-3xl;
+  font-weight: 700;
+}
+
+.public-team-basic > span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.public-team-basic h1 {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-4xl;
+}
+
+.public-team-basic p,
+.public-team-basic small {
+  max-width: 620px;
+  margin: 0;
+  color: $color-500;
+}
+
+@media (max-width: 700px) {
+  .team-landing__toolbar,
+  .team-landing__actions,
+  .public-team-landing__footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .team-landing__upload {
+    grid-template-columns: 1fr;
+  }
+
+  .public-team-landing__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .public-team-landing__hero {
+    min-height: 640px;
+  }
+
+  .public-team-landing__hero-content {
+    width: calc(100% - 2 * #{$container-padding});
+  }
+
+  .public-team-landing__content {
+    width: calc(100% - 2 * #{$container-padding});
+  }
+}

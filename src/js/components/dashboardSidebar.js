@@ -51,7 +51,8 @@ const NAVIGATION_BY_ENTITY = {
       group: "ORGANIZACIÓN",
       items: [
         { id: "team-roster", label: "Roster", icon: "fa-users" },
-        { id: "team-divisions", label: "Divisiones", icon: "fa-gamepad" }
+        { id: "team-divisions", label: "Divisiones", icon: "fa-gamepad" },
+        { id: "team-landing", label: "Landing", icon: "fa-browser", capability: "public_landing" }
       ]
     },
     {
@@ -332,8 +333,9 @@ export function DashboardSidebar({
 
                         <i
                           class="fa-solid ${
-                            item.id === "tournament-recognitions" &&
-                            !access?.hasCapability?.("recognition")
+                            ((item.capability && !access?.hasCapability?.(item.capability)) ||
+                            (item.id === "tournament-recognitions" &&
+                            !access?.hasCapability?.("recognition")))
                               ? "fa-lock"
                               : item.icon
                           }"
@@ -343,8 +345,9 @@ export function DashboardSidebar({
                         <span>
                           ${item.label}
                           ${
-                            item.id === "tournament-recognitions" &&
-                            !access?.hasCapability?.("recognition")
+                            ((item.capability && !access?.hasCapability?.(item.capability)) ||
+                            (item.id === "tournament-recognitions" &&
+                            !access?.hasCapability?.("recognition")))
                               ? " · Pro no vigente"
                               : ""
                           }
@@ -490,8 +493,9 @@ export function DashboardSidebar({
 
                         <i
                           class="fa-solid ${
-                            item.id === "tournament-recognitions" &&
-                            !access?.hasCapability?.("recognition")
+                            ((item.capability && !access?.hasCapability?.(item.capability)) ||
+                            (item.id === "tournament-recognitions" &&
+                            !access?.hasCapability?.("recognition")))
                               ? "fa-lock"
                               : item.icon
                           }"
@@ -501,8 +505,9 @@ export function DashboardSidebar({
                         <span>
                           ${item.label}
                           ${
-                            item.id === "tournament-recognitions" &&
-                            !access?.hasCapability?.("recognition")
+                            ((item.capability && !access?.hasCapability?.(item.capability)) ||
+                            (item.id === "tournament-recognitions" &&
+                            !access?.hasCapability?.("recognition")))
                               ? " · Pro no vigente"
                               : ""
                           }

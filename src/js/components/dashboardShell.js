@@ -58,6 +58,9 @@ const DASHBOARD_NAVIGATION_ROUTES = {
   "team-divisions":
     "/dashboard/team/divisions",
 
+  "team-landing":
+    "/dashboard/team/landing",
+
   "team-competitions":
     "/dashboard/team/competitions",
 
@@ -126,6 +129,9 @@ function getActiveView(pathname) {
 
     "/dashboard/team/divisions":
       "team-divisions",
+
+    "/dashboard/team/landing":
+      "team-landing",
 
     "/dashboard/team/competitions":
       "team-competitions",

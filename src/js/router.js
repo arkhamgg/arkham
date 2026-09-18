@@ -29,6 +29,8 @@ import { TournamentRecognitions } from "./pages/tournamentRecognitions.js";
 import { TeamRoster } from "./pages/teamRoster.js";
 import { TeamDivisions } from "./pages/teamDivisions.js";
 import { TeamCompetitions } from "./pages/teamCompetitions.js";
+import { TeamLanding } from "./pages/teamLanding.js";
+import { PublicTeamLanding } from "./pages/publicTeamLanding.js";
 
 import { PublicShell } from "./components/publicShell.js";
 import { DashboardShell } from "./components/dashboardShell.js";
@@ -162,6 +164,9 @@ const routes = {
 
   "/dashboard/team/divisions":
     TeamDivisions,
+
+  "/dashboard/team/landing":
+    TeamLanding,
 
   "/dashboard/team/competitions":
     () => TeamCompetitions({ view: "competitions" }),
@@ -297,6 +302,7 @@ const CLIENT_DASHBOARD_ROUTES = new Set([
 
   "/dashboard/team/roster",
   "/dashboard/team/divisions",
+  "/dashboard/team/landing",
   "/dashboard/team/competitions",
   "/dashboard/team/requests",
 
@@ -352,6 +358,20 @@ function resolveRoute(path) {
   ) {
 
     return CompetitionDetail;
+
+  }
+
+
+  // ========================================
+  // TEAM PUBLIC LANDING
+  // ========================================
+
+  if (
+    segments.length === 2 &&
+    segments[0] === "teams"
+  ) {
+
+    return PublicTeamLanding;
 
   }
 
