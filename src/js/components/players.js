@@ -430,4 +430,4 @@ export function Players() {
 
   return section;
 }
-console.log("success")
+console.log("error to deploy")
