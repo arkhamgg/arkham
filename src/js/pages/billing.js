@@ -1055,6 +1055,59 @@ function renderSubscribedPlan(
 
 
 // ========================================
+// TEAM BILLING
+// ========================================
+//
+// Team utiliza el mismo renderer visual de Billing
+// mientras el contexto y los datos de suscripción
+// provienen del Team. No duplica el sistema de Billing.
+
+function renderTeamBilling(
+  team,
+  subscription,
+  payment
+) {
+
+  const teamData =
+    team || {};
+
+  const summary =
+    getBillingSummary(
+      subscription,
+      payment
+    );
+
+  const planId =
+    teamData?.planId ||
+    summary?.planId ||
+    PLAN_IDS.FREE;
+
+  const billingEntity = {
+    ...teamData,
+    planId
+  };
+
+  if (
+    String(planId).toLowerCase() ===
+    PLAN_IDS.FREE
+  ) {
+
+    return renderFreePlan(
+      billingEntity,
+      summary
+    );
+
+  }
+
+  return renderSubscribedPlan(
+    billingEntity,
+    summary
+  );
+
+}
+
+
+// ========================================
 // EVENTS
 // ========================================
 

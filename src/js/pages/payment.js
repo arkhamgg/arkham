@@ -1409,7 +1409,7 @@ async function handlePaymentConfirmation(
           submittedPayment
         );
 
-      bindEvents(root);
+      bindSuccessEvents(root);
       return;
 
     }
