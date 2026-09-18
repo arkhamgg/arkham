@@ -4,6 +4,7 @@
 
 import { getCurrentEntityContext } from "../services/entityContext.js";
 import { getGames } from "../services/gameCatalog.js";
+import { getTeamRoster } from "../services/teamRoster.js";
 import {
   getTeamDivisions,
   createTeamDivision,
@@ -19,6 +20,38 @@ function escapeHtml(value = "") {
     "'": "&#39;",
     '"': "&quot;"
   }[char]));
+}
+
+function getRoleEntries(game) {
+  const roles = game?.competitiveInfo?.roles || [];
+
+  if (Array.isArray(roles)) {
+    return roles
+      .map((role) => {
+        if (typeof role === "string") return [role, role];
+        return [role?.id || role?.name, role?.name || role?.id];
+      })
+      .filter(([id, label]) => id && label);
+  }
+
+  if (roles && typeof roles === "object") {
+    return Object.entries(roles)
+      .map(([id, role]) => [id, typeof role === "string" ? role : role?.name || id])
+      .filter(([id, label]) => id && label);
+  }
+
+  return [];
+}
+
+function getMemberName(member) {
+  return member?.gamertag || member?.playerName || member?.playerId || "Player";
+}
+
+function getMemberSecondary(member) {
+  if (member?.gamertag && member?.playerName && member.playerName !== member.gamertag) {
+    return member.playerName;
+  }
+  return `ID: ${member?.playerId || "—"}`;
 }
 
 export function TeamDivisions() {
@@ -52,15 +85,17 @@ async function loadDivisions(page) {
       return;
     }
 
-    const [divisionResponse, games] = await Promise.all([
+    const [divisionResponse, games, rosterResponse] = await Promise.all([
       getTeamDivisions(context.id),
-      getGames()
+      getGames(),
+      getTeamRoster(context.id)
     ]);
 
     renderDivisions(state, {
       teamId: context.id,
       divisions: Array.isArray(divisionResponse?.divisions) ? divisionResponse.divisions : [],
-      games: Array.isArray(games) ? games : []
+      games: Array.isArray(games) ? games : [],
+      members: Array.isArray(rosterResponse?.members) ? rosterResponse.members : []
     });
   } catch (error) {
     console.error("NEXUS — Error cargando Divisiones:", error);
@@ -68,7 +103,7 @@ async function loadDivisions(page) {
   }
 }
 
-function renderDivisions(state, { teamId, divisions, games }) {
+function renderDivisions(state, { teamId, divisions, games, members }) {
   state.innerHTML = `
     <div class="team-divisions__toolbar">
       <div>
@@ -82,17 +117,17 @@ function renderDivisions(state, { teamId, divisions, games }) {
     </div>
 
     <div class="team-divisions__list" data-division-list>
-      ${divisions.length
-        ? divisions.map(renderDivision).join("")
-        : renderEmpty()}
+      ${divisions.length ? divisions.map(renderDivision).join("") : renderEmpty()}
     </div>
 
     <div class="team-divisions__modal" data-division-modal hidden>
       <div class="team-divisions__backdrop" data-close-modal></div>
       <section class="team-divisions__dialog" role="dialog" aria-modal="true" aria-labelledby="division-modal-title">
         <header>
-          <span>TEAM / DIVISIÓN</span>
-          <h2 id="division-modal-title" data-modal-title>Crear división</h2>
+          <div>
+            <span>TEAM / DIVISIÓN</span>
+            <h2 id="division-modal-title" data-modal-title>Crear división</h2>
+          </div>
           <button type="button" class="team-divisions__modal-close" data-close-modal aria-label="Cerrar">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
@@ -115,6 +150,34 @@ function renderDivisions(state, { teamId, divisions, games }) {
             <small>Los roles competitivos se cargarán desde la configuración del juego en NEXUS.</small>
           </label>
 
+          <div class="team-divisions__builder" data-division-builder hidden>
+            <div class="team-divisions__builder-header">
+              <div>
+                <span>ROSTER DE LA DIVISIÓN</span>
+                <strong>Jugadores y roles</strong>
+                <small>Solo puedes agregar Players activos de tu Roster que aún no pertenecen a otra división.</small>
+              </div>
+              <span class="team-divisions__builder-count" data-selected-count>0 Players</span>
+            </div>
+
+            <div class="team-divisions__selected" data-selected-members></div>
+
+            <div class="team-divisions__add-player">
+              <div class="team-divisions__add-player-header">
+                <div>
+                  <span>AGREGAR PLAYER</span>
+                  <strong>Buscar en tu Roster</strong>
+                </div>
+                <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+              </div>
+              <div class="team-divisions__search-wrap">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="search" data-player-search placeholder="Buscar por nombre o ID..." autocomplete="off">
+              </div>
+              <div class="team-divisions__player-results" data-player-results hidden></div>
+            </div>
+          </div>
+
           <label>
             <span>Descripción <em>OPCIONAL</em></span>
             <textarea name="description" rows="4" maxlength="240" placeholder="Describe el objetivo o identidad de esta división."></textarea>
@@ -131,7 +194,7 @@ function renderDivisions(state, { teamId, divisions, games }) {
     </div>
   `;
 
-  bindDivisionEvents(state, { teamId, divisions, games });
+  bindDivisionEvents(state, { teamId, divisions, games, members });
 }
 
 function renderDivision(division) {
@@ -174,15 +237,15 @@ function renderEmpty() {
     </div>`;
 }
 
-function bindDivisionEvents(state, { teamId, divisions, games }) {
+function bindDivisionEvents(state, { teamId, divisions, games, members }) {
   state.querySelectorAll("[data-create-division]").forEach((button) => {
-    button.addEventListener("click", () => openModal(state, null, games));
+    button.addEventListener("click", () => openModal(state, null, games, members));
   });
 
   state.querySelectorAll("[data-edit-division]").forEach((button) => {
     button.addEventListener("click", () => {
       const division = divisions.find((item) => item.id === button.dataset.editDivision);
-      if (division) openModal(state, division, games);
+      if (division) openModal(state, division, games, members);
     });
   });
 
@@ -220,6 +283,7 @@ function bindDivisionEvents(state, { teamId, divisions, games }) {
     const name = String(formData.get("name") || "").trim();
     const gameId = String(formData.get("gameId") || "").trim();
     const description = String(formData.get("description") || "").trim();
+    const selectedMembers = readSelectedMembers(form);
 
     errorBox.hidden = true;
     errorBox.textContent = "";
@@ -230,7 +294,13 @@ function bindDivisionEvents(state, { teamId, divisions, games }) {
       if (divisionId) {
         await updateTeamDivision({ teamId, divisionId, name, description });
       } else {
-        await createTeamDivision({ teamId, name, gameId, description });
+        await createTeamDivision({
+          teamId,
+          name,
+          gameId,
+          description,
+          players: selectedMembers
+        });
       }
 
       closeModal(state);
@@ -245,7 +315,7 @@ function bindDivisionEvents(state, { teamId, divisions, games }) {
   });
 }
 
-function openModal(state, division, games) {
+function openModal(state, division, games, members) {
   const modal = state.querySelector("[data-division-modal]");
   const form = modal?.querySelector("[data-division-form]");
   if (!modal || !form) return;
@@ -253,6 +323,9 @@ function openModal(state, division, games) {
   const title = modal.querySelector("[data-modal-title]");
   const submit = form.querySelector("[data-submit-division]");
   const gameSelect = form.elements.gameId;
+  const builder = form.querySelector("[data-division-builder]");
+  const selectedMembersBox = form.querySelector("[data-selected-members]");
+  const searchInput = form.querySelector("[data-player-search]");
 
   form.reset();
   form.elements.divisionId.value = division?.id || "";
@@ -262,9 +335,169 @@ function openModal(state, division, games) {
   gameSelect.disabled = Boolean(division);
   title.textContent = division ? "Editar división" : "Crear división";
   submit.textContent = division ? "GUARDAR CAMBIOS" : "CREAR DIVISIÓN";
+
+  form._divisionMembers = division
+    ? []
+    : [];
+  form._divisionRosterMembers = members;
+  form._divisionGames = games;
+
+  if (builder) builder.hidden = Boolean(division);
+  if (searchInput) searchInput.value = "";
+  if (selectedMembersBox) selectedMembersBox.innerHTML = renderSelectedMembers([]);
+
+  const updateBuilder = () => updatePlayerBuilder(form, members, games);
+  gameSelect.onchange = updateBuilder;
+  if (searchInput) searchInput.oninput = () => renderPlayerResults(form, members);
+
   modal.hidden = false;
   document.body.classList.add("is-modal-open");
+  updatePlayerBuilder(form, members, games);
   setTimeout(() => form.elements.name.focus(), 0);
+}
+
+function updatePlayerBuilder(form, members, games) {
+  const gameId = String(form.elements.gameId.value || "").trim();
+  const game = games.find((item) => item.id === gameId);
+  const roles = getRoleEntries(game);
+  const builder = form.querySelector("[data-division-builder]");
+  const results = form.querySelector("[data-player-results]");
+  const selectedBox = form.querySelector("[data-selected-members]");
+  const count = form.querySelector("[data-selected-count]");
+  const searchInput = form.querySelector("[data-player-search]");
+
+  if (!builder) return;
+  builder.hidden = !gameId;
+
+  if (!gameId) {
+    if (selectedBox) selectedBox.innerHTML = "";
+    if (results) results.hidden = true;
+    return;
+  }
+
+  form._divisionRoles = roles;
+  form._divisionMembers = Array.isArray(form._divisionMembers) ? form._divisionMembers : [];
+
+  if (selectedBox) selectedBox.innerHTML = renderSelectedMembers(form._divisionMembers, members, roles);
+  if (count) count.textContent = `${form._divisionMembers.length} ${form._divisionMembers.length === 1 ? "Player" : "Players"}`;
+
+  renderPlayerResults(form, members);
+  if (searchInput && document.activeElement !== searchInput) searchInput.value = "";
+}
+
+function renderPlayerResults(form, members) {
+  const results = form.querySelector("[data-player-results]");
+  const searchInput = form.querySelector("[data-player-search]");
+  if (!results || !searchInput) return;
+
+  const term = String(searchInput.value || "").trim().toLowerCase();
+  const selected = new Set((form._divisionMembers || []).map((item) => item.playerId));
+  const available = members.filter((member) => !selected.has(member.playerId) && !member.divisionId);
+  const filtered = term
+    ? available.filter((member) => {
+        const haystack = [member.playerId, member.playerName, member.gamertag].filter(Boolean).join(" ").toLowerCase();
+        return haystack.includes(term);
+      })
+    : available.slice(0, 8);
+
+  if (!filtered.length) {
+    results.innerHTML = `<div class="team-divisions__player-results-empty">${term ? "No se encontró ningún Player en tu Roster." : "Todos tus Players ya están asignados a esta división."}</div>`;
+    results.hidden = false;
+    return;
+  }
+
+  results.innerHTML = filtered.map((member) => `
+    <button type="button" class="team-divisions__player-result" data-add-player="${escapeHtml(member.playerId)}">
+      <span class="team-divisions__player-result-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+      <span class="team-divisions__player-result-main">
+        <strong>${escapeHtml(getMemberName(member))}</strong>
+        <small>${escapeHtml(getMemberSecondary(member))}</small>
+      </span>
+      <i class="fa-solid fa-plus" aria-hidden="true"></i>
+    </button>
+  `).join("");
+  results.hidden = false;
+
+  results.querySelectorAll("[data-add-player]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const member = members.find((item) => item.playerId === button.dataset.addPlayer);
+      if (!member) return;
+      if ((form._divisionMembers || []).some((item) => item.playerId === member.playerId)) return;
+
+      const roles = form._divisionRoles || [];
+      form._divisionMembers = [
+        ...(form._divisionMembers || []),
+        { playerId: member.playerId, roleId: roles[0]?.[0] || "" }
+      ];
+      renderSelectedMembersAndResults(form, members);
+    });
+  });
+}
+
+function renderSelectedMembersAndResults(form, members) {
+  const selectedBox = form.querySelector("[data-selected-members]");
+  const count = form.querySelector("[data-selected-count]");
+  const roles = form._divisionRoles || [];
+
+  if (selectedBox) selectedBox.innerHTML = renderSelectedMembers(form._divisionMembers || [], members, roles);
+  if (count) {
+    const total = (form._divisionMembers || []).length;
+    count.textContent = `${total} ${total === 1 ? "Player" : "Players"}`;
+  }
+
+  selectedBox?.querySelectorAll("[data-role-player]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const player = form._divisionMembers.find((item) => item.playerId === select.dataset.rolePlayer);
+      if (player) player.roleId = select.value;
+    });
+  });
+
+  selectedBox?.querySelectorAll("[data-remove-selected]").forEach((button) => {
+    button.addEventListener("click", () => {
+      form._divisionMembers = (form._divisionMembers || []).filter((item) => item.playerId !== button.dataset.removeSelected);
+      renderSelectedMembersAndResults(form, members);
+    });
+  });
+
+  renderPlayerResults(form, members);
+}
+
+function renderSelectedMembers(selected, members = [], roles = []) {
+  if (!selected.length) {
+    return `<div class="team-divisions__selected-empty">Todavía no has agregado Players. Busca en tu Roster y asígnales un rol.</div>`;
+  }
+
+  return selected.map((item) => {
+    const member = members.find((candidate) => candidate.playerId === item.playerId) || { playerId: item.playerId };
+    return `
+      <article class="team-divisions__selected-player">
+        <div class="team-divisions__selected-player-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></div>
+        <div class="team-divisions__selected-player-main">
+          <strong>${escapeHtml(getMemberName(member))}</strong>
+          <small>${escapeHtml(getMemberSecondary(member))}</small>
+        </div>
+        <label class="team-divisions__role-field">
+          <span>ROL</span>
+          <select data-role-player="${escapeHtml(item.playerId)}" ${roles.length ? "" : "disabled"}>
+            ${roles.length
+              ? roles.map(([id, label]) => `<option value="${escapeHtml(id)}" ${id === item.roleId ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")
+              : `<option value="">Sin roles configurados</option>`}
+          </select>
+        </label>
+        <button type="button" class="team-divisions__selected-remove" data-remove-selected="${escapeHtml(item.playerId)}" aria-label="Retirar Player">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </article>`;
+  }).join("");
+}
+
+function readSelectedMembers(form) {
+  return (form._divisionMembers || [])
+    .map((item) => ({
+      playerId: String(item.playerId || "").trim(),
+      roleId: String(item.roleId || "").trim()
+    }))
+    .filter((item) => item.playerId);
 }
 
 function closeModal(state) {
@@ -275,15 +508,17 @@ function closeModal(state) {
 }
 
 async function refreshDivisions(state, teamId) {
-  const [divisionResponse, games] = await Promise.all([
+  const [divisionResponse, games, rosterResponse] = await Promise.all([
     getTeamDivisions(teamId),
-    getGames()
+    getGames(),
+    getTeamRoster(teamId)
   ]);
 
   renderDivisions(state, {
     teamId,
     divisions: Array.isArray(divisionResponse?.divisions) ? divisionResponse.divisions : [],
-    games: Array.isArray(games) ? games : []
+    games: Array.isArray(games) ? games : [],
+    members: Array.isArray(rosterResponse?.members) ? rosterResponse.members : []
   });
 }
 

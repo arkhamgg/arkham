@@ -1147,3 +1147,248 @@ body.is-modal-open {
     width: 100%;
   }
 }
+
+// ----------------------------------------
+// Division Builder — Roster + Roles
+// ----------------------------------------
+
+.team-divisions__builder {
+  display: grid;
+  gap: $space-5;
+  padding: $space-5;
+  border: 1px solid $color-700;
+  border-radius: $radius-lg;
+  background: $color-950;
+}
+
+.team-divisions__builder[hidden] {
+  display: none;
+}
+
+.team-divisions__builder-header,
+.team-divisions__add-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+}
+
+.team-divisions__builder-header > div,
+.team-divisions__add-player-header > div {
+  display: grid;
+  gap: $space-1;
+}
+
+.team-divisions__builder-header span:first-child,
+.team-divisions__add-player-header span {
+  color: $color-500;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.team-divisions__builder-header strong,
+.team-divisions__add-player-header strong {
+  color: $color-white;
+  font-size: $font-size-sm;
+}
+
+.team-divisions__builder-header small {
+  color: $color-300;
+  font-size: $font-size-xs;
+}
+
+.team-divisions__builder-count {
+  flex-shrink: 0;
+  padding: $space-2 $space-3;
+  border: 1px solid $color-700;
+  border-radius: $radius-full;
+  color: $color-100;
+  font-size: $font-size-xs;
+  font-weight: 600;
+}
+
+.team-divisions__selected {
+  display: grid;
+  gap: $space-3;
+}
+
+.team-divisions__selected-empty,
+.team-divisions__player-results-empty {
+  padding: $space-4;
+  border: 1px dashed $color-700;
+  border-radius: $radius-md;
+  color: $color-500;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.team-divisions__selected-player {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(150px, 190px) auto;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-900;
+}
+
+.team-divisions__selected-player-avatar,
+.team-divisions__player-result-avatar {
+  display: grid;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid $color-700;
+  border-radius: $radius-full;
+  background: $color-800;
+  color: $color-100;
+}
+
+.team-divisions__selected-player-main,
+.team-divisions__player-result-main {
+  min-width: 0;
+}
+
+.team-divisions__selected-player-main strong,
+.team-divisions__player-result-main strong {
+  display: block;
+  overflow: hidden;
+  color: $color-white;
+  font-size: $font-size-sm;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-divisions__selected-player-main small,
+.team-divisions__player-result-main small {
+  display: block;
+  margin-top: $space-1;
+  overflow: hidden;
+  color: $color-300;
+  font-size: $font-size-xs;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-divisions__role-field {
+  display: grid;
+  gap: $space-1;
+  margin: 0 !important;
+}
+
+.team-divisions__role-field > span {
+  color: $color-500 !important;
+  font-size: 0.65rem !important;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.team-divisions__role-field select {
+  min-height: 40px !important;
+  padding: $space-2 $space-3 !important;
+}
+
+.team-divisions__selected-remove {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: transparent;
+  color: $color-300;
+  cursor: pointer;
+  transition:
+    border-color $transition-fast $ease-standard,
+    color $transition-fast $ease-standard,
+    background $transition-fast $ease-standard;
+}
+
+.team-divisions__selected-remove:hover {
+  border-color: $color-red;
+  background: rgba(227, 6, 19, 0.08);
+  color: $color-red-light;
+}
+
+.team-divisions__add-player {
+  display: grid;
+  gap: $space-3;
+  padding-top: $space-4;
+  border-top: 1px solid $color-700;
+}
+
+.team-divisions__add-player-header > i {
+  color: $color-300;
+  font-size: $font-size-lg;
+}
+
+.team-divisions__search-wrap {
+  position: relative;
+}
+
+.team-divisions__search-wrap > i {
+  position: absolute;
+  top: 50%;
+  left: $space-4;
+  color: $color-500;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.team-divisions__search-wrap input {
+  padding-left: $space-10 !important;
+}
+
+.team-divisions__player-results {
+  display: grid;
+  gap: $space-2;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.team-divisions__player-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: $space-3;
+  width: 100%;
+  padding: $space-3;
+  border: 1px solid $color-700;
+  border-radius: $radius-md;
+  background: $color-900;
+  color: inherit;
+  font-family: $font-family-base;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color $transition-fast $ease-standard,
+    background $transition-fast $ease-standard;
+}
+
+.team-divisions__player-result:hover {
+  border-color: $color-500;
+  background: $color-800;
+}
+
+.team-divisions__player-result > i {
+  color: $color-300;
+}
+
+@media (max-width: 700px) {
+  .team-divisions__selected-player {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .team-divisions__role-field {
+    grid-column: 2 / -1;
+  }
+
+  .team-divisions__selected-remove {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}

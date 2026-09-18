@@ -99,6 +99,7 @@ export default async function handler(req, res) {
       const name = String(req.body?.name || "").trim();
       const gameId = String(req.body?.gameId || "").trim();
       const description = String(req.body?.description || "").trim();
+      const players = Array.isArray(req.body?.players) ? req.body.players : [];
 
       if (!name) return json(res, 400, { error: "El nombre de la división es obligatorio." });
       if (!gameId) return json(res, 400, { error: "Debes seleccionar un juego." });
@@ -115,6 +116,64 @@ export default async function handler(req, res) {
         return json(res, 409, { error: "Este Team ya tiene una división activa para ese juego." });
       }
 
+      const roles = game?.competitiveInfo?.roles || [];
+      const roleMap = new Map();
+
+      if (Array.isArray(roles)) {
+        roles.forEach((role) => {
+          const id = typeof role === "string" ? role : role?.id || role?.name;
+          if (id) roleMap.set(String(id), role);
+        });
+      } else if (roles && typeof roles === "object") {
+        Object.entries(roles).forEach(([id, role]) => roleMap.set(String(id), role));
+      }
+
+      const normalizedPlayers = [];
+      const playerIds = new Set();
+
+      for (const item of players) {
+        const playerId = String(item?.playerId || "").trim();
+        const roleId = String(item?.roleId || "").trim();
+
+        if (!playerId || playerIds.has(playerId)) continue;
+        playerIds.add(playerId);
+
+        if (!roleId || !roleMap.has(roleId)) {
+          return json(res, 400, {
+            error: `El rol seleccionado para el Player ${playerId} no pertenece a la configuración competitiva de este juego.`
+          });
+        }
+
+        normalizedPlayers.push({ playerId, roleId });
+      }
+
+      const rosterSnapshot = await db
+        .collection("teamRoster")
+        .where("teamId", "==", teamId)
+        .where("status", "==", "active")
+        .get();
+
+      const rosterByPlayer = new Map();
+      rosterSnapshot.docs.forEach((doc) => {
+        const data = doc.data() || {};
+        if (data.playerId) rosterByPlayer.set(String(data.playerId), { id: doc.id, ...data });
+      });
+
+      for (const item of normalizedPlayers) {
+        const roster = rosterByPlayer.get(item.playerId);
+        if (!roster) {
+          return json(res, 409, {
+            error: `El Player ${item.playerId} no pertenece al Roster activo de este Team.`
+          });
+        }
+
+        if (roster.divisionId && String(roster.divisionId) !== "") {
+          return json(res, 409, {
+            error: `El Player ${item.playerId} ya pertenece a otra división de este Team.`
+          });
+        }
+      }
+
       const divisionId = db.collection("teams").doc().id;
       const division = {
         name,
@@ -122,18 +181,31 @@ export default async function handler(req, res) {
         gameName: String(game.name || game.title || gameId),
         description,
         status: "active",
-        playerCount: 0,
+        playerCount: normalizedPlayers.length,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       };
 
-      await teamRef.update({
+      const batch = db.batch();
+      batch.update(teamRef, {
         [`divisions.${divisionId}`]: division,
         updatedAt: FieldValue.serverTimestamp()
       });
 
+      normalizedPlayers.forEach((item) => {
+        const roster = rosterByPlayer.get(item.playerId);
+        batch.update(db.collection("teamRoster").doc(roster.id), {
+          divisionId,
+          roleId: item.roleId,
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      });
+
+      await batch.commit();
+
       return json(res, 201, {
-        division: normalizeDivision(divisionId, { ...division, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+        division: normalizeDivision(divisionId, { ...division, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }),
+        playerCount: normalizedPlayers.length
       });
     }
 
