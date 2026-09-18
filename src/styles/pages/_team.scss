@@ -1582,6 +1582,34 @@ body.is-modal-open {
   color: $color-red-light;
 }
 
+.team-competition-card__claim {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  border: 1px solid $color-red;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  background: transparent;
+  color: $color-white;
+  font: inherit;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background $transition-fast $ease-standard, color $transition-fast $ease-standard, border-color $transition-fast $ease-standard;
+}
+
+.team-competition-card__claim:hover {
+  background: $color-red;
+  color: $color-white;
+}
+
+.team-competition-card__claim:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .team-competition-request__status {
   justify-content: flex-start;
   width: fit-content;

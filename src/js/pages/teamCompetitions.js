@@ -7,7 +7,8 @@ import {
   getMyTournamentRegistrationRequests
 } from "../services/tournamentRegistration.js";
 import {
-  getMyTournamentCompetitions
+  getMyTournamentCompetitions,
+  requestTournamentRecognition
 } from "../services/tournamentRecognition.js";
 
 function escapeHtml(value = "") {
@@ -165,11 +166,32 @@ async function loadCompetitions(state) {
               <a href="${competitionUrl(competition)}" data-team-competitive-link>
                 VER COMPETENCIA <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
               </a>
+              ${recognition.eligible && ["not_requested", "rejected"].includes(recognition.status) ? `
+                <button type="button" class="team-competition-card__claim" data-claim-tournament="${escapeHtml(competition.tournamentId)}" data-claim-event="${escapeHtml(competition.eventId)}">
+                  ${recognition.status === "rejected" ? "RECLAMAR NUEVAMENTE" : "RECLAMAR RECONOCIMIENTO"}
+                  <i class="fa-solid fa-award" aria-hidden="true"></i>
+                </button>` : ""}
             </footer>
           </article>`;
       }).join("")}
     </div>
   `;
+
+  state.querySelectorAll("[data-claim-tournament]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        await requestTournamentRecognition({
+          tournamentId: button.dataset.claimTournament,
+          eventId: button.dataset.claimEvent
+        });
+        await loadCompetitions(state);
+      } catch (error) {
+        window.alert(error?.message || "No fue posible reclamar el reconocimiento.");
+        button.disabled = false;
+      }
+    });
+  });
 
   bindInternalLinks(state);
 }
