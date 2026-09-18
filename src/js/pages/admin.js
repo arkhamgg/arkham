@@ -122,6 +122,17 @@ const ADMIN_MODULES = [
   },
 
   {
+    id: "reloads",
+    title: "Reloads",
+    description:
+      "Gestiona juegos, productos y operaciones de recarga.",
+    permission:
+      "reloads.view",
+    path:
+      "/dashboard/admin/reloads"
+  },
+
+  {
     id: "audit",
     title: "Auditoría",
     description:

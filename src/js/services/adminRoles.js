@@ -110,7 +110,19 @@ export const ADMIN_PERMISSIONS = {
     "billing.manage",
 
   AUDIT_VIEW:
-    "audit.view"
+    "audit.view",
+
+  RELOADS_VIEW:
+    "reloads.view",
+
+  RELOADS_MANAGE:
+    "reloads.manage",
+
+  RELOADS_PAYMENTS_REVIEW:
+    "reloads.payments.review",
+
+  RELOADS_ORDERS_PROCESS:
+    "reloads.orders.process"
 
 };
 

@@ -66,6 +66,7 @@ import { AdminPayments } from "./pages/adminPayments.js";
 import { AdminSubscriptions } from "./pages/adminSubscriptions.js";
 import { AdminBilling } from "./pages/adminBilling.js";
 import { AdminAudit } from "./pages/adminAudit.js";
+import { AdminReloads } from "./pages/adminReloads.js";
 
 // ========================================
 // STATIC ROUTES
@@ -243,7 +244,10 @@ const routes = {
     AdminBilling,
 
   "/dashboard/admin/audit":
-    AdminAudit
+    AdminAudit,
+
+  "/dashboard/admin/reloads":
+    AdminReloads
 
 };
 
@@ -263,7 +267,8 @@ const ADMIN_ROUTES = new Set([
   "/dashboard/admin/payments",
   "/dashboard/admin/subscriptions",
   "/dashboard/admin/billing",
-  "/dashboard/admin/audit"
+  "/dashboard/admin/audit",
+  "/dashboard/admin/reloads"
 
 ]);
 

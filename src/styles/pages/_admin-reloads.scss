@@ -1,0 +1,62 @@
+// ========================================
+// ARKHAM — Admin Reloads
+// ========================================
+
+@use "../abstracts/variables" as *;
+
+.admin-reloads-page { min-height: 100vh; background: $color-black; color: $color-white; }
+.admin-reloads { width: min(100% - 2rem, $container-max-width); margin: 0 auto; padding: 2rem 0 4rem; }
+.admin-reloads__header { display:flex; justify-content:space-between; align-items:flex-end; gap:2rem; padding:2rem 0 2.5rem; border-bottom:1px solid $color-700; }
+.admin-reloads__eyebrow { display:inline-flex; gap:.5rem; margin-bottom:.75rem; color:$color-red; font-size:$font-size-xs; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+.admin-reloads__header h1 { margin:0; font-size:clamp(2.5rem,6vw,4.5rem); line-height:.95; letter-spacing:-.045em; }
+.admin-reloads__header p { max-width:700px; margin:1rem 0 0; color:$color-300; line-height:1.7; }
+.admin-reloads__back,.admin-reloads__section-head > button,.admin-reloads__form-actions button,.admin-reloads__card button { border:1px solid $color-700; border-radius:$radius-md; background:$color-900; color:$color-100; padding:.7rem 1rem; font:inherit; font-size:$font-size-sm; font-weight:600; cursor:pointer; transition:$transition-fast $ease-standard; }
+.admin-reloads__back:hover,.admin-reloads__card button:hover { border-color:$color-red; color:$color-white; }
+.admin-reloads__message { min-height:1.5rem; margin:1rem 0; color:$color-300; font-size:$font-size-sm; }
+.admin-reloads__message.is-error { color:$color-error; }
+.admin-reloads__tabs { display:flex; gap:.5rem; margin:1.5rem 0; border-bottom:1px solid $color-700; }
+.admin-reloads__tabs button { border:0; border-bottom:2px solid transparent; background:transparent; color:$color-500; padding:.9rem 1rem; font:inherit; font-weight:600; cursor:pointer; }
+.admin-reloads__tabs button.is-active { border-color:$color-red; color:$color-white; }
+.admin-reloads__panel { padding-top:1rem; }
+.admin-reloads__section-head { display:flex; justify-content:space-between; align-items:flex-end; gap:2rem; margin-bottom:1.5rem; }
+.admin-reloads__section-head span { color:$color-red; font-size:$font-size-xs; font-weight:700; letter-spacing:.14em; }
+.admin-reloads__section-head h2 { margin:.35rem 0; font-size:2rem; }
+.admin-reloads__section-head p { margin:0; color:$color-300; }
+.admin-reloads__section-head > button { background:$color-red; border-color:$color-red; color:$color-white; }
+.admin-reloads__grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+.admin-reloads__card { min-width:0; padding:1.25rem; border:1px solid $color-700; border-radius:$radius-lg; background:$color-900; }
+.admin-reloads__card > div { display:flex; justify-content:space-between; gap:.75rem; align-items:center; }
+.admin-reloads__card code { color:$color-500; font-size:$font-size-xs; }
+.admin-reloads__status { color:$color-500; font-size:$font-size-xs; text-transform:uppercase; letter-spacing:.08em; }
+.admin-reloads__status.is-active { color:$color-success; }
+.admin-reloads__card h3 { margin:1rem 0 .5rem; font-size:1.35rem; }
+.admin-reloads__card p { min-height:2.8rem; margin:0; color:$color-300; line-height:1.5; }
+.admin-reloads__card footer { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-top:1.25rem; padding-top:1rem; border-top:1px solid rgba($color-white,.06); color:$color-500; font-size:$font-size-xs; }
+.admin-reloads__card footer strong { color:$color-white; font-size:1.1rem; }
+.admin-reloads__empty { grid-column:1/-1; padding:3rem; border:1px dashed $color-700; border-radius:$radius-lg; text-align:center; color:$color-300; }
+.admin-reloads__empty h3 { margin:0 0 .5rem; color:$color-white; }
+.admin-reloads__modal[hidden] { display:none; }
+.admin-reloads__modal { position:fixed; inset:0; z-index:$z-modal; display:grid; place-items:center; padding:1rem; }
+.admin-reloads__modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); }
+.admin-reloads__modal-card { position:relative; z-index:1; width:min(100%,720px); max-height:90vh; overflow:auto; padding:1.5rem; border:1px solid $color-700; border-radius:$radius-xl; background:$color-900; box-shadow:$shadow-lg; }
+.admin-reloads__modal-card header { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:1.5rem; }
+.admin-reloads__modal-card header span { color:$color-red; font-size:$font-size-xs; font-weight:700; letter-spacing:.14em; }
+.admin-reloads__modal-card h2 { margin:.4rem 0 0; font-size:1.8rem; }
+.admin-reloads__modal-card header button { border:0; background:transparent; color:$color-300; font-size:1.7rem; cursor:pointer; }
+.admin-reloads__modal-card form { display:grid; gap:1rem; }
+.admin-reloads__modal-card label { display:grid; gap:.45rem; color:$color-300; font-size:$font-size-sm; }
+.admin-reloads__modal-card input,.admin-reloads__modal-card select { width:100%; min-height:44px; border:1px solid $color-700; border-radius:$radius-md; background:$color-950; color:$color-white; padding:.7rem .8rem; font:inherit; }
+.admin-reloads__checkbox { display:flex!important; grid-template-columns:none!important; align-items:center; flex-direction:row; gap:.6rem; }
+.admin-reloads__checkbox input { width:auto; min-height:auto; }
+.admin-reloads__modal-card fieldset { display:grid; gap:1rem; border:1px solid $color-700; border-radius:$radius-md; padding:1rem; }
+.admin-reloads__modal-card legend { padding:0 .4rem; color:$color-white; font-weight:600; }
+.admin-reloads__field-row { display:grid; grid-template-columns:1fr 1.2fr .8fr auto auto; gap:.5rem; align-items:center; }
+.admin-reloads__field-row label { display:flex; align-items:center; flex-direction:row; gap:.3rem; white-space:nowrap; }
+.admin-reloads__field-row label input { width:auto; min-height:auto; }
+.admin-reloads__field-row button { border:0; background:transparent; color:$color-error; font-size:1.2rem; cursor:pointer; }
+.admin-reloads__secondary { width:max-content; border:1px solid $color-700; border-radius:$radius-md; background:$color-950; color:$color-100; padding:.6rem .8rem; cursor:pointer; }
+.admin-reloads__form-actions { display:flex; justify-content:flex-end; gap:.75rem; padding-top:.5rem; }
+.admin-reloads__form-actions button:last-child { border-color:$color-red; background:$color-red; color:$color-white; }
+
+@media (max-width:900px) { .admin-reloads__grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .admin-reloads__field-row { grid-template-columns:1fr 1fr; } }
+@media (max-width:600px) { .admin-reloads { width:calc(100% - 1rem); } .admin-reloads__header,.admin-reloads__section-head { align-items:flex-start; flex-direction:column; } .admin-reloads__grid { grid-template-columns:1fr; } .admin-reloads__field-row { grid-template-columns:1fr; } .admin-reloads__form-actions { flex-direction:column; } .admin-reloads__form-actions button { width:100%; } }

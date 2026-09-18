@@ -23,6 +23,7 @@ import { handle as handlePaymentApprove } from "./_lib/admin/paymentApprove.js";
 import { handle as handlePaymentReject } from "./_lib/admin/paymentReject.js";
 import { handle as handleBilling } from "./_lib/admin/billing.js";
 import { handle as handleAudit } from "./_lib/admin/audit.js";
+import { handle as handleReloads } from "./_lib/admin/reloads.js";
 
 const HANDLERS = {
   accounts: handleAccounts,
@@ -32,7 +33,8 @@ const HANDLERS = {
   "payment-approve": handlePaymentApprove,
   "payment-reject": handlePaymentReject,
   billing: handleBilling,
-  audit: handleAudit
+  audit: handleAudit,
+  reloads: handleReloads
 };
 
 function errorResponse(res, message, status = 400) {
