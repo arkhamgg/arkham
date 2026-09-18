@@ -22,6 +22,10 @@ import {
   hasEffectiveSubscriptionAccess
 } from "../services/subscription.js";
 
+import {
+  getCurrentTeamBilling
+} from "../services/billingPayment.js";
+
 
 // ========================================
 // ROUTES
@@ -386,7 +390,30 @@ async function loadDashboardContext(
       null;
 
 
+    // Team entitlements are entity-scoped.
+    // Do not use the account-level subscription here because an older
+    // account can have a different or legacy subscription attached to it.
     if (
+      entityContext?.type === "team" &&
+      entityContext?.id &&
+      entityContext?.productId
+    ) {
+
+      const teamBilling =
+        await getCurrentTeamBilling(
+          entityContext.id
+        );
+
+      const teamSubscription =
+        teamBilling?.subscription || null;
+
+      access =
+        createSubscriptionAccess(
+          teamSubscription,
+          entityContext.productId
+        );
+
+    } else if (
       hasEffectiveSubscriptionAccess(
         accountContext?.subscription
       ) &&
