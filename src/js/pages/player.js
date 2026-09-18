@@ -657,15 +657,56 @@ export function PlayerCompetitiveProfileView() {
         if (team.id === globalTeamId) {
           pendingTeamId = null;
           pendingRequestedAt = null;
-        } else {
-          pendingTeamId = team.id;
+          teamRequestStatus = null;
+          teamRequestReason = null;
+          teamSearch = "";
+          render();
+          return;
+        }
+
+        const previousPendingTeamId = pendingTeamId || null;
+        const previousRequestStatus = teamRequestStatus || null;
+        const selectedTeamId = team.id;
+        const resultButton = event.target.closest("[data-team-result]");
+
+        if (resultButton) resultButton.disabled = true;
+
+        try {
+          // Persist the request immediately. The profile itself does not need
+          // to be saved first for the Team request to exist.
+          if (previousPendingTeamId && previousPendingTeamId !== selectedTeamId) {
+            await cancelTeamRequest({ teamId: previousPendingTeamId });
+          }
+
+          const requestResponse = await submitTeamRequest({ teamId: selectedTeamId });
+
+          pendingTeamId = selectedTeamId;
           pendingRequestedAt = new Date().toISOString();
           teamRequestStatus = "pending";
           teamRequestReason = null;
+          entity.teamRequest = {
+            ...(entity.teamRequest || {}),
+            teamId: selectedTeamId,
+            status: "pending",
+            requestedAt: pendingRequestedAt,
+            requestId: requestResponse?.requestId || null
+          };
+
+          teamSearch = "";
+          render();
+        } catch (error) {
+          console.error("NEXUS — Error enviando solicitud de Team:", error);
+
+          // Restore the previous in-memory state if persistence failed.
+          pendingTeamId = previousPendingTeamId;
+          teamRequestStatus = previousRequestStatus;
+          teamRequestReason = entity.teamRequest?.reviewReason || null;
+
+          if (resultButton) resultButton.disabled = false;
+
+          window.alert(error?.message || "No fue posible enviar la solicitud al Team.");
         }
 
-        teamSearch = "";
-        render();
         return;
       }
 
@@ -779,13 +820,16 @@ export function PlayerCompetitiveProfileView() {
         await updateEntity("players", context.id, update);
 
         if (pendingTeamId) {
-          const requestResponse = await submitTeamRequest({ teamId: pendingTeamId });
+          // The Team request is persisted when the Team is selected.
+          // Do not submit it again here, otherwise a duplicate request could
+          // be created when the Player later saves the competitive profile.
           teamRequestStatus = "pending";
           teamRequestReason = null;
           entity.teamRequest = {
+            ...(entity.teamRequest || {}),
             teamId: pendingTeamId,
             status: "pending",
-            requestId: requestResponse?.requestId || null
+            requestedAt: pendingRequestedAt || entity.teamRequest?.requestedAt || new Date().toISOString()
           };
         } else if (hadPendingRequest && previousPendingTeamId) {
           await cancelTeamRequest({ teamId: previousPendingTeamId });
