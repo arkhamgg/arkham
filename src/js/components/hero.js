@@ -1,9 +1,8 @@
 // ========================================
-// NEXUS — Hero Component
+// ARKHAM — Hero Component
 // ========================================
 
-import { HeroEffects } from "./heroEffects.js";
-import avatar from "../../assets/nexus-avatar.png";
+import heroBackground from "../../assets/arkham-hero-bg.png";
 
 export function Hero() {
   const hero = document.createElement("section");
@@ -12,10 +11,10 @@ export function Hero() {
   hero.id = "home";
 
   hero.innerHTML = `
-    <div class="hero__background" aria-hidden="true">
-      <div class="hero__grid"></div>
-      <div class="hero__glow"></div>
-    </div>
+    <div
+      class="hero__background"
+      aria-hidden="true"
+    ></div>
 
     <div class="hero__container">
 
@@ -50,38 +49,6 @@ export function Hero() {
             aria-hidden="true"
           ></i>
         </a>
-
-      </div>
-
-
-      <!-- ========================================
-           HERO ARTWORK
-           ======================================== -->
-
-      <div class="hero__artwork" aria-hidden="true">
-
-        <div class="hero__avatar">
-
-          <img
-            src="${avatar}"
-            alt=""
-            class="hero__avatar-image"
-          />
-
-        </div>
-
-        <div class="hero__artwork-info">
-
-          <span class="hero__status">
-            <span class="hero__status-dot"></span>
-            SISTEMA ACTIVO
-          </span>
-
-          <span class="hero__artwork-index">
-            01 / 01
-          </span>
-
-        </div>
 
       </div>
 
@@ -126,16 +93,6 @@ export function Hero() {
 
     </div>
   `;
-
-
-  // ========================================
-  // HERO EFFECTS
-  // ========================================
-
-  const effects = HeroEffects();
-
-  hero.appendChild(effects);
-
 
   return hero;
 }
