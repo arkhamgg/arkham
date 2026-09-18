@@ -153,6 +153,28 @@ export async function getCurrentAccountPayment() {
 
 
 // ========================================
+// GET CURRENT TEAM BILLING
+// ========================================
+
+export async function getCurrentTeamBilling(
+  teamId
+) {
+
+  if (!teamId) {
+    throw new Error("No se indicó el Team.");
+  }
+
+  return await apiRequest(
+    `${BILLING_PAYMENT_API}&teamId=${encodeURIComponent(teamId)}`,
+    {
+      method: "GET"
+    }
+  );
+
+}
+
+
+// ========================================
 // CREATE BILLING PAYMENT
 // ========================================
 //
@@ -186,6 +208,15 @@ export async function createBillingPayment(
 ) {
 
   const {
+
+    productId =
+      null,
+
+    entityType =
+      null,
+
+    entityId =
+      null,
 
     subscriptionId =
       null,
@@ -254,6 +285,10 @@ export async function createBillingPayment(
 
       body:
         JSON.stringify({
+
+          ...(productId ? { productId } : {}),
+          ...(entityType ? { entityType } : {}),
+          ...(entityId ? { entityId } : {}),
 
           subscriptionId,
 

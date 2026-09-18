@@ -62,6 +62,12 @@ export function createSubscription(
 
     accountId = null,
 
+    productId = null,
+
+    entityType = null,
+
+    entityId = null,
+
     status =
       SUBSCRIPTION_STATUS.ACTIVE,
 
@@ -99,7 +105,9 @@ export function createSubscription(
     // ========================================
 
     accountId,
-
+    productId,
+    entityType,
+    entityId,
     planId,
 
 
@@ -232,6 +240,41 @@ export async function getAccountSubscription(
 
   return subscription;
 
+}
+
+
+// ========================================
+// GET ENTITY SUBSCRIPTION
+// ========================================
+
+export async function getEntitySubscription(
+  entityType,
+  entityId,
+  subscriptionId
+) {
+
+  if (!entityType || !entityId || !subscriptionId) {
+    return null;
+  }
+
+  const subscription =
+    await getSubscription(subscriptionId);
+
+  if (!subscription) {
+    return null;
+  }
+
+  if (
+    subscription.entityType !== entityType ||
+    subscription.entityId !== entityId
+  ) {
+    console.error(
+      "NEXUS — La suscripción no corresponde a la entidad."
+    );
+    return null;
+  }
+
+  return subscription;
 }
 
 

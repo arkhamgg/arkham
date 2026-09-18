@@ -579,6 +579,46 @@ async function approvePayment(
 
 
         // ==================================
+        // BILLING PRODUCT CONTEXT
+        // ==================================
+
+        const isTeamBilling =
+          payment.productId === "team";
+
+        let teamRef = null;
+        let team = null;
+
+        if (isTeamBilling) {
+
+          if (
+            payment.entityType !== "team" ||
+            !payment.entityId
+          ) {
+            throw new Error("TEAM_BILLING_CONTEXT_MISSING");
+          }
+
+          teamRef =
+            adminDb
+              .collection("teams")
+              .doc(payment.entityId);
+
+          const teamSnapshot =
+            await transaction.get(teamRef);
+
+          if (!teamSnapshot.exists) {
+            throw new Error("TEAM_NOT_FOUND");
+          }
+
+          team = teamSnapshot.data();
+
+          if (team.ownerId !== payment.accountId) {
+            throw new Error("TEAM_OWNER_MISMATCH");
+          }
+
+        }
+
+
+        // ==================================
         // PLAN TRANSITION
         // ==================================
 
@@ -624,6 +664,7 @@ async function approvePayment(
         //
 
         if (
+          !isTeamBilling &&
           account.planId &&
           account.planId !==
           payment.currentPlanId
@@ -733,6 +774,14 @@ async function approvePayment(
 
           }
 
+          if (isTeamBilling && (
+            subscription.productId !== "team" ||
+            subscription.entityType !== "team" ||
+            subscription.entityId !== payment.entityId
+          )) {
+            throw new Error("SUBSCRIPTION_TEAM_MISMATCH");
+          }
+
 
           // ==================================
           // CURRENT PLAN VALIDATION
@@ -792,12 +841,17 @@ async function approvePayment(
 
           }
 
-          if (
-            account.subscriptionId
-          ) {
+          const existingSubscriptionId =
+            isTeamBilling
+              ? team?.subscriptionId
+              : account.subscriptionId;
+
+          if (existingSubscriptionId) {
 
             throw new Error(
-              "ACCOUNT_SUBSCRIPTION_EXISTS"
+              isTeamBilling
+                ? "TEAM_SUBSCRIPTION_EXISTS"
+                : "ACCOUNT_SUBSCRIPTION_EXISTS"
             );
 
           }
@@ -814,6 +868,14 @@ async function approvePayment(
 
             accountId:
               payment.accountId,
+
+            ...(isTeamBilling
+              ? {
+                  productId: "team",
+                  entityType: "team",
+                  entityId: payment.entityId
+                }
+              : {}),
 
             planId:
               "free",
@@ -1008,6 +1070,14 @@ async function approvePayment(
               accountId:
                 payment.accountId,
 
+              ...(isTeamBilling
+                ? {
+                    productId: "team",
+                    entityType: "team",
+                    entityId: payment.entityId
+                  }
+                : {}),
+
               ...subscriptionUpdate,
 
               createdAt:
@@ -1043,20 +1113,39 @@ async function approvePayment(
         // verdad del Billing.
         //
 
-        transaction.update(
-          accountRef,
-          {
+        if (isTeamBilling) {
 
-            planId:
-              payment.planId,
+          transaction.update(
+            teamRef,
+            {
+              planId:
+                payment.planId,
 
-            subscriptionId,
+              subscriptionId,
 
-            updatedAt:
-              FieldValue.serverTimestamp()
+              updatedAt:
+                FieldValue.serverTimestamp()
+            }
+          );
 
-          }
-        );
+        } else {
+
+          transaction.update(
+            accountRef,
+            {
+
+              planId:
+                payment.planId,
+
+              subscriptionId,
+
+              updatedAt:
+                FieldValue.serverTimestamp()
+
+            }
+          );
+
+        }
 
 
         // ==================================
@@ -1098,6 +1187,15 @@ async function approvePayment(
 
           accountId:
             payment.accountId,
+
+          productId:
+            payment.productId || "tournament",
+
+          entityType:
+            payment.entityType || null,
+
+          entityId:
+            payment.entityId || null,
 
           subscriptionId,
 
@@ -1152,6 +1250,9 @@ async function approvePayment(
     newState: { status: "approved" },
     metadata: {
       accountId: result.accountId || null,
+      productId: result.productId || null,
+      entityType: result.entityType || null,
+      entityId: result.entityId || null,
       subscriptionId: result.subscriptionId || null,
       planId: result.planId || null,
       amount: result.amount || null

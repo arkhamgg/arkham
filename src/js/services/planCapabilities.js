@@ -204,7 +204,9 @@ export const PLAN_CAPABILITIES = {
 
       ...PUBLICATION_CAPABILITIES
 
-    ]
+    ],
+
+    [PRODUCT_IDS.TEAM]: []
 
   },
 
@@ -238,6 +240,12 @@ export const PLAN_CAPABILITIES = {
       ...PUBLICATION_CAPABILITIES,
 
       ...LEAGUE_OPERATION_CAPABILITIES
+
+    ],
+
+    [PRODUCT_IDS.TEAM]: [
+
+      CAPABILITIES.PUBLIC_LANDING
 
     ]
 
@@ -281,6 +289,12 @@ export const PLAN_CAPABILITIES = {
       ...PUBLICATION_CAPABILITIES,
 
       ...LEAGUE_OPERATION_CAPABILITIES
+
+    ],
+
+    [PRODUCT_IDS.TEAM]: [
+
+      CAPABILITIES.PUBLIC_LANDING
 
     ]
 

@@ -45,6 +45,64 @@ export const BILLING_CONFIG = {
 
   },
 
+  products: {
+
+    tournament: {
+
+      plans: {
+
+        pro: {
+
+          id:
+            "pro",
+
+          monthly: {
+
+            amount:
+              PRO_MONTHLY_PRICE,
+
+            currency:
+              "GTQ"
+
+          }
+
+        }
+
+      }
+
+    },
+
+    team: {
+
+      plans: {
+
+        pro: {
+
+          id:
+            "pro",
+
+          monthly: {
+
+            // Team Pro utiliza inicialmente el mismo precio
+            // configurado para Pro. Se separará cuando NEXUS
+            // defina un precio comercial propio para Team.
+            amount:
+              PRO_MONTHLY_PRICE,
+
+            currency:
+              "GTQ"
+
+          }
+
+        }
+
+      }
+
+    }
+
+  },
+
+  // Compatibilidad con el Billing histórico.
   plans: {
 
     pro: {
@@ -105,6 +163,35 @@ export function getPlanPrice(
 
 }
 
+
+// ========================================
+// PRODUCT + PLAN PRICE
+// ========================================
+
+export function getProductPlanPrice(
+  productId,
+  planId,
+  period = "monthly"
+) {
+
+  const product =
+    BILLING_CONFIG
+      .products?.[productId];
+
+  if (!product) {
+    return null;
+  }
+
+  const plan =
+    product.plans?.[planId];
+
+  if (!plan) {
+    return null;
+  }
+
+  return plan?.[period] || null;
+
+}
 
 // ========================================
 // PLAN AVAILABILITY

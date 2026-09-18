@@ -350,6 +350,16 @@ async function submitPayment(
   const payment =
     paymentSnapshot.data();
 
+  const isTeamBilling =
+    payment.productId === "team";
+
+  if (isTeamBilling && (
+    payment.entityType !== "team" ||
+    !payment.entityId
+  )) {
+    return errorResponse(res, "El pago de Team no tiene un contexto válido.", 409);
+  }
+
 
   // ========================================
   // PAYMENT OWNERSHIP
@@ -669,6 +679,20 @@ async function submitPayment(
   const account =
     accountSnapshot.data();
 
+  let team = null;
+
+  if (isTeamBilling) {
+    const teamRef = adminDb.collection("teams").doc(payment.entityId);
+    const teamSnapshot = await teamRef.get();
+    if (!teamSnapshot.exists) {
+      return errorResponse(res, "El Team no existe.", 404);
+    }
+    team = teamSnapshot.data();
+    if (team.ownerId !== uid) {
+      return errorResponse(res, "No tienes permisos para este Team.", 403);
+    }
+  }
+
 
   // ========================================
   // INITIAL UPGRADE VALIDATION
@@ -689,14 +713,18 @@ async function submitPayment(
     isInitialUpgrade
   ) {
 
-    if (
-      account.planId &&
-      account.planId !== "free"
-    ) {
+    const currentEntityPlanId =
+      isTeamBilling
+        ? (team?.planId || "free")
+        : (account.planId || "free");
+
+    if (currentEntityPlanId !== "free") {
 
       return errorResponse(
         res,
-        "La cuenta ya no se encuentra en el plan Free. Debes actualizar el estado antes de continuar.",
+        isTeamBilling
+          ? "El Team ya no se encuentra en el plan Free. Debes actualizar el estado antes de continuar."
+          : "La cuenta ya no se encuentra en el plan Free. Debes actualizar el estado antes de continuar.",
         409
       );
 
@@ -704,12 +732,16 @@ async function submitPayment(
 
 
     if (
-      account.subscriptionId
+      isTeamBilling
+        ? team?.subscriptionId
+        : account.subscriptionId
     ) {
 
       return errorResponse(
         res,
-        "La cuenta ya tiene una suscripción asociada. Debes utilizar el flujo de renovación correspondiente.",
+        isTeamBilling
+          ? "El Team ya tiene una suscripción asociada. Debes utilizar el flujo de renovación correspondiente."
+          : "La cuenta ya tiene una suscripción asociada. Debes utilizar el flujo de renovación correspondiente.",
         409
       );
 
@@ -819,6 +851,23 @@ async function submitPayment(
         const freshAccount =
           freshAccountSnapshot.data();
 
+        let freshTeam = null;
+
+        if (freshPayment.productId === "team") {
+          if (freshPayment.entityType !== "team" || !freshPayment.entityId) {
+            throw new Error("TEAM_BILLING_CONTEXT_MISSING");
+          }
+          const freshTeamRef = adminDb.collection("teams").doc(freshPayment.entityId);
+          const freshTeamSnapshot = await transaction.get(freshTeamRef);
+          if (!freshTeamSnapshot.exists) {
+            throw new Error("TEAM_NOT_FOUND");
+          }
+          freshTeam = freshTeamSnapshot.data();
+          if (freshTeam.ownerId !== uid) {
+            throw new Error("TEAM_OWNER_MISMATCH");
+          }
+        }
+
 
         // ==================================
         // PAYMENT OWNERSHIP
@@ -916,31 +965,22 @@ async function submitPayment(
           }
 
 
-          // La cuenta debe seguir en Free.
+          const freshEntityPlanId =
+            freshPayment.productId === "team"
+              ? (freshTeam?.planId || "free")
+              : (freshAccount.planId || "free");
 
-          if (
-            freshAccount.planId &&
-            freshAccount.planId !== "free"
-          ) {
-
-            throw new Error(
-              "ACCOUNT_PLAN_CHANGED"
-            );
-
+          if (freshEntityPlanId !== "free") {
+            throw new Error("ACCOUNT_PLAN_CHANGED");
           }
 
+          const freshEntitySubscriptionId =
+            freshPayment.productId === "team"
+              ? freshTeam?.subscriptionId
+              : freshAccount.subscriptionId;
 
-          // La cuenta no debe tener una
-          // suscripción asociada.
-
-          if (
-            freshAccount.subscriptionId
-          ) {
-
-            throw new Error(
-              "ACCOUNT_ALREADY_HAS_SUBSCRIPTION"
-            );
-
+          if (freshEntitySubscriptionId) {
+            throw new Error("ACCOUNT_ALREADY_HAS_SUBSCRIPTION");
           }
 
         }
@@ -1002,6 +1042,14 @@ async function submitPayment(
 
           const freshSubscription =
             freshSubscriptionSnapshot.data();
+
+          if (freshPayment.productId === "team" && (
+            freshSubscription.productId !== "team" ||
+            freshSubscription.entityType !== "team" ||
+            freshSubscription.entityId !== freshPayment.entityId
+          )) {
+            throw new Error("SUBSCRIPTION_TEAM_MISMATCH");
+          }
 
 
           // ==================================

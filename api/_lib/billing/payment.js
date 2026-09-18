@@ -16,7 +16,8 @@ import {
 } from "../firebaseAdmin.js";
 
 import {
-  getPlanPrice
+  getPlanPrice,
+  getProductPlanPrice
 } from "../billingConfig.js";
 
 
@@ -272,6 +273,9 @@ async function createPayment(
 
 
   const {
+    productId = null,
+    entityType = null,
+    entityId = null,
     subscriptionId = null,
     planId,
     period = BILLING_PERIOD.MONTHLY,
@@ -293,6 +297,51 @@ async function createPayment(
     return errorResponse(
       res,
       "planId es obligatorio.",
+      400
+    );
+
+  }
+
+
+  // ========================================
+  // BILLING PRODUCT CONTEXT
+  // ========================================
+  //
+  // Los pagos históricos omiten productId y
+  // conservan el flujo account-level existente.
+  // Team utiliza un contexto explícito.
+  //
+
+  const isTeamBilling =
+    productId === "team";
+
+  if (productId && !isTeamBilling) {
+
+    return errorResponse(
+      res,
+      "El producto de Billing no es válido.",
+      400
+    );
+
+  }
+
+  if (isTeamBilling) {
+
+    if (entityType !== "team" || !entityId) {
+
+      return errorResponse(
+        res,
+        "El pago de Team requiere una entidad Team válida.",
+        400
+      );
+
+    }
+
+  } else if (entityType || entityId) {
+
+    return errorResponse(
+      res,
+      "El contexto de entidad no corresponde al Billing actual.",
       400
     );
 
@@ -387,10 +436,16 @@ async function createPayment(
   //
 
   const pricing =
-    getPlanPrice(
-      planId,
-      period
-    );
+    isTeamBilling
+      ? getProductPlanPrice(
+          productId,
+          planId,
+          period
+        )
+      : getPlanPrice(
+          planId,
+          period
+        );
 
 
   if (!pricing) {
@@ -494,12 +549,46 @@ async function createPayment(
 
 
   // ========================================
+  // BILLING ENTITY
+  // ========================================
+
+  let billingEntity = null;
+
+  if (isTeamBilling) {
+
+    const teamRef =
+      adminDb
+        .collection("teams")
+        .doc(entityId);
+
+    const teamSnapshot =
+      await teamRef.get();
+
+    if (!teamSnapshot.exists) {
+      return errorResponse(res, "El Team no existe.", 404);
+    }
+
+    billingEntity = teamSnapshot.data();
+
+    if (billingEntity.ownerId !== uid) {
+      return errorResponse(res, "No tienes permisos para gestionar el Billing de este Team.", 403);
+    }
+
+  }
+
+
+  // ========================================
   // ACCOUNT PLAN
   // ========================================
 
   const accountPlanId =
     account.planId ||
     "free";
+
+  const currentPlanId =
+    isTeamBilling
+      ? (billingEntity?.planId || "free")
+      : accountPlanId;
 
 
   // ========================================
@@ -516,12 +605,12 @@ async function createPayment(
   //
 
   const isInitialUpgrade =
-    accountPlanId === "free" &&
+    currentPlanId === "free" &&
     planId === "pro";
 
 
   const isProRenewal =
-    accountPlanId === "pro" &&
+    currentPlanId === "pro" &&
     planId === "pro";
 
 
@@ -532,7 +621,7 @@ async function createPayment(
 
     return errorResponse(
       res,
-      `La transición ${accountPlanId} → ${planId} no está disponible.`,
+      `La transición ${currentPlanId} → ${planId} no está disponible.`,
       409
     );
 
@@ -569,12 +658,16 @@ async function createPayment(
 
 
     if (
-      account.subscriptionId
+      isTeamBilling
+        ? billingEntity?.subscriptionId
+        : account.subscriptionId
     ) {
 
       return errorResponse(
         res,
-        "La cuenta ya tiene una suscripción asociada. Debes utilizar el flujo de renovación correspondiente.",
+        isTeamBilling
+          ? "El Team ya tiene una suscripción asociada. Debes utilizar el flujo de renovación correspondiente."
+          : "La cuenta ya tiene una suscripción asociada. Debes utilizar el flujo de renovación correspondiente.",
         409
       );
 
@@ -608,8 +701,13 @@ async function createPayment(
     }
 
 
+    const expectedSubscriptionId =
+      isTeamBilling
+        ? billingEntity?.subscriptionId
+        : account.subscriptionId;
+
     if (
-      account.subscriptionId !==
+      expectedSubscriptionId !==
       subscriptionId
     ) {
 
@@ -684,6 +782,20 @@ async function createPayment(
 
     }
 
+    if (isTeamBilling && (
+      subscription.productId !== "team" ||
+      subscription.entityType !== "team" ||
+      subscription.entityId !== entityId
+    )) {
+
+      return errorResponse(
+        res,
+        "La suscripción no corresponde a este Team.",
+        403
+      );
+
+    }
+
 
     // ======================================
     // CURRENT PLAN
@@ -704,7 +816,7 @@ async function createPayment(
 
     if (
       subscription.planId !==
-      accountPlanId
+      currentPlanId
     ) {
 
       return errorResponse(
@@ -734,14 +846,6 @@ async function createPayment(
     }
 
   }
-
-
-  // ========================================
-  // CURRENT PLAN
-  // ========================================
-
-  const currentPlanId =
-    accountPlanId;
 
 
   // ========================================
@@ -817,6 +921,18 @@ async function createPayment(
 
             return false;
 
+          }
+
+          if (isTeamBilling) {
+            if (
+              payment.productId !== "team" ||
+              payment.entityType !== "team" ||
+              payment.entityId !== entityId
+            ) {
+              return false;
+            }
+          } else if (payment.productId) {
+            return false;
           }
 
 
@@ -901,6 +1017,19 @@ async function createPayment(
 
     accountId:
       uid,
+
+
+    // ======================================
+    // PRODUCT / ENTITY CONTEXT
+    // ======================================
+
+    ...(isTeamBilling
+      ? {
+          productId,
+          entityType,
+          entityId
+        }
+      : {}),
 
 
     // ======================================
@@ -1037,6 +1166,10 @@ async function createPayment(
         accountId:
           uid,
 
+        ...(isTeamBilling
+          ? { productId, entityType, entityId }
+          : {}),
+
         subscriptionId:
           subscriptionId ||
           null,
@@ -1116,6 +1249,96 @@ export default async function handler(
     if (req.method === "GET") {
 
       const uid = decodedToken.uid;
+      const requestedTeamId =
+        String(req.query?.teamId || "").trim();
+
+      if (requestedTeamId) {
+
+        const teamRef =
+          adminDb
+            .collection("teams")
+            .doc(requestedTeamId);
+
+        const teamSnapshot =
+          await teamRef.get();
+
+        if (!teamSnapshot.exists) {
+          return errorResponse(res, "El Team no existe.", 404);
+        }
+
+        const team =
+          teamSnapshot.data();
+
+        if (team.ownerId !== uid) {
+          return errorResponse(res, "No tienes permisos para consultar el Billing de este Team.", 403);
+        }
+
+        const snapshot =
+          await adminDb
+            .collection("payments")
+            .where("accountId", "==", uid)
+            .get();
+
+        const payments =
+          snapshot.docs
+            .map((document) => ({
+              id: document.id,
+              ...document.data()
+            }))
+            .filter((payment) =>
+              payment.productId === "team" &&
+              payment.entityType === "team" &&
+              payment.entityId === requestedTeamId
+            )
+            .sort((a, b) => {
+              const getTime = (value) => {
+                if (!value) return 0;
+                if (typeof value.toMillis === "function") return value.toMillis();
+                if (typeof value.toDate === "function") return value.toDate().getTime();
+                const time = new Date(value).getTime();
+                return Number.isNaN(time) ? 0 : time;
+              };
+              return getTime(b.createdAt) - getTime(a.createdAt);
+            });
+
+        let subscription = null;
+
+        if (team.subscriptionId) {
+          const subscriptionSnapshot =
+            await adminDb
+              .collection("subscriptions")
+              .doc(team.subscriptionId)
+              .get();
+
+          if (subscriptionSnapshot.exists) {
+            const candidate = subscriptionSnapshot.data();
+            if (
+              candidate.accountId === uid &&
+              candidate.productId === "team" &&
+              candidate.entityType === "team" &&
+              candidate.entityId === requestedTeamId
+            ) {
+              subscription = {
+                id: subscriptionSnapshot.id,
+                ...candidate
+              };
+            }
+          }
+        }
+
+        return successResponse(
+          res,
+          {
+            team: {
+              id: requestedTeamId,
+              ...team
+            },
+            subscription,
+            payment: payments[0] || null
+          }
+        );
+
+      }
 
       const snapshot =
         await adminDb
