@@ -15,7 +15,7 @@ export function Competitions() {
 
         <div class="competitions__eyebrow">
           <span>02</span>
-          <span>NEXUS COMPETITIONS</span>
+          <span>ARKHAM COMPETITIONS</span>
         </div>
 
         <div class="competitions__heading">
@@ -27,7 +27,7 @@ export function Competitions() {
 
           <p>
             Descubre las competencias que forman parte
-            del ecosistema competitivo de NEXUS.
+            del ecosistema competitivo de ARKHAM.
           </p>
 
         </div>
@@ -54,7 +54,7 @@ export function Competitions() {
 
             <p>
               Competencia competitiva de equipos
-              dentro del ecosistema NEXUS.
+              dentro del ecosistema ARKHAM.
             </p>
 
           </div>
@@ -91,7 +91,7 @@ export function Competitions() {
           <div class="competition-card__content">
 
             <span class="competition-card__game">
-              NEXUS EVENT
+              ARKHAM EVENT
             </span>
 
             <h3>COMING SOON</h3>
@@ -106,7 +106,7 @@ export function Competitions() {
           <div class="competition-card__footer">
 
             <span>
-              NEXUS
+              ARKHAM
             </span>
 
             <span>

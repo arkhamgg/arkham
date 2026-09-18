@@ -19,7 +19,7 @@ export function Teams() {
 
         <div class="teams__eyebrow">
           <span>03</span>
-          <span>NEXUS TEAMS</span>
+          <span>ARKHAM TEAMS</span>
         </div>
 
         <div class="teams__heading">
@@ -32,7 +32,7 @@ export function Teams() {
           <p>
             Equipos que compiten, representan y
             construyen la escena competitiva dentro
-            de NEXUS.
+            de ARKHAM.
           </p>
 
         </div>
@@ -103,7 +103,7 @@ export function Teams() {
           <div class="team-card__footer">
 
             <span>
-              NEXUS VERIFIED
+              ARKHAM VERIFIED
             </span>
 
             <span class="team-card__arrow">
@@ -174,7 +174,7 @@ export function Teams() {
           <div class="team-card__footer">
 
             <span>
-              NEXUS VERIFIED
+              ARKHAM VERIFIED
             </span>
 
             <span class="team-card__arrow">
@@ -245,7 +245,7 @@ export function Teams() {
           <div class="team-card__footer">
 
             <span>
-              NEXUS VERIFIED
+              ARKHAM VERIFIED
             </span>
 
             <span class="team-card__arrow">

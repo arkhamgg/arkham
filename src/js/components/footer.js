@@ -20,7 +20,7 @@ export function Footer() {
         <div class="footer__brand">
 
           <span class="footer__eyebrow">
-            NEXUS ENTERTAINMENT
+            ARKHAM ENTERTAINMENT
           </span>
 
           <h2>
@@ -66,11 +66,11 @@ export function Footer() {
           <div class="footer__column">
 
             <span class="footer__column-title">
-              NEXUS
+              AKHAM
             </span>
 
             <a href="/about">
-              Sobre NEXUS
+              Sobre ARKHAM
             </a>
 
             <a href="/affiliation">
@@ -129,7 +129,7 @@ export function Footer() {
       <div class="footer__wordmark">
 
         <span>
-          NEXUS
+          ARKHAM
         </span>
 
       </div>
@@ -142,7 +142,7 @@ export function Footer() {
       <div class="footer__bottom">
 
         <span>
-          © 2026 NEXUS
+          © 2026 ARKHAM
         </span>
 
         <span>
@@ -150,7 +150,7 @@ export function Footer() {
         </span>
 
         <span>
-          NEXUS ENTERTAINMENT
+          ARKHAM ENTERTAINMENT
         </span>
 
       </div>

@@ -21,7 +21,7 @@ export function Hero() {
       <div class="hero__content">
 
         <span class="hero__label">
-          NEXUS
+          ARKHAM
         </span>
 
         <h1 class="hero__title">
@@ -42,7 +42,7 @@ export function Hero() {
         </div>
 
         <a href="#competitions" class="hero__cta">
-          <span>Explorar NEXUS</span>
+          <span>Explorar ARKHAM</span>
 
           <i
             class="fa-solid fa-arrow-right"

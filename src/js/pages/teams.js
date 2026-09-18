@@ -44,7 +44,7 @@ export function Teams() {
           </span>
 
           <span>
-            NEXUS TEAMS
+            ARKHAM TEAMS
           </span>
 
         </div>
@@ -67,7 +67,7 @@ export function Teams() {
 
             Conoce a los equipos que forman
             parte del ecosistema competitivo
-            de NEXUS.
+            de ARKHAM.
 
           </p>
 
@@ -102,7 +102,7 @@ export function Teams() {
 
           <p>
             Los equipos que representan
-            el nivel competitivo de NEXUS.
+            el nivel competitivo de ARKHAM.
           </p>
 
         </header>
@@ -139,7 +139,7 @@ export function Teams() {
 
           <p>
             Todos los equipos registrados
-            dentro de NEXUS.
+            dentro de ARKHAM.
           </p>
 
         </header>
@@ -247,7 +247,7 @@ export function Teams() {
     try {
 
       console.log(
-        "NEXUS — Cargando equipos..."
+        "ARKHAM — Cargando equipos..."
       );
 
 
@@ -258,7 +258,7 @@ export function Teams() {
 
 
       console.log(
-        "NEXUS — Equipos cargados:",
+        "AKRAMA — Equipos cargados:",
         teams
       );
 

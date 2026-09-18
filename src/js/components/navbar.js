@@ -40,7 +40,7 @@ export function Navbar() {
         </span>
 
         <span class="navbar__brand-name">
-          NEXUS
+          ARKHAM
         </span>
 
       </a>
@@ -410,7 +410,7 @@ export function Navbar() {
         ></i>
 
         <span>
-          Mi NEXUS
+          Mi ARKHAM
         </span>
 
       `;
@@ -435,7 +435,7 @@ export function Navbar() {
         ></i>
 
         <span>
-          Mi NEXUS
+          Mi ARKHAM
         </span>
 
       `;

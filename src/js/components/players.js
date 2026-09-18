@@ -19,7 +19,7 @@ export function Players() {
 
         <div class="players__eyebrow">
           <span>04</span>
-          <span>NEXUS PLAYERS</span>
+          <span>ARKHAM PLAYERS</span>
         </div>
 
         <div class="players__heading">
@@ -31,7 +31,7 @@ export function Players() {
 
           <p>
             Talento que forma parte del ecosistema
-            competitivo de NEXUS.
+            competitivo de ARKHAM.
           </p>
 
         </div>
@@ -310,7 +310,7 @@ export function Players() {
             <div class="player-row__name">
 
               <span>
-                NEXUS
+                ARKHAM
               </span>
 
               <h3>
