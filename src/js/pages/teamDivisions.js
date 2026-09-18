@@ -25,19 +25,50 @@ function escapeHtml(value = "") {
 function getRoleEntries(game) {
   const roles = game?.competitiveInfo?.roles || [];
 
+  const normalizeRole = (role, fallbackId = "") => {
+    if (typeof role === "string") {
+      const value = role.trim();
+      return value ? [value, value] : null;
+    }
+
+    if (!role || typeof role !== "object") return null;
+
+    const id = String(
+      role.id ??
+      role.roleId ??
+      role.key ??
+      role.value ??
+      role.slug ??
+      role.code ??
+      fallbackId ??
+      role.name ??
+      role.label ??
+      ""
+    ).trim();
+
+    const label = String(
+      role.name ??
+      role.label ??
+      role.title ??
+      role.displayName ??
+      role.id ??
+      role.roleId ??
+      id
+    ).trim();
+
+    return id && label ? [id, label] : null;
+  };
+
   if (Array.isArray(roles)) {
     return roles
-      .map((role) => {
-        if (typeof role === "string") return [role, role];
-        return [role?.id || role?.name, role?.name || role?.id];
-      })
-      .filter(([id, label]) => id && label);
+      .map((role) => normalizeRole(role))
+      .filter(Boolean);
   }
 
   if (roles && typeof roles === "object") {
     return Object.entries(roles)
-      .map(([id, role]) => [id, typeof role === "string" ? role : role?.name || id])
-      .filter(([id, label]) => id && label);
+      .map(([id, role]) => normalizeRole(role, id))
+      .filter(Boolean);
   }
 
   return [];

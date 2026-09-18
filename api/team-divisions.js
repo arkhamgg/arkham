@@ -119,13 +119,39 @@ export default async function handler(req, res) {
       const roles = game?.competitiveInfo?.roles || [];
       const roleMap = new Map();
 
-      if (Array.isArray(roles)) {
-        roles.forEach((role) => {
-          const id = typeof role === "string" ? role : role?.id || role?.name;
-          if (id) roleMap.set(String(id), role);
+      const registerRole = (role, fallbackId = "") => {
+        if (typeof role === "string") {
+          const value = role.trim();
+          if (value) roleMap.set(value, role);
+          return;
+        }
+
+        if (!role || typeof role !== "object") return;
+
+        const identifiers = [
+          role.id,
+          role.roleId,
+          role.key,
+          role.value,
+          role.slug,
+          role.code,
+          fallbackId,
+          role.name,
+          role.label
+        ]
+          .filter((value) => value !== undefined && value !== null)
+          .map((value) => String(value).trim())
+          .filter(Boolean);
+
+        identifiers.forEach((identifier) => {
+          roleMap.set(identifier, role);
         });
+      };
+
+      if (Array.isArray(roles)) {
+        roles.forEach((role) => registerRole(role));
       } else if (roles && typeof roles === "object") {
-        Object.entries(roles).forEach(([id, role]) => roleMap.set(String(id), role));
+        Object.entries(roles).forEach(([id, role]) => registerRole(role, id));
       }
 
       const normalizedPlayers = [];
@@ -138,11 +164,20 @@ export default async function handler(req, res) {
         if (!playerId || playerIds.has(playerId)) continue;
         playerIds.add(playerId);
 
-        if (!roleId || !roleMap.has(roleId)) {
+        const matchingRoleId = roleId
+          ? [...roleMap.keys()].find((identifier) =>
+              String(identifier).trim().toLowerCase() === roleId.toLowerCase()
+            )
+          : null;
+
+        if (!roleId || !matchingRoleId) {
           return json(res, 400, {
             error: `El rol seleccionado para el Player ${playerId} no pertenece a la configuración competitiva de este juego.`
           });
         }
+
+        // Persistimos el identificador canónico que existe en la configuración del juego.
+        item.roleId = String(matchingRoleId);
 
         normalizedPlayers.push({ playerId, roleId });
       }
