@@ -365,8 +365,8 @@ function renderStep(page) {
     <div class="reloads-panel-heading">
       <div>
         <span class="reloads-kicker">PASO 04</span>
-        <h2>Confirma tu recarga</h2>
-        <p>Realiza el pago y luego adjunta tu comprobante.</p>
+        <h2>Realiza el pago</h2>
+        <p>Realiza el pago por el monto exacto y adjunta tu comprobante. La orden se registrará únicamente cuando el comprobante se haya enviado correctamente.</p>
       </div>
     </div>
     <div class="reloads-payment-layout">
@@ -385,47 +385,50 @@ function renderStep(page) {
 
       <div class="reloads-payment-box">
         <div class="reloads-payment-box__icon"><i class="fa-solid fa-building-columns"></i></div>
-        <h3>Realiza el pago</h3>
+        <h3>Datos para realizar el pago</h3>
         <p>Realiza un depósito o transferencia bancaria por el monto exacto de tu recarga a cualquiera de nuestras cuentas ARKHAM.</p>
 
         <div class="reloads-bank-list" aria-label="Datos bancarios para realizar el pago">
           <article class="reloads-bank-card">
             <div class="reloads-bank-card__head">
               <span class="reloads-bank-card__icon"><i class="fa-solid fa-building-columns"></i></span>
-              <div>
-                <span class="reloads-bank-card__label">BANCO</span>
-                <strong>Banco Industrial (BI)</strong>
-              </div>
+              <div><span class="reloads-bank-card__label">BANCO</span><strong>Banco Industrial (BI)</strong></div>
             </div>
-            <dl>
-              <div><dt>Nombre del titular</dt><dd>ARKHAM</dd></div>
-              <div><dt>No. de cuenta</dt><dd>123456789</dd></div>
-            </dl>
+            <dl><div><dt>Nombre del titular</dt><dd>ARKHAM</dd></div><div><dt>No. de cuenta</dt><dd>123456789</dd></div></dl>
           </article>
-
           <article class="reloads-bank-card">
             <div class="reloads-bank-card__head">
               <span class="reloads-bank-card__icon"><i class="fa-solid fa-building-columns"></i></span>
-              <div>
-                <span class="reloads-bank-card__label">BANCO</span>
-                <strong>Banrural</strong>
-              </div>
+              <div><span class="reloads-bank-card__label">BANCO</span><strong>Banrural</strong></div>
             </div>
-            <dl>
-              <div><dt>Nombre del titular</dt><dd>ARKHAM</dd></div>
-              <div><dt>No. de cuenta</dt><dd>132456789</dd></div>
-            </dl>
+            <dl><div><dt>Nombre del titular</dt><dd>ARKHAM</dd></div><div><dt>No. de cuenta</dt><dd>132456789</dd></div></dl>
           </article>
         </div>
 
-        <div class="reloads-payment-box__note"><i class="fa-solid fa-circle-info"></i> Realiza el pago por el monto exacto. La recarga solo se procesa después de verificar el comprobante.</div>
+        <div class="reloads-payment-box__note"><i class="fa-solid fa-circle-info"></i> Después de realizar el pago, selecciona el comprobante. La orden se creará y pasará a revisión en un solo paso.</div>
+
+        <div class="reloads-proof" data-proof-box>
+          <div class="reloads-proof__head">
+            <div><span class="reloads-kicker">COMPROBANTE</span><h3>Adjunta tu comprobante</h3></div>
+            <span class="reloads-proof__status" data-proof-status>PENDIENTE</span>
+          </div>
+          <label class="reloads-proof__dropzone">
+            <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-proof-file>
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <strong data-proof-file-name>Selecciona tu comprobante</strong>
+            <span>JPG, PNG, WEBP o PDF · máximo 5 MB</span>
+          </label>
+          <div class="reloads-proof__message" data-proof-message></div>
+        </div>
+
         <div class="reloads-form__actions">
           <button type="button" class="reloads-button reloads-button--ghost" data-reloads-action="back">Atrás</button>
-          <button type="button" class="reloads-button" data-reloads-action="next">Crear orden <i class="fa-solid fa-arrow-right"></i></button>
+          <button type="button" class="reloads-button" data-reloads-action="next"><i class="fa-solid fa-paper-plane"></i> Enviar comprobante y crear orden</button>
         </div>
       </div>
     </div>
   `;
+
 }
 
 function fieldMarkup(field) {
@@ -563,144 +566,60 @@ function renderLoginRequired(page) {
 
 async function submitOrder(page) {
   if (!validateGameData(page) || state.loading) return;
-
   const user = await getAuthenticatedUser();
+  if (!user) { savePurchaseDraft(); renderLoginRequired(page); return; }
 
-  if (!user) {
-    savePurchaseDraft();
-    renderLoginRequired(page);
+  const fileInput = page.querySelector("[data-proof-file]");
+  const message = page.querySelector("[data-proof-message]");
+  const button = page.querySelector('[data-reloads-action="next"]');
+  const file = fileInput?.files?.[0];
+
+  if (!file) {
+    if (message) { message.textContent = "Selecciona tu comprobante antes de continuar."; message.classList.add("is-error"); }
     return;
   }
 
   setLoading(page, true);
+  if (button) { button.disabled = true; button.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando comprobante...`; }
+  if (message) { message.textContent = "Subiendo comprobante y registrando tu orden..."; message.classList.remove("is-error", "is-success"); }
 
   try {
-    const idToken = await user.getIdToken();
-    const response = await fetch(API, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`
-      },
-      body: JSON.stringify({
-        action: "create-order",
-        gameId: state.selectedGame.id,
-        productId: state.selectedProduct.id,
-        gameData: state.gameData,
-        whatsapp: state.whatsapp
-      })
-    });
-
-    const data = await readResponse(response);
+    const draftId = globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID().replace(/-/g, "") : `${Date.now()}${Math.random().toString(36).slice(2)}`;
+    const data = await uploadReloadPaymentProof(file, { draftId, gameId: state.selectedGame.id, productId: state.selectedProduct.id, gameData: state.gameData, whatsapp: state.whatsapp });
     state.order = data.order || null;
     clearPurchaseDraft();
     renderSuccess(page);
   } catch (error) {
-    renderInlineError(page, error.message || "No fue posible crear la orden.");
-  } finally {
-    setLoading(page, false);
-  }
+    if (message) { message.textContent = error?.message || "No fue posible enviar el comprobante."; message.classList.add("is-error"); }
+    if (button) { button.disabled = false; button.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Enviar comprobante y crear orden`; }
+  } finally { setLoading(page, false); }
 }
 
 function renderSuccess(page) {
   const body = page.querySelector("[data-checkout-body]");
   if (!body) return;
-
   body.innerHTML = `
     <div class="reloads-success">
       <div class="reloads-success__icon"><i class="fa-solid fa-check"></i></div>
-      <span class="reloads-kicker">ORDEN CREADA</span>
+      <span class="reloads-kicker">ORDEN RECIBIDA</span>
       <h2>${escapeHtml(state.order?.orderNumber || "Orden ARKHAM")}</h2>
-      <p>Tu orden fue registrada. Realiza el pago y adjunta el comprobante para que nuestro equipo pueda verificarlo.</p>
-
+      <p>Recibimos tu comprobante y tu orden fue registrada. Nuestro equipo verificará el pago antes de procesar la recarga.</p>
       <div class="reloads-success__summary">
         <div><span>Juego</span><strong>${escapeHtml(state.selectedGame?.name || "-")}</strong></div>
         <div><span>Producto</span><strong>${escapeHtml(state.selectedProduct?.name || "-")}</strong></div>
         <div><span>Total</span><strong>${formatMoney(state.selectedProduct?.price, state.selectedProduct?.currency)}</strong></div>
+        <div><span>Pago</span><strong>COMPROBANTE ENVIADO</strong></div>
       </div>
-
-      <div class="reloads-proof" data-proof-box>
-        <div class="reloads-proof__head">
-          <div>
-            <span class="reloads-kicker">COMPROBANTE</span>
-            <h3>Adjunta tu comprobante de pago</h3>
-          </div>
-          <span class="reloads-proof__status" data-proof-status>PENDIENTE</span>
-        </div>
-
-        <label class="reloads-proof__dropzone">
-          <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-proof-file>
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <strong data-proof-file-name>Selecciona tu comprobante</strong>
-          <span>JPG, PNG, WEBP o PDF · máximo 5 MB</span>
-        </label>
-
-        <div class="reloads-proof__message" data-proof-message></div>
-
-        <button type="button" class="reloads-button" data-upload-proof>
-          <i class="fa-solid fa-upload"></i>
-          Enviar comprobante
-        </button>
-      </div>
-
       <div class="reloads-success__actions">
-        <a class="reloads-button reloads-button--ghost" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola ARKHAM, quiero continuar con mi orden ${state.order?.orderNumber || ""}.`)}" target="_blank" rel="noreferrer">
-          <i class="fa-brands fa-whatsapp"></i> Soporte por WhatsApp
-        </a>
+        <a class="reloads-button reloads-button--ghost" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola ARKHAM, quiero consultar mi orden ${state.order?.orderNumber || ""}.`)}" target="_blank" rel="noreferrer"><i class="fa-brands fa-whatsapp"></i> Soporte por WhatsApp</a>
         <button class="reloads-button reloads-button--ghost" type="button" data-reloads-action="restart">Nueva recarga</button>
       </div>
     </div>
   `;
-
-  const fileInput = body.querySelector("[data-proof-file]");
-  const fileName = body.querySelector("[data-proof-file-name]");
-  const uploadButton = body.querySelector("[data-upload-proof]");
-  const message = body.querySelector("[data-proof-message]");
-  const status = body.querySelector("[data-proof-status]");
-
-  fileInput?.addEventListener("change", () => {
-    const file = fileInput.files?.[0];
-    fileName.textContent = file ? file.name : "Selecciona tu comprobante";
-    message.textContent = "";
-  });
-
-  uploadButton?.addEventListener("click", async () => {
-    const file = fileInput?.files?.[0];
-    if (!file) {
-      message.textContent = "Selecciona un archivo antes de enviarlo.";
-      message.classList.add("is-error");
-      return;
-    }
-
-    uploadButton.disabled = true;
-    uploadButton.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Subiendo...`;
-    message.textContent = "Preparando comprobante...";
-    message.classList.remove("is-error");
-
-    try {
-      await uploadReloadPaymentProof(
-        file,
-        state.order.id,
-        state.order.proofToken
-      );
-
-      status.textContent = "ENVIADO";
-      status.classList.add("is-submitted");
-      message.textContent = "Comprobante enviado correctamente. Nuestro equipo revisará el pago.";
-      message.classList.add("is-success");
-      uploadButton.innerHTML = `<i class="fa-solid fa-check"></i> Comprobante enviado`;
-    } catch (error) {
-      message.textContent = error?.message || "No fue posible enviar el comprobante.";
-      message.classList.add("is-error");
-      uploadButton.disabled = false;
-      uploadButton.innerHTML = `<i class="fa-solid fa-upload"></i> Enviar comprobante`;
-    }
-  });
-
   state.step = 4;
   updateSteps(page);
 }
+
 function renderGamesPreview(page) {
   const mount = page.querySelector("[data-game-preview]");
   if (!mount) return;

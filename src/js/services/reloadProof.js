@@ -32,18 +32,23 @@ async function request(body) {
   return data;
 }
 
-export async function getReloadProofUploadAuth(orderId, proofToken) {
-  return request({ action: "proof-auth", orderId, proofToken });
+export async function getReloadProofUploadAuth(draftId) {
+  return request({ action: "proof-auth", draftId });
 }
 
-export async function uploadReloadPaymentProof(file, orderId, proofToken) {
+/**
+ * Uploads the proof first and only then asks the backend to persist the order.
+ * No reloadOrders document exists until this complete flow succeeds.
+ */
+export async function uploadReloadPaymentProof(file, purchase) {
   if (!(file instanceof File)) throw new Error("Selecciona un comprobante válido.");
   if (!ALLOWED_TYPES.includes(file.type)) throw new Error("El comprobante debe ser JPG, PNG, WEBP o PDF.");
   if (file.size <= 0 || file.size > MAX_FILE_SIZE) throw new Error("El comprobante no puede superar los 5 MB.");
   if (!IMAGEKIT_PUBLIC_KEY || !IMAGEKIT_URL_ENDPOINT) throw new Error("ImageKit no está configurado.");
+  if (!purchase?.draftId) throw new Error("No fue posible preparar la orden.");
 
-  const auth = await getReloadProofUploadAuth(orderId, proofToken);
-  if (!auth?.token || !auth?.expire || !auth?.signature || !auth?.folder) {
+  const authData = await getReloadProofUploadAuth(purchase.draftId);
+  if (!authData?.token || !authData?.expire || !authData?.signature || !authData?.folder) {
     throw new Error("No fue posible preparar la subida del comprobante.");
   }
 
@@ -52,10 +57,10 @@ export async function uploadReloadPaymentProof(file, orderId, proofToken) {
     fileName: file.name,
     publicKey: IMAGEKIT_PUBLIC_KEY,
     urlEndpoint: IMAGEKIT_URL_ENDPOINT,
-    token: auth.token,
-    expire: auth.expire,
-    signature: auth.signature,
-    folder: auth.folder,
+    token: authData.token,
+    expire: authData.expire,
+    signature: authData.signature,
+    folder: authData.folder,
     useUniqueFileName: true
   });
 
@@ -70,9 +75,12 @@ export async function uploadReloadPaymentProof(file, orderId, proofToken) {
   };
 
   return request({
-    action: "submit-proof",
-    orderId,
-    proofToken,
+    action: "create-order-with-proof",
+    draftId: purchase.draftId,
+    gameId: purchase.gameId,
+    productId: purchase.productId,
+    gameData: purchase.gameData,
+    whatsapp: purchase.whatsapp,
     proof
   });
 }

@@ -197,18 +197,29 @@ async function getOrderForProof(db, orderId, proofToken, userId = null) {
 async function proofAuth(req, res, db) {
   const app = getFirebaseAdminApp();
   const userId = await getRequiredUserId(req, app);
-  const orderId = cleanString(req.body?.orderId || req.query?.orderId, 100);
-  const proofToken = cleanString(req.body?.proofToken || req.query?.proofToken, 200);
-  await getOrderForProof(db, orderId, proofToken, userId);
+  const draftId = cleanString(req.body?.draftId, 100);
+  const orderId = cleanString(req.body?.orderId, 100);
+  const proofToken = cleanString(req.body?.proofToken, 200);
+
+  let targetId = draftId;
+  if (!targetId && orderId) {
+    await getOrderForProof(db, orderId, proofToken, userId);
+    targetId = orderId;
+  }
+
+  if (!targetId || !/^[A-Za-z0-9_-]{16,100}$/.test(targetId)) {
+    return errorResponse(res, "El identificador del comprobante no es válido.", 400);
+  }
   if (!process.env.IMAGEKIT_PRIVATE_KEY) {
     return errorResponse(res, "ImageKit no está configurado.", 500);
   }
+
   const imagekit = new ImageKit({ privateKey: process.env.IMAGEKIT_PRIVATE_KEY });
   const authenticationParameters = imagekit.helper.getAuthenticationParameters();
   return successResponse(res, {
     ...authenticationParameters,
     publicKey: process.env.VITE_IMAGEKIT_PUBLIC_KEY || process.env.IMAGEKIT_PUBLIC_KEY || "",
-    folder: getProofFolder(orderId)
+    folder: getProofFolder(targetId)
   });
 }
 
@@ -235,6 +246,67 @@ async function submitProof(req, res, db) {
     updatedAt: now
   });
   return successResponse(res, { orderId, payment: { status: PAYMENT_SUBMITTED, proof } });
+}
+
+async function createOrderWithProof(req, res, db, app) {
+  const customerId = await getRequiredUserId(req, app);
+  const draftId = cleanString(req.body?.draftId, 100);
+  const gameId = cleanString(req.body?.gameId, 100);
+  const productId = cleanString(req.body?.productId, 100);
+  const whatsapp = cleanString(req.body?.whatsapp, 30);
+
+  if (!draftId || !/^[A-Za-z0-9_-]{16,100}$/.test(draftId)) return errorResponse(res, "El identificador de la orden no es válido.", 400);
+  if (!gameId) return errorResponse(res, "Debes indicar el juego.", 400);
+  if (!productId) return errorResponse(res, "Debes indicar el producto.", 400);
+  if (!whatsapp) return errorResponse(res, "Debes indicar un número de WhatsApp.", 400);
+
+  const orderRef = db.collection(ORDERS_COLLECTION).doc(draftId);
+  if ((await orderRef.get()).exists) return errorResponse(res, "Esta orden ya fue procesada.", 409);
+
+  const [gameSnapshot, productSnapshot] = await Promise.all([
+    db.collection(GAMES_COLLECTION).doc(gameId).get(),
+    db.collection(PRODUCTS_COLLECTION).doc(productId).get()
+  ]);
+  if (!gameSnapshot.exists) return errorResponse(res, "El juego seleccionado no existe.", 404);
+  if (!productSnapshot.exists) return errorResponse(res, "El producto seleccionado no existe.", 404);
+
+  const game = gameSnapshot.data() || {};
+  const product = productSnapshot.data() || {};
+  if (game.active !== true) return errorResponse(res, "El juego seleccionado no está disponible.", 400);
+  if (product.active !== true || product.gameId !== gameId) return errorResponse(res, "El producto seleccionado no está disponible.", 400);
+
+  const gameData = validateGameData(game, req.body?.gameData);
+  const proof = validateProof(req.body?.proof, draftId);
+  const proofToken = randomBytes(24).toString("hex");
+  const now = FieldValue.serverTimestamp();
+
+  const order = {
+    orderNumber: createOrderNumber(draftId),
+    customerId,
+    proofTokenHash: hashProofToken(proofToken),
+    game: { id: gameId, name: cleanString(game.name, 120) },
+    product: {
+      id: productId,
+      name: cleanString(product.name, 120),
+      amount: Number(product.amount),
+      price: Number(product.price),
+      currency: cleanString(product.currency || "GTQ", 10)
+    },
+    gameData,
+    whatsapp,
+    payment: { status: PAYMENT_SUBMITTED, proof, proofSubmittedAt: now, rejectionReason: null },
+    reload: { status: RELOAD_NOT_STARTED },
+    createdAt: now,
+    updatedAt: now
+  };
+
+  await orderRef.create(order);
+  return successResponse(res, {
+    order: {
+      id: draftId, orderNumber: order.orderNumber, game: order.game, product: order.product,
+      gameData: order.gameData, whatsapp: order.whatsapp, payment: order.payment, reload: order.reload
+    }
+  }, 201);
 }
 
 export async function handle(req, res) {
@@ -314,6 +386,10 @@ export async function handle(req, res) {
     // ========================================
     // POST â€” CREATE ORDER
     // ========================================
+
+    if (action === "proof-auth") return proofAuth(req, res, db);
+    if (action === "submit-proof") return submitProof(req, res, db);
+    if (action === "create-order-with-proof") return createOrderWithProof(req, res, db, app);
 
     if (action !== "create-order") {
       return errorResponse(res, "AcciÃ³n pÃºblica de Reloads no vÃ¡lida.", 400);
