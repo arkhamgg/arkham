@@ -3,6 +3,7 @@
 // ========================================
 
 import { upload } from "@imagekit/javascript";
+import { auth, authReady } from "./firebase.js";
 
 const API = "/api/admin?resource=public-reloads";
 const IMAGEKIT_PUBLIC_KEY = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
@@ -11,9 +12,17 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 async function request(body) {
+  await authReady;
+  const user = auth.currentUser;
+  if (!user) throw new Error("Debes iniciar sesión para gestionar tu recarga.");
+
+  const idToken = await user.getIdToken();
   const response = await fetch(API, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`
+    },
     body: JSON.stringify(body)
   });
   const data = await response.json().catch(() => null);

@@ -3,9 +3,11 @@
 // ========================================
 
 import { uploadReloadPaymentProof } from "../services/reloadProof.js";
+import { auth, authReady } from "../services/firebase.js";
 
 const API = "/api/admin?resource=public-reloads";
 const WHATSAPP_NUMBER = "50255555555";
+const PURCHASE_DRAFT_KEY = "arkham.reloads.purchaseDraft";
 
 const state = {
   games: [],
@@ -205,6 +207,7 @@ async function loadGames(page) {
     state.games = data.games || [];
     renderGamesPreview(page);
     renderStep(page);
+    await restorePurchaseDraft(page);
   } catch (error) {
     renderState(page, error.message || "No fue posible cargar los juegos.", true);
   }
@@ -428,17 +431,129 @@ function validateGameData(page) {
   return true;
 }
 
+async function getAuthenticatedUser() {
+  await authReady;
+  return auth.currentUser;
+}
+
+function savePurchaseDraft() {
+  try {
+    sessionStorage.setItem(PURCHASE_DRAFT_KEY, JSON.stringify({
+      gameId: state.selectedGame?.id || null,
+      productId: state.selectedProduct?.id || null,
+      gameData: state.gameData,
+      whatsapp: state.whatsapp,
+      step: 4
+    }));
+  } catch (error) {
+    console.warn("ARKHAM — No fue posible guardar el borrador de Reloads:", error);
+  }
+}
+
+function clearPurchaseDraft() {
+  try {
+    sessionStorage.removeItem(PURCHASE_DRAFT_KEY);
+  } catch {
+    // Ignorar errores de almacenamiento.
+  }
+}
+
+async function restorePurchaseDraft(page) {
+  let raw = null;
+  try {
+    raw = sessionStorage.getItem(PURCHASE_DRAFT_KEY);
+  } catch {
+    return;
+  }
+
+  if (!raw) return;
+
+  try {
+    const draft = JSON.parse(raw);
+    if (!draft?.gameId || !draft?.productId) return;
+
+    const user = await getAuthenticatedUser();
+    if (!user) return;
+
+    const game = state.games.find((item) => item.id === draft.gameId);
+    if (!game) {
+      clearPurchaseDraft();
+      return;
+    }
+
+    state.selectedGame = game;
+    state.selectedProduct = null;
+    state.gameData = draft.gameData && typeof draft.gameData === "object" ? draft.gameData : {};
+    state.whatsapp = String(draft.whatsapp || "");
+    state.step = 2;
+    updateSteps(page);
+    await loadProducts(page, game.id);
+
+    const product = state.products.find((item) => item.id === draft.productId);
+    if (!product) {
+      clearPurchaseDraft();
+      state.selectedGame = null;
+      state.selectedProduct = null;
+      state.gameData = {};
+      state.whatsapp = "";
+      state.step = 1;
+      updateSteps(page);
+      renderStep(page);
+      return;
+    }
+
+    state.selectedProduct = product;
+    state.step = 4;
+    updateSteps(page);
+    renderStep(page);
+    clearPurchaseDraft();
+    scrollToCheckout(page);
+  } catch (error) {
+    console.warn("ARKHAM — No fue posible restaurar el borrador de Reloads:", error);
+    clearPurchaseDraft();
+  }
+}
+
+function renderLoginRequired(page) {
+  const body = page.querySelector("[data-checkout-body]");
+  if (!body) return;
+
+  body.innerHTML = `
+    <div class="reloads-state reloads-state--auth">
+      <div class="reloads-success__icon"><i class="fa-solid fa-lock"></i></div>
+      <span class="reloads-kicker">CUENTA ARKHAM</span>
+      <h2>Inicia sesión para continuar</h2>
+      <p>Necesitas una cuenta ARKHAM para crear una orden, realizar el pago y consultar el estado de tu recarga.</p>
+      <div class="reloads-form__actions">
+        <button type="button" class="reloads-button reloads-button--ghost" data-reloads-action="back">Volver</button>
+        <a class="reloads-button" href="/login?returnTo=%2Freloads">Iniciar sesión <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <small>Conservaremos los datos de esta recarga para que puedas continuar después de iniciar sesión.</small>
+    </div>
+  `;
+}
+
 async function submitOrder(page) {
   if (!validateGameData(page) || state.loading) return;
+
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    savePurchaseDraft();
+    renderLoginRequired(page);
+    return;
+  }
 
   setLoading(page, true);
 
   try {
+    const idToken = await user.getIdToken();
     const response = await fetch(API, {
       method: "POST",
       headers: {
         Accept: "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`
       },
       body: JSON.stringify({
         action: "create-order",
@@ -451,6 +566,7 @@ async function submitOrder(page) {
 
     const data = await readResponse(response);
     state.order = data.order || null;
+    clearPurchaseDraft();
     renderSuccess(page);
   } catch (error) {
     renderInlineError(page, error.message || "No fue posible crear la orden.");

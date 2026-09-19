@@ -124,6 +124,19 @@ async function getOptionalUserId(req, app) {
   }
 }
 
+async function getRequiredUserId(req, app) {
+  const userId = await getOptionalUserId(req, app);
+
+  if (!userId) {
+    throw Object.assign(
+      new Error("Debes iniciar sesión para realizar una compra."),
+      { status: 401 }
+    );
+  }
+
+  return userId;
+}
+
 function createOrderNumber(orderId) {
   return `ARK-RLD-${orderId.slice(0, 8).toUpperCase()}`;
 }
@@ -165,7 +178,7 @@ function validateProof(proof, orderId) {
   return { provider: "imagekit", fileId, filePath, url, fileName, contentType, size };
 }
 
-async function getOrderForProof(db, orderId, proofToken) {
+async function getOrderForProof(db, orderId, proofToken, userId = null) {
   if (!orderId || !proofToken) {
     throw Object.assign(new Error("La orden y el token del comprobante son obligatorios."), { status: 400 });
   }
@@ -175,13 +188,18 @@ async function getOrderForProof(db, orderId, proofToken) {
   if (!order.proofTokenHash || order.proofTokenHash !== hashProofToken(proofToken)) {
     throw Object.assign(new Error("El token de comprobante no es válido."), { status: 403 });
   }
+  if (userId && order.customerId !== userId) {
+    throw Object.assign(new Error("No tienes acceso a esta orden."), { status: 403 });
+  }
   return { snapshot, order };
 }
 
 async function proofAuth(req, res, db) {
+  const app = getFirebaseAdminApp();
+  const userId = await getRequiredUserId(req, app);
   const orderId = cleanString(req.body?.orderId || req.query?.orderId, 100);
   const proofToken = cleanString(req.body?.proofToken || req.query?.proofToken, 200);
-  await getOrderForProof(db, orderId, proofToken);
+  await getOrderForProof(db, orderId, proofToken, userId);
   if (!process.env.IMAGEKIT_PRIVATE_KEY) {
     return errorResponse(res, "ImageKit no está configurado.", 500);
   }
@@ -195,9 +213,11 @@ async function proofAuth(req, res, db) {
 }
 
 async function submitProof(req, res, db) {
+  const app = getFirebaseAdminApp();
+  const userId = await getRequiredUserId(req, app);
   const orderId = cleanString(req.body?.orderId, 100);
   const proofToken = cleanString(req.body?.proofToken, 200);
-  const { order } = await getOrderForProof(db, orderId, proofToken);
+  const { order } = await getOrderForProof(db, orderId, proofToken, userId);
   const paymentStatus = order.payment?.status || PAYMENT_PENDING;
   if (![PAYMENT_PENDING, PAYMENT_SUBMITTED].includes(paymentStatus)) {
     return errorResponse(res, "Esta orden ya no acepta comprobantes de pago.", 409);
@@ -347,7 +367,7 @@ export async function handle(req, res) {
       req.body?.gameData
     );
 
-    const customerId = await getOptionalUserId(req, app);
+    const customerId = await getRequiredUserId(req, app);
 
     const orderRef = db
       .collection(ORDERS_COLLECTION)
