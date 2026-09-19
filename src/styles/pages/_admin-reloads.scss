@@ -71,6 +71,7 @@
 .admin-reloads__order-statuses { display:flex; flex-wrap:wrap; gap:.35rem; }
 .admin-reloads__status-badge { display:inline-flex; width:max-content; padding:.35rem .55rem; border:1px solid $color-700; border-radius:$radius-full; color:$color-300; font-size:$font-size-xs; line-height:1; }
 .admin-reloads__status-badge.is-pending,.admin-reloads__status-badge.is-not-started { color:$color-warning; border-color:rgba($color-warning,.35); }
+.admin-reloads__status-badge.is-submitted { color:$color-info; border-color:rgba($color-info,.35); }
 .admin-reloads__status-badge.is-verified,.admin-reloads__status-badge.is-completed { color:$color-success; border-color:rgba($color-success,.35); }
 .admin-reloads__status-badge.is-rejected,.admin-reloads__status-badge.is-failed { color:$color-error; border-color:rgba($color-error,.35); }
 .admin-reloads__status-badge.is-processing { color:$color-info; border-color:rgba($color-info,.35); }

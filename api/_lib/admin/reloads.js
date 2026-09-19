@@ -14,6 +14,7 @@ const ORDERS_COLLECTION = "reloadOrders";
 
 const PAYMENT_STATUS = {
   PENDING: "PENDING",
+  SUBMITTED: "SUBMITTED",
   VERIFIED: "VERIFIED",
   REJECTED: "REJECTED"
 };
@@ -169,8 +170,8 @@ async function transitionOrder({ access, orderId, action, reason = "" }) {
     let auditAction = "";
 
     if (action === "verify-payment") {
-      if (payment.status !== PAYMENT_STATUS.PENDING) {
-        throw Object.assign(new Error("Solo se puede verificar una orden con pago pendiente."), { status: 409 });
+      if (![PAYMENT_STATUS.PENDING, PAYMENT_STATUS.SUBMITTED].includes(payment.status)) {
+        throw Object.assign(new Error("Solo se puede verificar una orden con pago pendiente o con comprobante enviado."), { status: 409 });
       }
       update = {
         payment: {
@@ -188,8 +189,8 @@ async function transitionOrder({ access, orderId, action, reason = "" }) {
     }
 
     if (action === "reject-payment") {
-      if (payment.status !== PAYMENT_STATUS.PENDING) {
-        throw Object.assign(new Error("Solo se puede rechazar una orden con pago pendiente."), { status: 409 });
+      if (![PAYMENT_STATUS.PENDING, PAYMENT_STATUS.SUBMITTED].includes(payment.status)) {
+        throw Object.assign(new Error("Solo se puede rechazar una orden con pago pendiente o con comprobante enviado."), { status: 409 });
       }
       if (!reason) {
         throw Object.assign(new Error("Debes indicar el motivo del rechazo."), { status: 400 });

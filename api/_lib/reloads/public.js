@@ -1,9 +1,11 @@
 // ========================================
-// ARKHAM — Public Reloads API
+// ARKHAM â€” Public Reloads API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import ImageKit from "@imagekit/nodejs";
+import { createHash, randomBytes } from "node:crypto";
 import { getFirebaseAdminApp } from "../firebaseAdmin.js";
 
 const GAMES_COLLECTION = "reloadGames";
@@ -11,6 +13,7 @@ const PRODUCTS_COLLECTION = "reloadProducts";
 const ORDERS_COLLECTION = "reloadOrders";
 
 const PAYMENT_PENDING = "PENDING";
+const PAYMENT_SUBMITTED = "SUBMITTED";
 const RELOAD_NOT_STARTED = "NOT_STARTED";
 
 function errorResponse(res, message, status = 400) {
@@ -46,7 +49,7 @@ function normalizeFieldValue(field, value) {
 
     if (!Number.isFinite(number)) {
       throw Object.assign(
-        new Error(`El campo "${field.label}" debe contener un número válido.`),
+        new Error(`El campo "${field.label}" debe contener un nÃºmero vÃ¡lido.`),
         { status: 400 }
       );
     }
@@ -115,7 +118,7 @@ async function getOptionalUserId(req, app) {
     return decoded.uid || null;
   } catch {
     throw Object.assign(
-      new Error("El token de autenticación no es válido."),
+      new Error("El token de autenticaciÃ³n no es vÃ¡lido."),
       { status: 401 }
     );
   }
@@ -125,11 +128,100 @@ function createOrderNumber(orderId) {
   return `ARK-RLD-${orderId.slice(0, 8).toUpperCase()}`;
 }
 
+function hashProofToken(token) {
+  return createHash("sha256").update(String(token)).digest("hex");
+}
+
+function getProofFolder(orderId) {
+  return `/arkham/reloads/proofs/${orderId}`;
+}
+
+function validateProof(proof, orderId) {
+  const fileId = cleanString(proof?.fileId, 200);
+  const filePath = cleanString(proof?.filePath, 500);
+  const url = cleanString(proof?.url, 1000);
+  const fileName = cleanString(proof?.fileName, 200);
+  const contentType = cleanString(proof?.contentType, 100);
+  const size = Number(proof?.size);
+  const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+  const prefix = `${getProofFolder(orderId)}/`;
+
+  if (!fileId || !filePath || !url || !fileName || !contentType || !Number.isFinite(size)) {
+    throw Object.assign(new Error("El comprobante no contiene todos los datos requeridos."), { status: 400 });
+  }
+  if (!allowed.includes(contentType)) {
+    throw Object.assign(new Error("El comprobante debe ser JPG, PNG, WEBP o PDF."), { status: 400 });
+  }
+  if (size <= 0 || size > 5 * 1024 * 1024) {
+    throw Object.assign(new Error("El comprobante no puede superar los 5 MB."), { status: 400 });
+  }
+  if (!filePath.startsWith(prefix)) {
+    throw Object.assign(new Error("La ruta del comprobante no corresponde a esta orden."), { status: 400 });
+  }
+  if (!/^https:\/\//i.test(url)) {
+    throw Object.assign(new Error("La URL del comprobante no es válida."), { status: 400 });
+  }
+
+  return { provider: "imagekit", fileId, filePath, url, fileName, contentType, size };
+}
+
+async function getOrderForProof(db, orderId, proofToken) {
+  if (!orderId || !proofToken) {
+    throw Object.assign(new Error("La orden y el token del comprobante son obligatorios."), { status: 400 });
+  }
+  const snapshot = await db.collection(ORDERS_COLLECTION).doc(orderId).get();
+  if (!snapshot.exists) throw Object.assign(new Error("La orden no existe."), { status: 404 });
+  const order = snapshot.data() || {};
+  if (!order.proofTokenHash || order.proofTokenHash !== hashProofToken(proofToken)) {
+    throw Object.assign(new Error("El token de comprobante no es válido."), { status: 403 });
+  }
+  return { snapshot, order };
+}
+
+async function proofAuth(req, res, db) {
+  const orderId = cleanString(req.body?.orderId || req.query?.orderId, 100);
+  const proofToken = cleanString(req.body?.proofToken || req.query?.proofToken, 200);
+  await getOrderForProof(db, orderId, proofToken);
+  if (!process.env.IMAGEKIT_PRIVATE_KEY) {
+    return errorResponse(res, "ImageKit no está configurado.", 500);
+  }
+  const imagekit = new ImageKit({ privateKey: process.env.IMAGEKIT_PRIVATE_KEY });
+  const authenticationParameters = imagekit.helper.getAuthenticationParameters();
+  return successResponse(res, {
+    ...authenticationParameters,
+    publicKey: process.env.VITE_IMAGEKIT_PUBLIC_KEY || process.env.IMAGEKIT_PUBLIC_KEY || "",
+    folder: getProofFolder(orderId)
+  });
+}
+
+async function submitProof(req, res, db) {
+  const orderId = cleanString(req.body?.orderId, 100);
+  const proofToken = cleanString(req.body?.proofToken, 200);
+  const { order } = await getOrderForProof(db, orderId, proofToken);
+  const paymentStatus = order.payment?.status || PAYMENT_PENDING;
+  if (![PAYMENT_PENDING, PAYMENT_SUBMITTED].includes(paymentStatus)) {
+    return errorResponse(res, "Esta orden ya no acepta comprobantes de pago.", 409);
+  }
+  const proof = validateProof(req.body?.proof, orderId);
+  const now = FieldValue.serverTimestamp();
+  await db.collection(ORDERS_COLLECTION).doc(orderId).update({
+    payment: {
+      ...(order.payment || {}),
+      status: PAYMENT_SUBMITTED,
+      proof,
+      proofSubmittedAt: now,
+      rejectionReason: null
+    },
+    updatedAt: now
+  });
+  return successResponse(res, { orderId, payment: { status: PAYMENT_SUBMITTED, proof } });
+}
+
 export async function handle(req, res) {
   const method = String(req.method || "GET").toUpperCase();
 
   if (!["GET", "POST"].includes(method)) {
-    return errorResponse(res, "Método no permitido.", 405);
+    return errorResponse(res, "MÃ©todo no permitido.", 405);
   }
 
   const action = cleanString(
@@ -142,7 +234,7 @@ export async function handle(req, res) {
     const db = getFirestore(app);
 
     // ========================================
-    // GET — PUBLIC CATALOG
+    // GET â€” PUBLIC CATALOG
     // ========================================
 
     if (method === "GET") {
@@ -177,7 +269,7 @@ export async function handle(req, res) {
           .get();
 
         if (!gameSnapshot.exists || gameSnapshot.data()?.active !== true) {
-          return errorResponse(res, "El juego seleccionado no está disponible.", 404);
+          return errorResponse(res, "El juego seleccionado no estÃ¡ disponible.", 404);
         }
 
         const snapshot = await db
@@ -196,15 +288,15 @@ export async function handle(req, res) {
         return successResponse(res, { products });
       }
 
-      return errorResponse(res, "Recurso público de Reloads no válido.", 404);
+      return errorResponse(res, "Recurso pÃºblico de Reloads no vÃ¡lido.", 404);
     }
 
     // ========================================
-    // POST — CREATE ORDER
+    // POST â€” CREATE ORDER
     // ========================================
 
     if (action !== "create-order") {
-      return errorResponse(res, "Acción pública de Reloads no válida.", 400);
+      return errorResponse(res, "AcciÃ³n pÃºblica de Reloads no vÃ¡lida.", 400);
     }
 
     const gameId = cleanString(req.body?.gameId, 100);
@@ -220,7 +312,7 @@ export async function handle(req, res) {
     }
 
     if (!whatsapp) {
-      return errorResponse(res, "Debes indicar un número de WhatsApp.", 400);
+      return errorResponse(res, "Debes indicar un nÃºmero de WhatsApp.", 400);
     }
 
     const [gameSnapshot, productSnapshot] = await Promise.all([
@@ -240,14 +332,14 @@ export async function handle(req, res) {
     const product = productSnapshot.data() || {};
 
     if (game.active !== true) {
-      return errorResponse(res, "El juego seleccionado no está disponible.", 400);
+      return errorResponse(res, "El juego seleccionado no estÃ¡ disponible.", 400);
     }
 
     if (
       product.active !== true ||
       product.gameId !== gameId
     ) {
-      return errorResponse(res, "El producto seleccionado no está disponible.", 400);
+      return errorResponse(res, "El producto seleccionado no estÃ¡ disponible.", 400);
     }
 
     const gameData = validateGameData(
@@ -261,10 +353,13 @@ export async function handle(req, res) {
       .collection(ORDERS_COLLECTION)
       .doc();
 
+    const proofToken = randomBytes(24).toString("hex");
+
     const order = {
       orderNumber: createOrderNumber(orderRef.id),
 
       customerId: customerId || null,
+      proofTokenHash: hashProofToken(proofToken),
 
       game: {
         id: gameId,
@@ -307,13 +402,14 @@ export async function handle(req, res) {
           gameData: order.gameData,
           whatsapp: order.whatsapp,
           payment: order.payment,
-          reload: order.reload
+          reload: order.reload,
+          proofToken
         }
       },
       201
     );
   } catch (error) {
-    console.error("ARKHAM — Public Reloads API:", error);
+    console.error("ARKHAM â€” Public Reloads API:", error);
 
     return errorResponse(
       res,

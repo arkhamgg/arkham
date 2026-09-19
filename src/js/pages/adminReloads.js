@@ -20,6 +20,7 @@ const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp
 
 const PAYMENT_LABELS = {
   PENDING: "Pago pendiente",
+  SUBMITTED: "Comprobante enviado",
   VERIFIED: "Pago verificado",
   REJECTED: "Pago rechazado"
 };
@@ -221,7 +222,7 @@ export function AdminReloads() {
     const gameData = Object.entries(order.gameData || {});
     const proofUrl = order.payment?.proofUrl || order.payment?.proof?.url || "";
 
-    const paymentActions = paymentStatus === "PENDING" ? `
+    const paymentActions = ["PENDING", "SUBMITTED"].includes(paymentStatus) ? `
       <div class="admin-reloads__action-group">
         <button type="button" class="admin-reloads__danger-button" data-order-action="reject-payment" data-order-id="${escape(order.id)}">Rechazar pago</button>
         <button type="button" class="admin-reloads__primary-button" data-order-action="verify-payment" data-order-id="${escape(order.id)}">Verificar pago</button>
@@ -249,7 +250,7 @@ export function AdminReloads() {
 
         <div class="admin-reloads__detail-block"><span>DATOS DEL JUEGO</span>${gameData.length ? gameData.map(([key, value]) => `<div class="admin-reloads__detail-row"><strong>${escape(key)}</strong><span>${escape(value)}</span></div>`).join("") : "<p>Sin datos adicionales.</p>"}</div>
 
-        <div class="admin-reloads__detail-block"><span>COMPROBANTE DE PAGO</span>${proofUrl ? `<a href="${escape(proofUrl)}" target="_blank" rel="noopener noreferrer" class="admin-reloads__proof">Abrir comprobante</a>` : "<p>No se ha cargado un comprobante.</p>"}</div>
+        <div class="admin-reloads__detail-block"><span>COMPROBANTE DE PAGO</span>${proofUrl ? `<a href="${escape(proofUrl)}" target="_blank" rel="noopener noreferrer" class="admin-reloads__proof">Abrir comprobante</a><small>${escape(order.payment?.proof?.fileName || "Comprobante")}${order.payment?.proof?.size ? ` · ${(Number(order.payment.proof.size) / 1024 / 1024).toFixed(2)} MB` : ""}</small>` : "<p>No se ha cargado un comprobante.</p>"}</div>
 
         <div class="admin-reloads__detail-block"><span>ESTADO</span><div class="admin-reloads__state-line"><span class="admin-reloads__status-badge is-${statusClass(paymentStatus)}">${escape(PAYMENT_LABELS[paymentStatus] || paymentStatus)}</span><span class="admin-reloads__status-badge is-${statusClass(reloadStatus)}">${escape(RELOAD_LABELS[reloadStatus] || reloadStatus)}</span></div></div>
 
