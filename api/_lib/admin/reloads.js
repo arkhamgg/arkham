@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Reloads API
+// ARKHAM — Admin Reloads API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
@@ -10,6 +10,20 @@ import { writeAdminAudit } from "./auditWriter.js";
 const ADMIN_USERS_COLLECTION = "adminUsers";
 const GAMES_COLLECTION = "reloadGames";
 const PRODUCTS_COLLECTION = "reloadProducts";
+const ORDERS_COLLECTION = "reloadOrders";
+
+const PAYMENT_STATUS = {
+  PENDING: "PENDING",
+  VERIFIED: "VERIFIED",
+  REJECTED: "REJECTED"
+};
+
+const RELOAD_STATUS = {
+  NOT_STARTED: "NOT_STARTED",
+  PROCESSING: "PROCESSING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED"
+};
 
 const ROLE_PERMISSIONS = {
   administrator: [
@@ -41,7 +55,9 @@ function getBearerToken(req) {
 
 async function authenticateAdmin(req) {
   const token = getBearerToken(req);
-  if (!token) throw Object.assign(new Error("No se proporcionó un token de autenticación."), { status: 401 });
+  if (!token) {
+    throw Object.assign(new Error("No se proporcionó un token de autenticación."), { status: 401 });
+  }
 
   const app = getFirebaseAdminApp();
   const adminAuth = getAuth(app);
@@ -49,7 +65,9 @@ async function authenticateAdmin(req) {
   const decoded = await adminAuth.verifyIdToken(token);
   const snapshot = await firestore.collection(ADMIN_USERS_COLLECTION).doc(decoded.uid).get();
 
-  if (!snapshot.exists) throw Object.assign(new Error("El usuario no tiene acceso administrativo."), { status: 403 });
+  if (!snapshot.exists) {
+    throw Object.assign(new Error("El usuario no tiene acceso administrativo."), { status: 403 });
+  }
 
   const adminUser = snapshot.data();
   const roleId = adminUser.roleId;
@@ -121,6 +139,183 @@ function serialize(doc) {
   return { id: doc.id, ...data };
 }
 
+function getOrderId(payload, req) {
+  return cleanString(payload?.orderId || req.query?.orderId);
+}
+
+function getReason(payload) {
+  return cleanString(payload?.reason);
+}
+
+async function transitionOrder({ access, orderId, action, reason = "" }) {
+  if (!orderId) {
+    throw Object.assign(new Error("Debes indicar la orden."), { status: 400 });
+  }
+
+  const ref = access.firestore.collection(ORDERS_COLLECTION).doc(orderId);
+
+  const result = await access.firestore.runTransaction(async transaction => {
+    const snapshot = await transaction.get(ref);
+
+    if (!snapshot.exists) {
+      throw Object.assign(new Error("La orden no existe."), { status: 404 });
+    }
+
+    const order = snapshot.data() || {};
+    const payment = order.payment || {};
+    const reload = order.reload || {};
+    const now = FieldValue.serverTimestamp();
+    let update = null;
+    let auditAction = "";
+
+    if (action === "verify-payment") {
+      if (payment.status !== PAYMENT_STATUS.PENDING) {
+        throw Object.assign(new Error("Solo se puede verificar una orden con pago pendiente."), { status: 409 });
+      }
+      update = {
+        payment: {
+          ...payment,
+          status: PAYMENT_STATUS.VERIFIED,
+          verifiedAt: now,
+          verifiedBy: access.uid,
+          rejectedAt: null,
+          rejectedBy: null,
+          rejectionReason: null
+        },
+        updatedAt: now
+      };
+      auditAction = "reloads.verify-payment";
+    }
+
+    if (action === "reject-payment") {
+      if (payment.status !== PAYMENT_STATUS.PENDING) {
+        throw Object.assign(new Error("Solo se puede rechazar una orden con pago pendiente."), { status: 409 });
+      }
+      if (!reason) {
+        throw Object.assign(new Error("Debes indicar el motivo del rechazo."), { status: 400 });
+      }
+      update = {
+        payment: {
+          ...payment,
+          status: PAYMENT_STATUS.REJECTED,
+          rejectedAt: now,
+          rejectedBy: access.uid,
+          rejectionReason: reason,
+          verifiedAt: null,
+          verifiedBy: null
+        },
+        updatedAt: now
+      };
+      auditAction = "reloads.reject-payment";
+    }
+
+    if (action === "start-reload") {
+      if (payment.status !== PAYMENT_STATUS.VERIFIED) {
+        throw Object.assign(new Error("Primero debes verificar el pago."), { status: 409 });
+      }
+      if (reload.status !== RELOAD_STATUS.NOT_STARTED) {
+        throw Object.assign(new Error("La recarga no está en estado pendiente de procesamiento."), { status: 409 });
+      }
+      update = {
+        reload: {
+          ...reload,
+          status: RELOAD_STATUS.PROCESSING,
+          startedAt: now,
+          startedBy: access.uid,
+          completedAt: null,
+          completedBy: null,
+          failedAt: null,
+          failedBy: null,
+          failureReason: null
+        },
+        updatedAt: now
+      };
+      auditAction = "reloads.start-reload";
+    }
+
+    if (action === "complete-reload") {
+      if (payment.status !== PAYMENT_STATUS.VERIFIED) {
+        throw Object.assign(new Error("El pago debe estar verificado."), { status: 409 });
+      }
+      if (reload.status !== RELOAD_STATUS.PROCESSING) {
+        throw Object.assign(new Error("Solo se puede completar una recarga en procesamiento."), { status: 409 });
+      }
+      update = {
+        reload: {
+          ...reload,
+          status: RELOAD_STATUS.COMPLETED,
+          completedAt: now,
+          completedBy: access.uid,
+          failedAt: null,
+          failedBy: null,
+          failureReason: null
+        },
+        updatedAt: now
+      };
+      auditAction = "reloads.complete-reload";
+    }
+
+    if (action === "fail-reload") {
+      if (payment.status !== PAYMENT_STATUS.VERIFIED) {
+        throw Object.assign(new Error("El pago debe estar verificado."), { status: 409 });
+      }
+      if (reload.status !== RELOAD_STATUS.PROCESSING) {
+        throw Object.assign(new Error("Solo se puede marcar como fallida una recarga en procesamiento."), { status: 409 });
+      }
+      if (!reason) {
+        throw Object.assign(new Error("Debes indicar el motivo del fallo de la recarga."), { status: 400 });
+      }
+      update = {
+        reload: {
+          ...reload,
+          status: RELOAD_STATUS.FAILED,
+          failedAt: now,
+          failedBy: access.uid,
+          failureReason: reason,
+          completedAt: null,
+          completedBy: null
+        },
+        updatedAt: now
+      };
+      auditAction = "reloads.fail-reload";
+    }
+
+    if (!update) {
+      throw Object.assign(new Error("Acción de orden no válida."), { status: 400 });
+    }
+
+    transaction.update(ref, update);
+
+    return {
+      previousState: {
+        paymentStatus: payment.status || null,
+        reloadStatus: reload.status || null
+      },
+      newState: {
+        paymentStatus: update.payment?.status || payment.status || null,
+        reloadStatus: update.reload?.status || reload.status || null
+      },
+      auditAction
+    };
+  });
+
+  await writeAdminAudit({
+    firestore: access.firestore,
+    actorId: access.uid,
+    actorRole: access.roleId,
+    action: result.auditAction,
+    targetType: "reloadOrder",
+    targetId: orderId,
+    previousState: result.previousState,
+    newState: result.newState,
+    reason: reason || null,
+    metadata: { orderId }
+  });
+
+  const updatedSnapshot = await ref.get();
+  return serialize(updatedSnapshot);
+}
+
 export async function handle(req, res) {
   try {
     const access = await authenticateAdmin(req);
@@ -131,47 +326,70 @@ export async function handle(req, res) {
       requirePermission(access, "reloads.view");
       const gamesSnapshot = await access.firestore.collection(GAMES_COLLECTION).orderBy("name").get();
       const productsSnapshot = await access.firestore.collection(PRODUCTS_COLLECTION).orderBy("name").get();
+      const ordersSnapshot = await access.firestore.collection(ORDERS_COLLECTION).orderBy("createdAt", "desc").limit(100).get();
+
       return successResponse(res, {
         games: gamesSnapshot.docs.map(serialize),
-        products: productsSnapshot.docs.map(serialize)
+        products: productsSnapshot.docs.map(serialize),
+        orders: ordersSnapshot.docs.map(serialize)
       });
     }
 
-    requirePermission(access, "reloads.manage");
-
-    if (!["create-game", "update-game", "create-product", "update-product"].includes(action)) {
-      return errorResponse(res, "Acción de Reloads no válida.", 400);
+    if (method !== "POST") {
+      return errorResponse(res, "Método no permitido.", 405);
     }
 
-    const collection = action.includes("game") ? GAMES_COLLECTION : PRODUCTS_COLLECTION;
-    const id = cleanString(req.body?.id);
-    const ref = id ? access.firestore.collection(collection).doc(id) : access.firestore.collection(collection).doc();
-    const existingSnapshot = await ref.get();
-    const existing = existingSnapshot.exists ? existingSnapshot.data() : {};
-
-    if (action.includes("product")) {
-      const data = normalizeProduct(req.body, existing);
-      const gameSnapshot = await access.firestore.collection(GAMES_COLLECTION).doc(data.gameId).get();
-      if (!gameSnapshot.exists) return errorResponse(res, "El juego seleccionado no existe.", 400);
-      await ref.set({ ...data, updatedAt: FieldValue.serverTimestamp(), ...(existingSnapshot.exists ? {} : { createdAt: FieldValue.serverTimestamp() }) }, { merge: true });
+    if (["verify-payment", "reject-payment"].includes(action)) {
+      requirePermission(access, "reloads.payments.review");
+    } else if (["start-reload", "complete-reload", "fail-reload"].includes(action)) {
+      requirePermission(access, "reloads.orders.process");
     } else {
-      const data = normalizeGame(req.body, existing);
-      await ref.set({ ...data, updatedAt: FieldValue.serverTimestamp(), ...(existingSnapshot.exists ? {} : { createdAt: FieldValue.serverTimestamp() }) }, { merge: true });
+      requirePermission(access, "reloads.manage");
     }
 
-    await writeAdminAudit({
-      firestore: access.firestore,
-      actorId: access.uid,
-      actorRole: access.roleId,
-      action: `reloads.${action}`,
-      targetType: collection === GAMES_COLLECTION ? "reloadGame" : "reloadProduct",
-      targetId: ref.id,
-      metadata: { id: ref.id }
-    });
+    if (["create-game", "update-game", "create-product", "update-product"].includes(action)) {
+      const collection = action.includes("game") ? GAMES_COLLECTION : PRODUCTS_COLLECTION;
+      const id = cleanString(req.body?.id);
+      const ref = id ? access.firestore.collection(collection).doc(id) : access.firestore.collection(collection).doc();
+      const existingSnapshot = await ref.get();
+      const existing = existingSnapshot.exists ? existingSnapshot.data() : {};
 
-    return successResponse(res, { id: ref.id }, existingSnapshot.exists ? 200 : 201);
+      if (action.includes("product")) {
+        const data = normalizeProduct(req.body, existing);
+        const gameSnapshot = await access.firestore.collection(GAMES_COLLECTION).doc(data.gameId).get();
+        if (!gameSnapshot.exists) return errorResponse(res, "El juego seleccionado no existe.", 400);
+        await ref.set({ ...data, updatedAt: FieldValue.serverTimestamp(), ...(existingSnapshot.exists ? {} : { createdAt: FieldValue.serverTimestamp() }) }, { merge: true });
+      } else {
+        const data = normalizeGame(req.body, existing);
+        await ref.set({ ...data, updatedAt: FieldValue.serverTimestamp(), ...(existingSnapshot.exists ? {} : { createdAt: FieldValue.serverTimestamp() }) }, { merge: true });
+      }
+
+      await writeAdminAudit({
+        firestore: access.firestore,
+        actorId: access.uid,
+        actorRole: access.roleId,
+        action: `reloads.${action}`,
+        targetType: collection === GAMES_COLLECTION ? "reloadGame" : "reloadProduct",
+        targetId: ref.id,
+        metadata: { id: ref.id }
+      });
+
+      return successResponse(res, { id: ref.id }, existingSnapshot.exists ? 200 : 201);
+    }
+
+    if (["verify-payment", "reject-payment", "start-reload", "complete-reload", "fail-reload"].includes(action)) {
+      const order = await transitionOrder({
+        access,
+        orderId: getOrderId(req.body, req),
+        action,
+        reason: getReason(req.body)
+      });
+      return successResponse(res, { order });
+    }
+
+    return errorResponse(res, "Acción de Reloads no válida.", 400);
   } catch (error) {
-    console.error("NEXUS — Admin Reloads API:", error);
+    console.error("ARKHAM — Admin Reloads API:", error);
     return errorResponse(res, error?.message || "No fue posible procesar Reloads.", error?.status || 500);
   }
 }

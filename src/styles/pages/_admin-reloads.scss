@@ -60,3 +60,41 @@
 
 @media (max-width:900px) { .admin-reloads__grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .admin-reloads__field-row { grid-template-columns:1fr 1fr; } }
 @media (max-width:600px) { .admin-reloads { width:calc(100% - 1rem); } .admin-reloads__header,.admin-reloads__section-head { align-items:flex-start; flex-direction:column; } .admin-reloads__grid { grid-template-columns:1fr; } .admin-reloads__field-row { grid-template-columns:1fr; } .admin-reloads__form-actions { flex-direction:column; } .admin-reloads__form-actions button { width:100%; } }
+
+.admin-reloads__orders { overflow-x:auto; }
+.admin-reloads__orders-list { display:grid; gap:.75rem; min-width:760px; }
+.admin-reloads__order { width:100%; display:grid; grid-template-columns:1.25fr 1.25fr 1.35fr 1fr; gap:1rem; align-items:center; text-align:left; padding:1rem 1.1rem; border:1px solid $color-700; border-radius:$radius-lg; background:$color-900; color:$color-white; cursor:pointer; transition:$transition-fast $ease-standard; }
+.admin-reloads__order:hover { border-color:$color-red; background:$color-800; }
+.admin-reloads__order-main,.admin-reloads__order-product { display:grid; gap:.25rem; min-width:0; }
+.admin-reloads__order-main span,.admin-reloads__order-product span,.admin-reloads__order time { color:$color-300; font-size:$font-size-xs; }
+.admin-reloads__order strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.admin-reloads__order-statuses { display:flex; flex-wrap:wrap; gap:.35rem; }
+.admin-reloads__status-badge { display:inline-flex; width:max-content; padding:.35rem .55rem; border:1px solid $color-700; border-radius:$radius-full; color:$color-300; font-size:$font-size-xs; line-height:1; }
+.admin-reloads__status-badge.is-pending,.admin-reloads__status-badge.is-not-started { color:$color-warning; border-color:rgba($color-warning,.35); }
+.admin-reloads__status-badge.is-verified,.admin-reloads__status-badge.is-completed { color:$color-success; border-color:rgba($color-success,.35); }
+.admin-reloads__status-badge.is-rejected,.admin-reloads__status-badge.is-failed { color:$color-error; border-color:rgba($color-error,.35); }
+.admin-reloads__status-badge.is-processing { color:$color-info; border-color:rgba($color-info,.35); }
+.admin-reloads__action-group { display:flex; justify-content:flex-end; gap:.75rem; padding-top:1rem; border-top:1px solid $color-700; }
+.admin-reloads__primary-button,.admin-reloads__danger-button { border:1px solid $color-red; border-radius:$radius-md; background:$color-red; color:$color-white; padding:.7rem 1rem; font:inherit; font-size:$font-size-sm; font-weight:600; cursor:pointer; }
+.admin-reloads__danger-button { border-color:$color-error; background:transparent; color:$color-error; }
+.admin-reloads__primary-button:hover { background:$color-red-dark; border-color:$color-red-dark; }
+.admin-reloads__danger-button:hover { background:rgba($color-error,.08); }
+.admin-reloads__order-detail { display:grid; gap:1rem; }
+.admin-reloads__detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
+.admin-reloads__detail-grid section,.admin-reloads__detail-block { display:grid; gap:.35rem; padding:1rem; border:1px solid $color-700; border-radius:$radius-md; background:$color-950; }
+.admin-reloads__detail-grid section > span,.admin-reloads__detail-block > span { color:$color-red; font-size:$font-size-xs; font-weight:700; letter-spacing:.12em; }
+.admin-reloads__detail-grid small,.admin-reloads__detail-block p { margin:0; color:$color-300; }
+.admin-reloads__detail-block.is-error { border-color:rgba($color-error,.35); }
+.admin-reloads__detail-block.is-error > span { color:$color-error; }
+.admin-reloads__detail-row { display:flex; justify-content:space-between; gap:1rem; padding:.6rem 0; border-bottom:1px solid rgba($color-white,.06); }
+.admin-reloads__detail-row:last-child { border-bottom:0; }
+.admin-reloads__detail-row span { color:$color-100; overflow-wrap:anywhere; text-align:right; }
+.admin-reloads__state-line { display:flex; flex-wrap:wrap; gap:.5rem; }
+.admin-reloads__proof { color:$color-red-light; font-weight:600; }
+.admin-reloads__proof:hover { color:$color-white; }
+
+@media (max-width:600px) {
+  .admin-reloads__detail-grid { grid-template-columns:1fr; }
+  .admin-reloads__action-group { flex-direction:column; }
+  .admin-reloads__action-group button { width:100%; }
+}

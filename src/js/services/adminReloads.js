@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Reloads Service
+// ARKHAM — Admin Reloads Service
 // ========================================
 
 import { auth } from "./firebase.js";
@@ -47,4 +47,29 @@ export async function createReloadProduct(payload) {
 export async function updateReloadProduct(payload) {
   await requireAdminPermission("reloads.manage");
   return request({ method: "POST", body: JSON.stringify({ action: "update-product", ...payload }) });
+}
+
+export async function verifyReloadPayment(orderId) {
+  await requireAdminPermission("reloads.payments.review");
+  return request({ method: "POST", body: JSON.stringify({ action: "verify-payment", orderId }) });
+}
+
+export async function rejectReloadPayment(orderId, reason) {
+  await requireAdminPermission("reloads.payments.review");
+  return request({ method: "POST", body: JSON.stringify({ action: "reject-payment", orderId, reason }) });
+}
+
+export async function startReload(orderId) {
+  await requireAdminPermission("reloads.orders.process");
+  return request({ method: "POST", body: JSON.stringify({ action: "start-reload", orderId }) });
+}
+
+export async function completeReload(orderId) {
+  await requireAdminPermission("reloads.orders.process");
+  return request({ method: "POST", body: JSON.stringify({ action: "complete-reload", orderId }) });
+}
+
+export async function failReload(orderId, reason) {
+  await requireAdminPermission("reloads.orders.process");
+  return request({ method: "POST", body: JSON.stringify({ action: "fail-reload", orderId, reason }) });
 }
