@@ -31,9 +31,11 @@ import { TeamDivisions } from "./pages/teamDivisions.js";
 import { TeamCompetitions } from "./pages/teamCompetitions.js";
 import { TeamLanding } from "./pages/teamLanding.js";
 import { PublicTeamLanding } from "./pages/publicTeamLanding.js";
+import { Reloads } from "./pages/reloads.js";
 
 import { PublicShell } from "./components/publicShell.js";
 import { DashboardShell } from "./components/dashboardShell.js";
+import { ReloadsShell } from "./components/reloadsShell.js";
 
 // ========================================
 // SESSION
@@ -109,6 +111,9 @@ const routes = {
 
   "/players":
     Players,
+
+  "/reloads":
+    Reloads,
 
 
   // ======================================
@@ -655,9 +660,11 @@ export function Router(app) {
 
 
       const shell =
-        isClientDashboardRoute
-          ? DashboardShell(Page)
-          : PublicShell(Page);
+        resolvedPath === "/reloads"
+          ? ReloadsShell(Page)
+          : isClientDashboardRoute
+            ? DashboardShell(Page)
+            : PublicShell(Page);
 
 
       // ====================================
