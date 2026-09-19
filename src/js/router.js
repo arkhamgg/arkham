@@ -35,7 +35,6 @@ import { Reloads } from "./pages/reloads.js";
 
 import { PublicShell } from "./components/publicShell.js";
 import { DashboardShell } from "./components/dashboardShell.js";
-import { ReloadsShell } from "./components/reloadsShell.js";
 
 // ========================================
 // SESSION
@@ -660,11 +659,9 @@ export function Router(app) {
 
 
       const shell =
-        resolvedPath === "/reloads"
-          ? ReloadsShell(Page)
-          : isClientDashboardRoute
-            ? DashboardShell(Page)
-            : PublicShell(Page);
+        isClientDashboardRoute
+          ? DashboardShell(Page)
+          : PublicShell(Page);
 
 
       // ====================================

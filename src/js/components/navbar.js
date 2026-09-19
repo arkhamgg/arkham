@@ -53,7 +53,7 @@ export function Navbar() {
 
         <a
           href="/"
-          class="navbar__link navbar__link--active"
+          class="navbar__link"
         >
 
           <i
@@ -135,6 +135,23 @@ export function Navbar() {
 
         </a>
 
+
+        <a
+          href="/reloads"
+          class="navbar__link"
+        >
+
+          <i
+            class="fa-solid fa-bolt"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Recargas
+          </span>
+
+        </a>
+
       </nav>
 
 
@@ -209,7 +226,7 @@ export function Navbar() {
 
         <a
           href="/"
-          class="navbar__mobile-link navbar__mobile-link--active"
+          class="navbar__mobile-link"
         >
 
           <i
@@ -242,7 +259,7 @@ export function Navbar() {
 
 
         <a
-          href="#teams"
+          href="/teams"
           class="navbar__mobile-link"
         >
 
@@ -276,7 +293,7 @@ export function Navbar() {
 
 
         <a
-          href="#calendar"
+          href="/calendar"
           class="navbar__mobile-link"
         >
 
@@ -287,6 +304,23 @@ export function Navbar() {
 
           <span>
             Calendario
+          </span>
+
+        </a>
+
+
+        <a
+          href="/reloads"
+          class="navbar__mobile-link"
+        >
+
+          <i
+            class="fa-solid fa-bolt"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Recargas
           </span>
 
         </a>
@@ -370,6 +404,60 @@ export function Navbar() {
     navbar.querySelector(
       "[data-navbar-mobile-session-action]"
     );
+
+
+  // ========================================
+  // ACTIVE NAVIGATION
+  // ========================================
+
+  const currentPath =
+    window.location.pathname || "/";
+
+  const normalizePath = (path) => {
+    if (!path) return "/";
+
+    const normalized =
+      path.length > 1 && path.endsWith("/")
+        ? path.slice(0, -1)
+        : path;
+
+    return normalized || "/";
+  };
+
+  const normalizedCurrentPath =
+    normalizePath(currentPath);
+
+  navbar
+    .querySelectorAll(
+      ".navbar__link, .navbar__mobile-link"
+    )
+    .forEach((link) => {
+      const href = link.getAttribute("href");
+
+      if (!href || !href.startsWith("/")) {
+        link.classList.remove(
+          "navbar__link--active",
+          "navbar__mobile-link--active"
+        );
+        return;
+      }
+
+      const normalizedHref =
+        normalizePath(href.split("#")[0]);
+
+      const isActive =
+        normalizedHref === normalizedCurrentPath;
+
+      link.classList.toggle(
+        "navbar__link--active",
+        isActive
+      );
+
+      link.classList.toggle(
+        "navbar__mobile-link--active",
+        isActive
+      );
+    });
 
 
   // ========================================

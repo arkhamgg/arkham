@@ -60,27 +60,31 @@
   padding:150px 0 72px;
   overflow:hidden;
   isolation:isolate;
-  background:
-    radial-gradient(circle at 67% 33%, rgba($color-red,.23), transparent 25%),
-    radial-gradient(circle at 35% 45%, rgba($color-red-dark,.2), transparent 32%),
-    linear-gradient(180deg,$color-black 0%,$color-950 58%,$color-black 100%);
+  background-color:$color-black;
+  background-image:
+    linear-gradient(90deg, rgba($color-black,.96) 0%, rgba($color-black,.78) 22%, rgba($color-black,.18) 52%, rgba($color-black,.28) 78%, rgba($color-black,.92) 100%),
+    linear-gradient(180deg, rgba($color-black,.72) 0%, rgba($color-black,.08) 24%, rgba($color-black,.12) 58%, rgba($color-black,.94) 100%),
+    url('/src/assets/reload-bg-mobile.png');
+  background-size:cover,cover,cover;
+  background-position:center,center,center top;
+  background-repeat:no-repeat;
 }
-.reloads-hero::before { content:""; position:absolute; inset:0; z-index:-4; opacity:.35; background-image:linear-gradient(rgba($color-white,.035) 1px,transparent 1px),linear-gradient(90deg,rgba($color-white,.035) 1px,transparent 1px); background-size:72px 72px; transform:perspective(600px) rotateX(58deg) scale(1.7) translateY(18%); transform-origin:center bottom; }
-.reloads-hero::after { content:""; position:absolute; inset:0; z-index:-3; background:linear-gradient(90deg,$color-black 0%,transparent 28%,transparent 72%,$color-black 100%),linear-gradient(180deg,$color-black 0%,transparent 24%,transparent 66%,$color-black 100%); }
+.reloads-hero::before { content:""; position:absolute; inset:0; z-index:-4; pointer-events:none; background:radial-gradient(circle at 50% 48%, rgba($color-red-light,.14), transparent 34%); mix-blend-mode:screen; }
+.reloads-hero::after { content:""; position:absolute; inset:0; z-index:-3; pointer-events:none; background:linear-gradient(180deg,rgba($color-black,.18),transparent 30%,transparent 65%,rgba($color-black,.72)); }
 .reloads-hero__noise { position:absolute; inset:0; z-index:-2; opacity:.16; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E"); }
 .reloads-hero__orb { position:absolute; z-index:-1; border-radius:50%; filter:blur(80px); pointer-events:none; }
 .reloads-hero__orb--one { width:460px; height:460px; top:170px; left:52%; background:rgba($color-red,.14); }
 .reloads-hero__orb--two { width:340px; height:340px; top:410px; left:17%; background:rgba($color-red-dark,.12); }
 .reloads-hero__grid { position:absolute; z-index:-2; width:700px; height:520px; top:105px; right:2%; opacity:.5; background:conic-gradient(from 210deg at 50% 50%,transparent 0deg,rgba($color-red,.22) 16deg,transparent 34deg,transparent 90deg,rgba($color-red-light,.13) 112deg,transparent 130deg); filter:blur(1px); clip-path:polygon(50% 0,100% 18%,82% 100%,18% 100%,0 18%); }
 
-.reloads-hero__container { position:relative; width:min(calc(100% - 3rem),1440px); min-height:390px; margin:0 auto; display:grid; grid-template-columns:1fr .9fr auto; align-items:center; gap:2rem; }
+.reloads-hero__container { position:relative; width:min(calc(100% - 3rem),1440px); min-height:390px; margin:0 auto; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:2rem; }
 .reloads-hero__copy { position:relative; z-index:2; max-width:690px; }
 .reloads-kicker { display:inline-flex; color:$color-red-light; font-size:$font-size-xs; font-weight:700; letter-spacing:.32em; text-transform:uppercase; }
 .reloads-hero__copy h1 { margin:1rem 0 .8rem; font-size:clamp(3.6rem,8vw,7.6rem); line-height:.86; letter-spacing:-.065em; }
 .reloads-hero__copy h1 span { display:block; color:$color-red-light; text-shadow:0 0 32px rgba($color-red,.35); }
 .reloads-hero__copy p { max-width:590px; color:$color-100; font-size:clamp(1rem,2vw,1.35rem); line-height:1.55; }
 .reloads-hero__side-copy { align-self:start; margin-top:2.4rem; color:rgba($color-red-light,.65); font-size:.62rem; line-height:2.2; letter-spacing:.55em; }
-.reloads-hero__emblem { position:relative; width:min(35vw,470px); aspect-ratio:1; display:grid; place-items:center; justify-self:center; }
+.reloads-hero__emblem { display:none; }
 .reloads-hero__emblem::before { content:""; position:absolute; inset:18%; border:1px solid rgba($color-red-light,.4); clip-path:polygon(50% 0,100% 86%,0 86%); transform:rotate(180deg); box-shadow:$glow-red-md; }
 .reloads-hero__emblem-ring { position:absolute; inset:8%; border:1px solid rgba($color-red-light,.5); border-radius:50%; box-shadow:0 0 70px rgba($color-red,.22),inset 0 0 40px rgba($color-red,.08); }
 .reloads-hero__emblem-ring::before,.reloads-hero__emblem-ring::after { content:""; position:absolute; inset:12%; border:1px solid rgba($color-red-light,.16); border-radius:50%; }
@@ -244,12 +248,21 @@
   .reloads-nav__brand { min-width:0; }
   .reloads-nav__icon,.reloads-nav__login { display:none; }
   .reloads-nav__cta { display:none; }
-  .reloads-hero { min-height:auto; padding:115px 0 32px; }
+  .reloads-hero {
+    min-height:auto;
+    padding:115px 0 32px;
+    background-image:
+      linear-gradient(180deg, rgba($color-black,.82) 0%, rgba($color-black,.18) 28%, rgba($color-black,.28) 56%, rgba($color-black,.94) 100%),
+      linear-gradient(90deg, rgba($color-black,.88) 0%, rgba($color-black,.2) 55%, rgba($color-black,.72) 100%),
+      url('/reloads/hero-mobile.webp');
+    background-size:cover,cover,cover;
+    background-position:center,center,center top;
+  }
   .reloads-hero__container { min-height:390px; display:block; }
   .reloads-hero__copy { padding-top:1rem; }
   .reloads-hero__copy h1 { font-size:clamp(3.2rem,16vw,5rem); }
   .reloads-hero__copy p { max-width:360px; }
-  .reloads-hero__emblem { position:absolute; width:270px; right:-70px; top:95px; opacity:.62; }
+  .reloads-hero__emblem { display:none; }
   .reloads-checkout { margin-top:0; border-radius:$radius-lg; }
   .reloads-checkout__steps { overflow:auto; grid-template-columns:repeat(4,minmax(150px,1fr)); }
   .reloads-step { padding:.9rem .8rem; }
