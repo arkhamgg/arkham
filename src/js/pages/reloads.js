@@ -65,7 +65,7 @@ export function Reloads() {
           ${stepMarkup(1, "Juego", "Selecciona")}
           ${stepMarkup(2, "Producto", "Elige tu recarga")}
           ${stepMarkup(3, "Datos", "Ingresa tu ID")}
-          ${stepMarkup(4, "Pago", "Comprueba")}
+          ${stepMarkup(4, "Pago", "Realiza el pago")}
         </div>
 
         <div class="reloads-checkout__body" data-checkout-body>
@@ -384,13 +384,41 @@ function renderStep(page) {
       </div>
 
       <div class="reloads-payment-box">
-        <div class="reloads-payment-box__icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="reloads-payment-box__icon"><i class="fa-solid fa-building-columns"></i></div>
         <h3>Realiza el pago</h3>
-        <p>Solicita los datos de pago por WhatsApp y luego crea la orden para adjuntar tu comprobante.</p>
-        <a class="reloads-button reloads-button--secondary" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hola ARKHAM, necesito los datos de pago para una recarga.")}" target="_blank" rel="noreferrer">
-          <i class="fa-brands fa-whatsapp"></i> Solicitar datos de pago
-        </a>
-        <div class="reloads-payment-box__note"><i class="fa-solid fa-circle-info"></i> La recarga solo se procesa después de verificar el pago.</div>
+        <p>Realiza un depósito o transferencia bancaria por el monto exacto de tu recarga a cualquiera de nuestras cuentas ARKHAM.</p>
+
+        <div class="reloads-bank-list" aria-label="Datos bancarios para realizar el pago">
+          <article class="reloads-bank-card">
+            <div class="reloads-bank-card__head">
+              <span class="reloads-bank-card__icon"><i class="fa-solid fa-building-columns"></i></span>
+              <div>
+                <span class="reloads-bank-card__label">BANCO</span>
+                <strong>Banco Industrial (BI)</strong>
+              </div>
+            </div>
+            <dl>
+              <div><dt>Nombre del titular</dt><dd>ARKHAM</dd></div>
+              <div><dt>No. de cuenta</dt><dd>123456789</dd></div>
+            </dl>
+          </article>
+
+          <article class="reloads-bank-card">
+            <div class="reloads-bank-card__head">
+              <span class="reloads-bank-card__icon"><i class="fa-solid fa-building-columns"></i></span>
+              <div>
+                <span class="reloads-bank-card__label">BANCO</span>
+                <strong>Banrural</strong>
+              </div>
+            </div>
+            <dl>
+              <div><dt>Nombre del titular</dt><dd>ARKHAM</dd></div>
+              <div><dt>No. de cuenta</dt><dd>132456789</dd></div>
+            </dl>
+          </article>
+        </div>
+
+        <div class="reloads-payment-box__note"><i class="fa-solid fa-circle-info"></i> Realiza el pago por el monto exacto. La recarga solo se procesa después de verificar el comprobante.</div>
         <div class="reloads-form__actions">
           <button type="button" class="reloads-button reloads-button--ghost" data-reloads-action="back">Atrás</button>
           <button type="button" class="reloads-button" data-reloads-action="next">Crear orden <i class="fa-solid fa-arrow-right"></i></button>

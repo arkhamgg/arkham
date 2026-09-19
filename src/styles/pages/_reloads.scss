@@ -64,7 +64,7 @@
   background-image:
     linear-gradient(90deg, rgba($color-black,.96) 0%, rgba($color-black,.78) 22%, rgba($color-black,.18) 52%, rgba($color-black,.28) 78%, rgba($color-black,.92) 100%),
     linear-gradient(180deg, rgba($color-black,.72) 0%, rgba($color-black,.08) 24%, rgba($color-black,.12) 58%, rgba($color-black,.94) 100%),
-    url('/src/assets/reload-bg-mobile.png');
+    url('/reloads/hero-desktop.webp');
   background-size:cover,cover,cover;
   background-position:center,center,center top;
   background-repeat:no-repeat;
@@ -165,6 +165,17 @@
 .reloads-payment-box p { margin:.5rem 0 1rem; color:$color-300; font-size:$font-size-sm; line-height:1.6; }
 .reloads-payment-box__note { display:flex; gap:.6rem; margin-bottom:auto; padding:.8rem; border:1px solid rgba($color-info,.15); border-radius:$radius-md; background:rgba($color-info,.05); color:$color-300; font-size:.72rem; }
 .reloads-payment-box__note i { color:$color-info; }
+.reloads-bank-list { width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin:.25rem 0 1rem; }
+.reloads-bank-card { padding:1rem; border:1px solid $color-700; border-radius:$radius-md; background:$color-900; }
+.reloads-bank-card__head { display:flex; align-items:center; gap:.7rem; margin-bottom:.9rem; }
+.reloads-bank-card__icon { width:38px; height:38px; display:grid; place-items:center; flex:0 0 38px; border:1px solid rgba($color-red-light,.25); border-radius:$radius-md; background:rgba($color-red,.08); color:$color-red-light; }
+.reloads-bank-card__head > div { min-width:0; display:flex; flex-direction:column; gap:.15rem; }
+.reloads-bank-card__label { color:$color-500; font-size:.62rem; font-weight:700; letter-spacing:.12em; }
+.reloads-bank-card strong { color:$color-white; font-size:.9rem; }
+.reloads-bank-card dl { margin:0; display:grid; gap:.6rem; }
+.reloads-bank-card dl div { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; padding-top:.6rem; border-top:1px solid rgba($color-700,.7); }
+.reloads-bank-card dt { color:$color-500; font-size:.68rem; }
+.reloads-bank-card dd { margin:0; color:$color-100; font-size:.78rem; font-weight:700; text-align:right; word-break:break-word; }
 .reloads-state { min-height:290px; display:grid; place-items:center; align-content:center; gap:.7rem; color:$color-300; text-align:center; }
 .reloads-state i { color:$color-red-light; font-size:1.5rem; }
 .reloads-state.is-error i { color:$color-error; }
@@ -243,6 +254,9 @@
 }
 
 @media (max-width:760px) {
+  .reloads-bank-list { grid-template-columns:1fr; }
+  .reloads-bank-card dl div { align-items:flex-start; flex-direction:column; gap:.2rem; }
+  .reloads-bank-card dd { text-align:left; }
   .reloads-nav__container,.reloads-hero__container,.reloads-checkout,.reloads-section__container,.reloads-footer__container { width:min(calc(100% - 1.25rem),1440px); }
   .reloads-nav__container { min-height:68px; }
   .reloads-nav__brand { min-width:0; }
