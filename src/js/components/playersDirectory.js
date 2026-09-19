@@ -402,3 +402,4 @@ export function PlayersDirectory() {
 
   return page;
 }
+console.log("sucesss")
