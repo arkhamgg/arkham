@@ -18,7 +18,8 @@ const state = {
   whatsapp: "",
   order: null,
   step: 1,
-  loading: false
+  loading: false,
+  proofFile: null
 };
 
 export function Reloads() {
@@ -31,7 +32,8 @@ export function Reloads() {
     whatsapp: "",
     order: null,
     step: 1,
-    loading: false
+    loading: false,
+    proofFile: null
   });
 
   const page = document.createElement("main");
@@ -196,6 +198,43 @@ function bindPage(page) {
       state.whatsapp = event.target.value.trim();
     }
   });
+
+  page.addEventListener("change", (event) => {
+    const fileInput = event.target.closest("[data-proof-file]");
+    if (!fileInput) return;
+
+    const file = fileInput.files?.[0] || null;
+    const message = page.querySelector("[data-proof-message]");
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file && !allowedTypes.includes(file.type)) {
+      state.proofFile = null;
+      fileInput.value = "";
+      updateProofSelection(page);
+      if (message) {
+        message.textContent = "El comprobante debe ser JPG, PNG, WEBP o PDF.";
+        message.classList.add("is-error");
+        message.classList.remove("is-success");
+      }
+      return;
+    }
+
+    if (file && (file.size <= 0 || file.size > maxSize)) {
+      state.proofFile = null;
+      fileInput.value = "";
+      updateProofSelection(page);
+      if (message) {
+        message.textContent = "El comprobante no puede superar los 5 MB.";
+        message.classList.add("is-error");
+        message.classList.remove("is-success");
+      }
+      return;
+    }
+
+    state.proofFile = file;
+    updateProofSelection(page);
+  });
 }
 
 async function loadGames(page) {
@@ -234,6 +273,7 @@ function selectGame(page, game) {
   state.selectedProduct = null;
   state.products = [];
   state.gameData = {};
+  state.proofFile = null;
   state.step = 2;
   updateSteps(page);
   renderStep(page);
@@ -243,6 +283,7 @@ function selectGame(page, game) {
 
 function selectProduct(page, product) {
   state.selectedProduct = product;
+  state.proofFile = null;
   state.step = 3;
   updateSteps(page);
   renderStep(page);
@@ -274,6 +315,7 @@ function restart(page) {
   state.gameData = {};
   state.whatsapp = "";
   state.order = null;
+  state.proofFile = null;
   state.step = 1;
   updateSteps(page);
   renderStep(page);
@@ -410,13 +452,13 @@ function renderStep(page) {
         <div class="reloads-proof" data-proof-box>
           <div class="reloads-proof__head">
             <div><span class="reloads-kicker">COMPROBANTE</span><h3>Adjunta tu comprobante</h3></div>
-            <span class="reloads-proof__status" data-proof-status>PENDIENTE</span>
+            <span class="reloads-proof__status ${state.proofFile ? "is-ready" : ""}" data-proof-status>${state.proofFile ? "LISTO PARA ENVIAR" : "PENDIENTE"}</span>
           </div>
           <label class="reloads-proof__dropzone">
             <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-proof-file>
             <i class="fa-solid fa-cloud-arrow-up"></i>
-            <strong data-proof-file-name>Selecciona tu comprobante</strong>
-            <span>JPG, PNG, WEBP o PDF · máximo 5 MB</span>
+            <strong data-proof-file-name>${state.proofFile ? escapeHtml(state.proofFile.name) : "Selecciona tu comprobante"}</strong>
+            <span data-proof-file-meta>${state.proofFile ? formatFileSize(state.proofFile.size) + " · listo para enviar" : "JPG, PNG, WEBP o PDF · máximo 5 MB"}</span>
           </label>
           <div class="reloads-proof__message" data-proof-message></div>
         </div>
@@ -429,6 +471,45 @@ function renderStep(page) {
     </div>
   `;
 
+}
+
+function updateProofSelection(page) {
+  const fileName = page.querySelector("[data-proof-file-name]");
+  const fileMeta = page.querySelector("[data-proof-file-meta]");
+  const status = page.querySelector("[data-proof-status]");
+  const message = page.querySelector("[data-proof-message]");
+  const dropzone = page.querySelector("[data-proof-file]")?.closest(".reloads-proof__dropzone");
+
+  if (state.proofFile) {
+    if (fileName) fileName.textContent = state.proofFile.name;
+    if (fileMeta) fileMeta.textContent = `${formatFileSize(state.proofFile.size)} · listo para enviar`;
+    if (status) {
+      status.textContent = "LISTO PARA ENVIAR";
+      status.classList.add("is-ready");
+    }
+    if (message) {
+      message.textContent = "Comprobante seleccionado. Todavía no se ha enviado ni creado la orden.";
+      message.classList.remove("is-error");
+      message.classList.add("is-success");
+    }
+    dropzone?.classList.add("is-selected");
+    return;
+  }
+
+  if (fileName) fileName.textContent = "Selecciona tu comprobante";
+  if (fileMeta) fileMeta.textContent = "JPG, PNG, WEBP o PDF · máximo 5 MB";
+  if (status) {
+    status.textContent = "PENDIENTE";
+    status.classList.remove("is-ready");
+  }
+  dropzone?.classList.remove("is-selected");
+}
+
+function formatFileSize(bytes) {
+  const size = Number(bytes);
+  if (!Number.isFinite(size) || size <= 0) return "Archivo seleccionado";
+  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 function fieldMarkup(field) {
@@ -516,6 +597,7 @@ async function restorePurchaseDraft(page) {
     state.selectedProduct = null;
     state.gameData = draft.gameData && typeof draft.gameData === "object" ? draft.gameData : {};
     state.whatsapp = String(draft.whatsapp || "");
+    state.proofFile = null;
     state.step = 2;
     updateSteps(page);
     await loadProducts(page, game.id);
@@ -554,7 +636,7 @@ function renderLoginRequired(page) {
       <div class="reloads-success__icon"><i class="fa-solid fa-lock"></i></div>
       <span class="reloads-kicker">CUENTA ARKHAM</span>
       <h2>Inicia sesión para continuar</h2>
-      <p>Necesitas una cuenta ARKHAM para crear una orden, realizar el pago y consultar el estado de tu recarga.</p>
+      <p>Necesitas una cuenta ARKHAM para enviar el comprobante, crear la orden y consultar el estado de tu recarga.</p>
       <div class="reloads-form__actions">
         <button type="button" class="reloads-button reloads-button--ghost" data-reloads-action="back">Volver</button>
         <a class="reloads-button" href="/login?returnTo=%2Freloads">Iniciar sesión <i class="fa-solid fa-arrow-right"></i></a>
@@ -569,10 +651,9 @@ async function submitOrder(page) {
   const user = await getAuthenticatedUser();
   if (!user) { savePurchaseDraft(); renderLoginRequired(page); return; }
 
-  const fileInput = page.querySelector("[data-proof-file]");
   const message = page.querySelector("[data-proof-message]");
   const button = page.querySelector('[data-reloads-action="next"]');
-  const file = fileInput?.files?.[0];
+  const file = state.proofFile;
 
   if (!file) {
     if (message) { message.textContent = "Selecciona tu comprobante antes de continuar."; message.classList.add("is-error"); }
@@ -587,6 +668,7 @@ async function submitOrder(page) {
     const draftId = globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID().replace(/-/g, "") : `${Date.now()}${Math.random().toString(36).slice(2)}`;
     const data = await uploadReloadPaymentProof(file, { draftId, gameId: state.selectedGame.id, productId: state.selectedProduct.id, gameData: state.gameData, whatsapp: state.whatsapp });
     state.order = data.order || null;
+    state.proofFile = null;
     clearPurchaseDraft();
     renderSuccess(page);
   } catch (error) {
