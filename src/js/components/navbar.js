@@ -1,11 +1,13 @@
 // ========================================
-// NEXUS — Navbar Component
+// ARKHAM — Navbar Component
 // ========================================
 
 import {
   getCurrentSession,
   onSessionChange
 } from "../services/session.js";
+
+import arkhamLogo from "../../assets/arkham-logo.png";
 
 
 // ========================================
@@ -32,16 +34,14 @@ export function Navbar() {
       <a
         href="/"
         class="navbar__brand"
-        aria-label="NEXUS — Inicio"
+        aria-label="ARKHAM — Inicio"
       >
 
-        <span class="navbar__brand-mark">
-          N
-        </span>
-
-        <span class="navbar__brand-name">
-          ARKHAM
-        </span>
+        <img
+          src="${arkhamLogo}"
+          alt="ARKHAM"
+          class="navbar__brand-logo"
+        />
 
       </a>
 
@@ -413,7 +413,9 @@ export function Navbar() {
   const currentPath =
     window.location.pathname || "/";
 
+
   const normalizePath = (path) => {
+
     if (!path) return "/";
 
     const normalized =
@@ -422,41 +424,56 @@ export function Navbar() {
         : path;
 
     return normalized || "/";
+
   };
+
 
   const normalizedCurrentPath =
     normalizePath(currentPath);
+
 
   navbar
     .querySelectorAll(
       ".navbar__link, .navbar__mobile-link"
     )
     .forEach((link) => {
-      const href = link.getAttribute("href");
+
+      const href =
+        link.getAttribute("href");
 
       if (!href || !href.startsWith("/")) {
+
         link.classList.remove(
           "navbar__link--active",
           "navbar__mobile-link--active"
         );
+
         return;
+
       }
 
+
       const normalizedHref =
-        normalizePath(href.split("#")[0]);
+        normalizePath(
+          href.split("#")[0]
+        );
+
 
       const isActive =
         normalizedHref === normalizedCurrentPath;
+
 
       link.classList.toggle(
         "navbar__link--active",
         isActive
       );
 
+
       link.classList.toggle(
         "navbar__mobile-link--active",
         isActive
       );
+
     });
 
 
@@ -490,6 +507,7 @@ export function Navbar() {
       sessionAction.href =
         "/dashboard";
 
+
       sessionAction.innerHTML = `
 
         <i
@@ -514,6 +532,7 @@ export function Navbar() {
 
       mobileSessionAction.href =
         "/dashboard";
+
 
       mobileSessionAction.innerHTML = `
 

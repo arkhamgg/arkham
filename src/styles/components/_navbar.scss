@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Navbar
+// ARKHAM — Navbar
 // ========================================
 
 @use "../abstracts/variables" as *;
@@ -32,7 +32,6 @@
   &__brand {
     display: inline-flex;
     align-items: center;
-    gap: $space-3;
     flex-shrink: 0;
     color: $color-white;
     transition:
@@ -48,26 +47,13 @@
     }
   }
 
-  &__brand-mark {
-    width: 34px;
-    height: 34px;
-    display: grid;
-    place-items: center;
-    border: 1px solid rgba($color-white, 0.16);
-    border-radius: $radius-sm;
-    background: $color-white;
-    color: $color-black;
-    font-size: $font-size-lg;
-    font-weight: 900;
-    line-height: 1;
-    box-shadow: 0 0 0 1px rgba($color-red, 0.08);
-  }
-
-  &__brand-name {
-    font-size: $font-size-lg;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    line-height: 1;
+  &__brand-logo {
+    display: block;
+    width: auto;
+    height: 36px;
+    max-width: 180px;
+    object-fit: contain;
+    object-position: center;
   }
 
   &__nav {
@@ -367,6 +353,11 @@
     &__cta {
       padding-inline: $space-4;
     }
+
+    &__brand-logo {
+      height: 34px;
+      max-width: 160px;
+    }
   }
 }
 
@@ -391,13 +382,9 @@
       display: flex;
     }
 
-    &__brand-mark {
-      width: 32px;
+    &__brand-logo {
       height: 32px;
-    }
-
-    &__brand-name {
-      font-size: $font-size-md;
+      max-width: 145px;
     }
 
     &__mobile-menu {
@@ -408,7 +395,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .navbar,
-  .navbar *,
+  .navbar * ,
   .navbar *::before,
   .navbar *::after {
     transition-duration: 0.01ms !important;
