@@ -1295,7 +1295,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
   // LOAD ARKHAM CONTEXT
   // ========================================
 
-  async function loadNexusContext() {
+  async function loadArkhamContext() {
 
     try {
 
@@ -1533,8 +1533,8 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
   // LOAD
   // ========================================
 
-  const nexusContextInitialization =
-    loadNexusContext();
+  const arkhamContextInitialization =
+    loadArkhamContext();
 
 
   // ========================================

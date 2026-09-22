@@ -63,7 +63,7 @@
     transform-box: fill-box;
     transform-origin: center;
 
-    animation: nexusFragmentFloat 8s ease-in-out infinite;
+    animation: arkhamFragmentFloat 8s ease-in-out infinite;
   }
 
 
@@ -236,7 +236,7 @@
 // FLOAT
 // ========================================
 
-@keyframes nexusFragmentFloat {
+@keyframes arkhamFragmentFloat {
 
   0% {
     transform: translate3d(0, 0, 0) rotate(0deg);

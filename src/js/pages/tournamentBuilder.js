@@ -73,12 +73,12 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
    * El Builder debe resolver el Tournament ID antes
    * de permitir cualquier operación de guardado.
    */
-  let nexusContextReady = false;
+  let arkhamContextReady = false;
 
-  let nexusContextInitialization = null;
+  let arkhamContextInitialization = null;
 
   // Contexto NEXUS disponible para todo el Builder.
-  // Debe poder ser utilizado tanto por loadNexusContext()
+  // Debe poder ser utilizado tanto por loadArkhamContext()
   // como por el flujo de guardado.
   let accountContext = null;
   let entityContext = null;
@@ -1433,11 +1433,11 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
        * El contexto debe estar completamente resuelto
        * antes de construir/guardar la configuración.
        */
-      if (nexusContextInitialization) {
-        await nexusContextInitialization;
+      if (arkhamContextInitialization) {
+        await arkhamContextInitialization;
       }
 
-      if (!nexusContextReady || !tournamentId) {
+      if (!arkhamContextReady || !tournamentId) {
         console.error(
           "ARKHAM — No se puede guardar: el Tournament ID actual todavía no está disponible."
         );
@@ -1529,11 +1529,11 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
      * invocada desde otro flujo, no debe intentar escribir
      * hasta que el contexto haya terminado de resolverse.
      */
-    if (nexusContextInitialization) {
-      await nexusContextInitialization;
+    if (arkhamContextInitialization) {
+      await arkhamContextInitialization;
     }
 
-    if (!nexusContextReady || !tournamentId) {
+    if (!arkhamContextReady || !tournamentId) {
       console.error(
         "ARKHAM — No se encontró el Tournament ID actual."
       );
@@ -1648,7 +1648,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
    * --------------------------------------------------
    */
 
-  async function loadNexusContext() {
+  async function loadArkhamContext() {
 
     try {
 
@@ -1680,11 +1680,11 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
        * conocemos el Tournament ID que será el documento
        * padre de events.
        */
-      nexusContextReady = Boolean(tournamentId);
+      arkhamContextReady = Boolean(tournamentId);
 
       
 
-      if (!nexusContextReady) {
+      if (!arkhamContextReady) {
         console.error(
           "ARKHAM — El contexto actual no contiene un Tournament ID."
         );
@@ -1729,7 +1729,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
     } catch (error) {
 
-      nexusContextReady = false;
+      arkhamContextReady = false;
 
       console.error(
         "ARKHAM — Error cargando contexto del Builder:",
@@ -1912,10 +1912,10 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     }
   }
 
-  nexusContextInitialization =
-    loadNexusContext();
+  arkhamContextInitialization =
+    loadArkhamContext();
 
-  nexusContextInitialization.then(
+  arkhamContextInitialization.then(
     loadExistingEvent
   );
 
