@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Public Team Landing API
+// ARKHAM — Public Team Landing API
 // ========================================
 
 import { getFirestore } from "firebase-admin/firestore";
@@ -184,7 +184,7 @@ export default async function handler(req, res) {
         : null
     });
   } catch (error) {
-    console.error("NEXUS — Error cargando Team Landing pública:", error);
+    console.error("ARKHAM — Error cargando Team Landing pública:", error);
     return json(res, 500, {
       error: "No fue posible cargar la información pública del Team."
     });

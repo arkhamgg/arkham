@@ -62,4 +62,3 @@ export function reviewTournamentRecognition({ tournamentId, eventId, participant
     body: { action: "review", participantId, approve, reason }
   });
 }
-console.log("success")

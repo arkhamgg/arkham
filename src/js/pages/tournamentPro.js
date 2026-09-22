@@ -27,7 +27,7 @@ export function TournamentPro() {
     <div class="tournament-pro-page__container">
       <header class="tournament-pro-page__header">
         <div>
-          <span class="tournament-pro-page__eyebrow">NEXUS // TOURNAMENT PRO</span>
+          <span class="tournament-pro-page__eyebrow">ARKHAM // TOURNAMENT PRO</span>
           <h1>ADMINISTRAR TORNEO</h1>
           <p data-pro-message>Cargando estructura de competencia…</p>
         </div>
@@ -136,7 +136,7 @@ export function TournamentPro() {
         const participant = slot.participantId ? pro.participants?.[slot.participantId] : null;
         const name = participant?.displayName || "Posición disponible";
         const meta = participant
-          ? (participant.entityId || (participant.manual ? "Participante manual" : "Player/Team NEXUS"))
+          ? (participant.entityId || (participant.manual ? "Participante manual" : "Player/Team ARKHAM"))
           : "Esperando participante";
 
         return `
@@ -240,7 +240,7 @@ export function TournamentPro() {
           const participant = slot.participantId ? pro.participants?.[slot.participantId] : null;
           const name = participant?.displayName || "Posición disponible";
           const meta = participant
-            ? (participant.status === "no_show" ? "Asiento liberado" : participant.entityId || (participant.manual ? "Participante manual" : "Player/Team NEXUS"))
+            ? (participant.status === "no_show" ? "Asiento liberado" : participant.entityId || (participant.manual ? "Participante manual" : "Player/Team ARKHAM"))
             : "Esperando participante";
           const mutable = !eventLive && !eventFinished && !checkInCompleted;
 
@@ -389,7 +389,7 @@ export function TournamentPro() {
                         <article class="tournament-pro-page__participant ${isPresent ? "is-present" : isNoShow ? "is-no-show" : ""}">
                           <div>
                             <strong>${escapeHtml(participant.displayName || participant.id)}</strong>
-                            <span>${escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team NEXUS"))}</span>
+                            <span>${escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team ARKHAM"))}</span>
                           </div>
                           <div class="tournament-pro-page__inline-actions tournament-pro-page__checkin-actions">
                             ${canChange ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--present" data-present="${escapeAttr(participant.id)}" ${isPresent ? "disabled" : ""}>Presente</button>` : ""}
@@ -477,7 +477,7 @@ export function TournamentPro() {
                 </header>
                 <div class="tournament-pro-page__modal-body">
                   <form data-slot-search-form>
-                    <label class="tournament-pro-page__modal-label">Buscar en NEXUS</label>
+                    <label class="tournament-pro-page__modal-label">Buscar en ARKHAM</label>
                     <div class="tournament-pro-page__search-row">
                       <input name="term" placeholder="Nombre, gamertag o ID" required autofocus>
                       <select name="type" aria-label="Tipo de participante"><option value="player">Player</option><option value="team">Team</option></select>
@@ -488,7 +488,7 @@ export function TournamentPro() {
                   <div class="tournament-pro-page__modal-divider"><span>o</span></div>
                   <button type="button" class="tournament-pro-page__manual-option" data-slot-manual>
                     <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
-                    <span><strong>Agregar participante manual</strong><small>Úsalo si no tiene perfil en NEXUS.</small></span>
+                    <span><strong>Agregar participante manual</strong><small>Úsalo si no tiene perfil en ARKHAM.</small></span>
                     <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                   </button>
                 </div>
@@ -766,4 +766,3 @@ function escapeAttr(value = "") {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 }
-console.log("cerrado")

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Billing Payments API
+// ARKHAM — Admin Billing Payments API
 // ========================================
 //
 // GET /api/admin-billing-payments
@@ -635,9 +635,7 @@ async function handleGet(
 
   try {
 
-    console.log(
-      "NEXUS — Admin Billing Payments: GET recibido."
-    );
+
 
 
     // ------------------------------------
@@ -649,17 +647,6 @@ async function handleGet(
         req
       );
 
-
-    console.log(
-      "NEXUS — Admin Billing Payments: autenticación OK.",
-      {
-        uid:
-          access.uid,
-
-        role:
-          access.roleId
-      }
-    );
 
 
     // ------------------------------------
@@ -973,21 +960,6 @@ async function handleGet(
     // RESPONSE
     // ------------------------------------
 
-    console.log(
-      "NEXUS — Admin Billing Payments: pagos cargados.",
-      {
-
-        actorUid:
-          access.uid,
-
-        actorRole:
-          access.roleId,
-
-        count:
-          enrichedPayments.length
-
-      }
-    );
 
 
     return successResponse(
@@ -1008,7 +980,7 @@ async function handleGet(
   ) {
 
     console.error(
-      "NEXUS — Admin Billing Payments GET:",
+      "ARKHAM — Admin Billing Payments GET:",
       error
     );
 

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Registration Requirements Editor
+// ARKHAM — Registration Requirements Editor
 // ========================================
 
 export function RegistrationRequirementsEditor({

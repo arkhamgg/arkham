@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Subscription Lifecycle
+// ARKHAM — Subscription Lifecycle
 // ========================================
 
 import {

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Competitive Mode Selector
+// ARKHAM — Competitive Mode Selector
 // ========================================
 
 import {
@@ -216,7 +216,7 @@ export function CompetitiveModeSelector({
     } catch (error) {
 
       console.error(
-        "NEXUS — Error cargando modalidades:",
+        "ARKHAM — Error cargando modalidades:",
         error
       );
 

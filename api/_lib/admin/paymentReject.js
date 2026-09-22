@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Billing Payment Reject API
+// ARKHAM — Admin Billing Payment Reject API
 // ========================================
 
 import {
@@ -543,7 +543,7 @@ export async function handle(
   ) {
 
     console.error(
-      "NEXUS — Admin Billing Payment Reject API:",
+      "ARKHAM — Admin Billing Payment Reject API:",
       error
     );
 

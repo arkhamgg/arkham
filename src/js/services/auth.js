@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Firebase Authentication Service
+// ARKHAM — Firebase Authentication Service
 // ========================================
 
 import {

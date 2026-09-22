@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Audit Service
+// ARKHAM — Admin Audit Service
 // ========================================
 
 import { auth } from "./firebase.js";

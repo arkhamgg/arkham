@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Payment Service
+// ARKHAM — Payment Service
 // ========================================
 
 
@@ -155,7 +155,7 @@ export function createPayment(
     // ======================================
     //
     // El comprobante NO se almacena
-    // directamente en NEXUS.
+    // directamente en ARKHAM.
     //
     // proof contiene únicamente la referencia
     // al archivo almacenado en ImageKit.
@@ -354,7 +354,7 @@ export async function getAccountPayment(
   ) {
 
     console.error(
-      "NEXUS — El pago no pertenece a la cuenta."
+      "ARKHAM — El pago no pertenece a la cuenta."
     );
 
     return null;

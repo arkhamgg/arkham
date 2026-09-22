@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Entity Service
+// ARKHAM — Entity Service
 // ========================================
 
 import {
@@ -96,7 +96,7 @@ export async function getCurrentEntity() {
   if (!collectionName) {
 
     console.error(
-      "NEXUS — Tipo de entidad no soportado:",
+      "ARKHAM — Tipo de entidad no soportado:",
       reference.type
     );
 
@@ -115,7 +115,7 @@ export async function getCurrentEntity() {
   if (!entity) {
 
     console.warn(
-      "NEXUS — Entidad no encontrada:",
+      "ARKHAM — Entidad no encontrada:",
       reference
     );
 

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Billing Configuration
+// ARKHAM — Billing Configuration
 // ========================================
 
 const PRO_MONTHLY_PRICE =
@@ -84,7 +84,7 @@ export const BILLING_CONFIG = {
           monthly: {
 
             // Team Pro utiliza inicialmente el mismo precio
-            // configurado para Pro. Se separará cuando NEXUS
+            // configurado para Pro. Se separará cuando ARKHAM
             // defina un precio comercial propio para Team.
             amount:
               PRO_MONTHLY_PRICE,

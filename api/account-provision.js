@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Account Provisioning
+// ARKHAM — Account Provisioning
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";

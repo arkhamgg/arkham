@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Competitions Page
+// ARKHAM — Competitions Page
 // ========================================
 
 import { CompetitionCard } from "../components/competitionCard.js";
@@ -94,7 +94,7 @@ export function Competitions() {
           <span>01</span>
 
           <span>
-            NEXUS COMPETITIONS
+            ARKHAM COMPETITIONS
           </span>
 
         </div>
@@ -109,7 +109,7 @@ export function Competitions() {
 
           <p>
             Explora las competencias que forman parte
-            del ecosistema competitivo de NEXUS.
+            del ecosistema competitivo de ARKHAM.
           </p>
 
         </div>
@@ -278,9 +278,6 @@ export function Competitions() {
 
     try {
 
-      console.log(
-        "NEXUS — Cargando competencias..."
-      );
 
 
       const [
@@ -299,16 +296,8 @@ export function Competitions() {
       ]);
 
 
-      console.log(
-        "NEXUS — Ligas:",
-        leagues
-      );
 
 
-      console.log(
-        "NEXUS — Torneos:",
-        tournaments
-      );
 
 
       const normalizedLeagues =
@@ -348,17 +337,9 @@ export function Competitions() {
       renderCompetitions();
 
 
-      console.log(
-        "NEXUS — Competencias cargadas:",
-        competitions
-      );
 
     } catch (error) {
 
-      console.error(
-        "NEXUS — Error cargando competencias:",
-        error
-      );
 
 
       loadingState.hidden =

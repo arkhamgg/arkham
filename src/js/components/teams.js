@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Teams Component
+// ARKHAM — Teams Component
 // ========================================
 
 export function Teams() {

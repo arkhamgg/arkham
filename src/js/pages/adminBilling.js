@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Billing
+// ARKHAM — Admin Billing
 // ========================================
 
 import { getAdminBilling } from "../services/adminBilling.js";
@@ -10,7 +10,7 @@ export function AdminBilling() {
   page.innerHTML = `
     <section class="admin-billing">
       <header class="admin-billing__header">
-        <div><span class="admin-billing__eyebrow">NEXUS ADMIN</span><h1>Billing</h1><p>Visión financiera de pagos, suscripciones e ingresos de NEXUS.</p></div>
+        <div><span class="admin-billing__eyebrow">ARKHAM ADMIN</span><h1>Billing</h1><p>Visión financiera de pagos, suscripciones e ingresos de ARKHAM.</p></div>
         <button type="button" class="admin-billing__refresh" data-refresh><i class="fa-solid fa-rotate"></i> Actualizar</button>
       </header>
       <div class="admin-billing__message" data-message></div>

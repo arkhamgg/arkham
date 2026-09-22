@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Subscriptions
+// ARKHAM — Admin Subscriptions
 // ========================================
 
 import {
@@ -16,7 +16,7 @@ export function AdminSubscriptions() {
     <section class="admin-subscriptions">
       <header class="admin-subscriptions__header">
         <div>
-          <span class="admin-subscriptions__eyebrow">NEXUS ADMIN</span>
+          <span class="admin-subscriptions__eyebrow">ARKHAM ADMIN</span>
           <h1>Suscripciones</h1>
           <p>Consulta el estado de las suscripciones y sus ciclos de facturación.</p>
         </div>
@@ -134,7 +134,7 @@ export function AdminSubscriptions() {
       renderSummary();
       render();
     } catch (error) {
-      console.error("NEXUS — Admin Subscriptions:", error);
+      console.error("ARKHAM — Admin Subscriptions:", error);
       message.textContent = error?.message || "No fue posible cargar las suscripciones.";
       container.innerHTML = `<div class="admin-subscriptions__error"><strong>No fue posible cargar las suscripciones.</strong><p>${escapeHtml(error?.message || "Intenta nuevamente.")}</p></div>`;
     }

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Session Service
+// ARKHAMs — Session Service
 // ========================================
 
 import { authReady } from "./firebase.js";
@@ -142,7 +142,7 @@ export function initializeSession(
                 } catch (error) {
 
                   console.error(
-                    "NEXUS — Error cargando sesión:",
+                    "ARKHAM — Error cargando sesión:",
                     error
                   );
 
@@ -172,7 +172,7 @@ export function initializeSession(
           (error) => {
 
             console.error(
-              "NEXUS — Error inicializando Firebase Auth:",
+              "ARKHAM — Error inicializando Firebase Auth:",
               error
             );
 

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Staff API
+// ARKHAM — Admin Staff API
 // ========================================
 //
 // Gestión segura del staff administrativo.
@@ -293,7 +293,7 @@ async function getAuthenticatedAdmin(
   } catch (error) {
 
     console.error(
-      "NEXUS — Admin Staff: token inválido.",
+      "ARKHAM — Admin Staff: token inválido.",
       error
     );
 
@@ -541,9 +541,6 @@ async function handleGet(
 
   try {
 
-    console.log(
-      "NEXUS — Admin Staff API: GET recibido."
-    );
 
 
     // ------------------------------------
@@ -556,16 +553,7 @@ async function handleGet(
       );
 
 
-    console.log(
-      "NEXUS — Admin Staff API: autenticación OK.",
-      {
-        uid:
-          access.uid,
 
-        role:
-          access.roleId
-      }
-    );
 
 
     // ------------------------------------
@@ -622,19 +610,6 @@ async function handleGet(
         );
 
 
-    console.log(
-      "NEXUS — Admin Staff API: staff cargado.",
-      {
-        actorUid:
-          access.uid,
-
-        actorRole:
-          access.roleId,
-
-        count:
-          users.length
-      }
-    );
 
 
     return successResponse(
@@ -647,7 +622,7 @@ async function handleGet(
   } catch (error) {
 
     console.error(
-      "NEXUS — Admin Staff API GET:",
+      "ARKHAM — Admin Staff API GET:",
       error
     );
 
@@ -678,9 +653,7 @@ async function handlePatch(
 
   try {
 
-    console.log(
-      "NEXUS — Admin Staff API: PATCH recibido."
-    );
+
 
 
     // ------------------------------------
@@ -903,18 +876,7 @@ async function handlePatch(
       });
 
 
-      console.log(
-        "NEXUS — Admin Staff API: rol actualizado.",
-        {
-          actorUid:
-            access.uid,
-
-          targetUid:
-            uid,
-
-          roleId
-        }
-      );
+  
 
 
       const updatedSnapshot =
@@ -994,18 +956,6 @@ async function handlePatch(
       });
 
 
-      console.log(
-        "NEXUS — Admin Staff API: estado actualizado.",
-        {
-          actorUid:
-            access.uid,
-
-          targetUid:
-            uid,
-
-          status
-        }
-      );
 
 
       const updatedSnapshot =
@@ -1042,7 +992,7 @@ async function handlePatch(
   } catch (error) {
 
     console.error(
-      "NEXUS — Admin Staff API PATCH:",
+      "ARKHAM — Admin Staff API PATCH:",
       error
     );
 
@@ -1076,10 +1026,6 @@ export async function handle(
   res
 ) {
 
-  console.log(
-    "NEXUS — Admin Staff API:",
-    req.method
-  );
 
 
   if (

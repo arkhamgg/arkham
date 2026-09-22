@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Billing Payment Proof API
+// ARKHAM — Billing Payment Proof API
 // ========================================
 
 import {
@@ -929,7 +929,7 @@ export default async function handler(
   ) {
 
     console.error(
-      "NEXUS — Billing Payment Proof API:",
+      "ARKHAM — Billing Payment Proof API:",
       error
     );
 

@@ -103,7 +103,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
             <div class="tournament-builder__header-content">
 
               <span class="tournament-builder__eyebrow">
-                NEXUS // TOURNAMENT BUILDER
+                ARKHAM // TOURNAMENT BUILDER
               </span>
 
               <h1
@@ -828,20 +828,14 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         const available =
           availability?.available ?? null;
 
-        console.log(
-          "NEXUS — Disponibilidad de cupos actualizada:",
-          selectedRegistrationAvailability
-        );
+        
 
         setStatus(
           statusElements.capacity,
           Boolean(selectedCapacity)
         );
 
-        console.log(
-          "NEXUS — Cupos disponibles:",
-          available
-        );
+        
       }
     });
 
@@ -861,10 +855,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       selectedFormat = format;
 
-      console.log(
-        "NEXUS — Formato seleccionado:",
-        selectedFormat
-      );
+      
 
       setStatus(
         statusElements.format,
@@ -892,10 +883,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       selectedMatchSystem =
         matchSystem;
 
-      console.log(
-        "NEXUS — Match System seleccionado:",
-        selectedMatchSystem
-      );
+      
 
       setStatus(
         statusElements.matchSystem,
@@ -930,15 +918,9 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       selectedRegistrationAvailability =
         capacityAvailabilitySelector.getValue();
 
-      console.log(
-        "NEXUS — Capacidad seleccionada:",
-        selectedCapacity
-      );
+      
 
-      console.log(
-        "NEXUS — Disponibilidad actualizada:",
-        selectedRegistrationAvailability
-      );
+      
 
       setStatus(
         statusElements.capacity,
@@ -966,10 +948,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       selectedRules =
         rules;
 
-      console.log(
-        "NEXUS — Reglas actualizadas:",
-        selectedRules
-      );
+      
 
       setStatus(
         statusElements.rules,
@@ -995,10 +974,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       selectedLocation =
         location;
 
-      console.log(
-        "NEXUS — Ubicación actualizada:",
-        selectedLocation
-      );
+      
 
       setStatus(
         statusElements.location,
@@ -1024,10 +1000,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       selectedDateTime =
         dateTime;
 
-      console.log(
-        "NEXUS — Fecha y hora actualizadas:",
-        selectedDateTime
-      );
+      
 
       setStatus(
         statusElements.dateTime,
@@ -1056,10 +1029,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       selectedPrizes =
         prizes;
 
-      console.log(
-        "NEXUS — Premios actualizados:",
-        selectedPrizes
-      );
+      
 
       setStatus(
         statusElements.prizes,
@@ -1090,10 +1060,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         selectedRegistrationCost =
           registrationCost;
 
-        console.log(
-          "NEXUS — Costo de inscripción actualizado:",
-          selectedRegistrationCost
-        );
+      
 
         setStatus(
           statusElements.registrationCost,
@@ -1151,10 +1118,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         selectedSupportContact =
           supportContact;
 
-        console.log(
-          "NEXUS — Contacto de soporte actualizado:",
-          selectedSupportContact
-        );
+        
 
         setStatus(
           statusElements.support,
@@ -1253,30 +1217,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
           false
         );
 
-        console.log(
-          "NEXUS — Modalidad seleccionada:",
-          selectedCompetitiveMode
-        );
-
-        console.log(
-          "NEXUS — Participación:",
-          participationType
-        );
-
-        console.log(
-          "NEXUS — Formatos disponibles:",
-          availableFormats
-        );
-
-        console.log(
-          "NEXUS — Match Systems disponibles:",
-          availableMatchSystems
-        );
-
-        console.log(
-          "NEXUS — Capacidades disponibles:",
-          availableCapacityOptions
-        );
+        
 
         updateNextButton();
       }
@@ -1412,10 +1353,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       updateNextButton();
 
-      console.log(
-        "NEXUS — Juego seleccionado:",
-        selectedGame
-      );
+      
 
       await competitiveModeSelector.setGame(
         selectedGame
@@ -1469,10 +1407,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
         updateLandingTemplateDescription();
 
-        console.log(
-          "NEXUS — Landing seleccionada:",
-          selectedLandingTemplate
-        );
+      
 
       }
     );
@@ -1504,7 +1439,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
       if (!nexusContextReady || !tournamentId) {
         console.error(
-          "NEXUS — No se puede guardar: el Tournament ID actual todavía no está disponible."
+          "ARKHAM — No se puede guardar: el Tournament ID actual todavía no está disponible."
         );
         return;
       }
@@ -1600,23 +1535,14 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
     if (!nexusContextReady || !tournamentId) {
       console.error(
-        "NEXUS — No se encontró el Tournament ID actual."
+        "ARKHAM — No se encontró el Tournament ID actual."
       );
       return;
     }
 
     try {
 
-      console.log(
-        "NEXUS — Firestore Tournament Save Target:",
-        {
-          collection: "tournaments",
-          tournamentId,
-          mapField: "events",
-          eventId,
-          mode: isEditMode ? "edit" : "new"
-        }
-      );
+      
 
       saveButton.disabled = true;
 
@@ -1659,7 +1585,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       } catch (calendarError) {
 
         console.error(
-          "NEXUS — Error sincronizando Calendar:",
+          "ARKHAM — Error sincronizando Calendar:",
           calendarError
         );
 
@@ -1670,15 +1596,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       // SUCCESS
       // ========================================
 
-      console.log(
-        "NEXUS — Torneo guardado correctamente:",
-        {
-          tournamentId,
-          eventId,
-          configuration:
-            tournamentConfiguration
-        }
-      );
+      
 
       window.history.pushState(
         {},
@@ -1693,7 +1611,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     } catch (error) {
 
       console.error(
-        "NEXUS — Error guardando el torneo:",
+        "ARKHAM — Error guardando el torneo:",
         error
       );
 
@@ -1726,7 +1644,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   /*
    * --------------------------------------------------
-   * LOAD NEXUS CONTEXT
+   * LOAD ARKHAM CONTEXT
    * --------------------------------------------------
    */
 
@@ -1764,20 +1682,11 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
        */
       nexusContextReady = Boolean(tournamentId);
 
-      console.log(
-        "NEXUS — Builder Tournament Context:",
-        {
-          mode: isEditMode ? "edit" : "new",
-          tournamentId,
-          eventId,
-          entityContextType: entityContext?.type || null,
-          entityContextId: entityContext?.id || null
-        }
-      );
+      
 
       if (!nexusContextReady) {
         console.error(
-          "NEXUS — El contexto actual no contiene un Tournament ID."
+          "ARKHAM — El contexto actual no contiene un Tournament ID."
         );
       }
 
@@ -1815,32 +1724,15 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       }
 
 
-      console.log(
-        "NEXUS — Builder Account Context:",
-        accountContext
-      );
-
-      console.log(
-        "NEXUS — Builder Entity Context:",
-        entityContext
-      );
-
-      console.log(
-        "NEXUS — Builder Tournament ID:",
-        tournamentId
-      );
-
-      console.log(
-        "NEXUS — Builder Access:",
-        access
-      );
+      
+      
 
     } catch (error) {
 
       nexusContextReady = false;
 
       console.error(
-        "NEXUS — Error cargando contexto del Builder:",
+        "ARKHAM — Error cargando contexto del Builder:",
         error
       );
 
@@ -2011,13 +1903,10 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       saveButton.textContent = "GUARDAR CAMBIOS";
       updateNextButton();
 
-      console.log(
-        "NEXUS — Evento cargado para edición:",
-        { tournamentId, eventId }
-      );
+      
     } catch (error) {
       console.error(
-        "NEXUS — Error cargando evento para edición:",
+        "ARKHAM — Error cargando evento para edición:",
         error
       );
     }

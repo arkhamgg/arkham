@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Audit API
+// ARKHAMS — Admin Audit API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
@@ -79,7 +79,7 @@ export async function handle(req, res) {
       logs: logs.slice(0, 500)
     });
   } catch (error) {
-    console.error("NEXUS — Admin Audit API:", error);
+    console.error("ARKHAM — Admin Audit API:", error);
     return errorResponse(res, error?.message || "No fue posible cargar la auditoría.", error?.status || 500);
   }
 }

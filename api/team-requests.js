@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Requests API
+// ARKHAM — Team Requests API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
@@ -45,7 +45,7 @@ async function getPlayerRequestDocs(db, playerId) {
       .get();
     return snapshot.docs;
   } catch (queryError) {
-    console.warn("NEXUS — collectionGroup teamRequests no disponible; usando fallback por Team.", queryError);
+    console.warn("ARKHAM — collectionGroup teamRequests no disponible; usando fallback por Team.", queryError);
     const teamsSnapshot = await db.collection("teams").get();
     const snapshots = await Promise.all(
       teamsSnapshot.docs.map((teamDoc) =>
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     const playerId = profile?.entityType === "player" ? profile?.entityId : null;
 
     if (method === "GET") {
-      if (!playerId) return json(res, 400, { success: false, error: "Tu cuenta NEXUS no tiene un perfil Player." });
+      if (!playerId) return json(res, 400, { success: false, error: "Tu cuenta ARKHAM no tiene un perfil Player." });
 
       let requestDocs = [];
       try {
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
       } catch (queryError) {
         // Fallback sin collection-group index: las solicitudes siguen siendo
         // team-scoped, por lo que recorremos los Teams existentes.
-        console.warn("NEXUS — collectionGroup teamRequests no disponible; usando fallback por Team.", queryError);
+        console.warn("ARKHAM — collectionGroup teamRequests no disponible; usando fallback por Team.", queryError);
         const teamsSnapshot = await db.collection("teams").get();
         const teamRequestsSnapshots = await Promise.all(
           teamsSnapshot.docs.map((teamDoc) =>
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
     }
 
     if (method !== "POST") return json(res, 405, { error: "Método no permitido." });
-    if (!playerId) return json(res, 400, { success: false, error: "Tu cuenta NEXUS no tiene un perfil Player." });
+    if (!playerId) return json(res, 400, { success: false, error: "Tu cuenta ARKHAM no tiene un perfil Player." });
 
     const action = String(req.body?.action || "").trim().toLowerCase();
     const teamId = String(req.body?.teamId || "").trim();
@@ -213,7 +213,7 @@ export default async function handler(req, res) {
 
     return json(res, 400, { error: "Acción de solicitud no reconocida." });
   } catch (error) {
-    console.error("NEXUS — Team Requests API error:", error);
+    console.error("ARKHAM — Team Requests API error:", error);
     return json(res, error?.status || 500, { error: error?.message || "No fue posible procesar la solicitud de Team." });
   }
 }

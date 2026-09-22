@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Firestore Service
+// ARKHAM — Firestore Service
 // ========================================
 
 import {
@@ -496,7 +496,7 @@ export function subscribeMapEntity(
     },
     (error) => {
       console.error(
-        "NEXUS — Error en suscripción de entidad map:",
+        "ARKHAM — Error en suscripción de entidad map:",
         error
       );
 

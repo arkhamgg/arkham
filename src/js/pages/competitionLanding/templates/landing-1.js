@@ -31,7 +31,7 @@ export function renderLanding1({
   const primaryColor = palette.primary || "#E30613";
   const accentColor = palette.accent || primaryColor;
 
-  const eventName = tournament.name || "COMPETENCIA NEXUS";
+  const eventName = tournament.name || "COMPETENCIA ARKHAM";
   const gameName = game.name || "CALL OF DUTY";
   const dateRange = getDateRange(event.dateTime);
   const timeRange = getTimeRange(event.dateTime);
@@ -75,7 +75,7 @@ export function renderLanding1({
         <div class="competition-landing__hero-content">
 
           <span class="competition-landing__eyebrow">
-            NEXUS // OFFICIAL ESPORTS EVENT
+            ARKHAM // OFFICIAL ESPORTS EVENT
           </span>
 
           <div class="competition-landing__game-logo">
@@ -152,7 +152,7 @@ export function renderLanding1({
 
             <div class="competition-landing__overview-copy">
               <p class="competition-landing__lead">
-                ${escapeHtml(tournament.description || `Compite en ${eventName} y forma parte del ecosistema competitivo de NEXUS.`)}
+                ${escapeHtml(tournament.description || `Compite en ${eventName} y forma parte del ecosistema competitivo de ARKHAM.`)}
               </p>
 
               <div class="competition-landing__overview-stats">
@@ -366,7 +366,7 @@ export function renderLanding1({
       <!-- FOOTER -->
       <footer class="competition-landing__footer">
         <div class="competition-landing__container competition-landing__footer-inner">
-          <span>NEXUS ENTERTAINMENT</span>
+          <span>ARKHAM ENTERTAINMENT</span>
           <span>${escapeHtml(gameName)} // ${escapeHtml(eventName)}</span>
         </div>
       </footer>
@@ -378,7 +378,7 @@ export function renderLanding1({
 
   if (cta) {
     cta.addEventListener("click", () => {
-      console.log("NEXUS — Registro público pendiente de implementación.", {
+      console.log("ARKHAM — Registro público pendiente de implementación.", {
         tournamentId,
         eventId
       });

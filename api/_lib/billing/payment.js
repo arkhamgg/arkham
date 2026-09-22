@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Billing Payment API
+// ARKHAM — Billing Payment API
 // ========================================
 
 import {
@@ -475,7 +475,7 @@ async function createPayment(
   ) {
 
     console.error(
-      "NEXUS — Billing: precio inválido.",
+      "ARKHAMS — Billing: precio inválido.",
       {
         planId,
         period,
@@ -499,7 +499,7 @@ async function createPayment(
   ) {
 
     console.error(
-      "NEXUS — Billing: moneda inválida.",
+      "ARKHAM — Billing: moneda inválida.",
       {
         planId,
         period,
@@ -1401,7 +1401,7 @@ export default async function handler(
   ) {
 
     console.error(
-      "NEXUS — Billing Payment API:",
+      "ARKHAM — Billing Payment API:",
       error
     );
 

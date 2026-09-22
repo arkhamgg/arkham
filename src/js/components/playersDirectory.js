@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Players Directory
+// ARKHAM — Players Directory
 // ========================================
 
 import { getEntity, getEntityPage } from "../services/firestore.js";
@@ -121,7 +121,7 @@ function createPlayerCard(player, index, games) {
     <div class="players-directory-card__top">
       <span class="players-directory-card__index">${String(index).padStart(2, "0")}</span>
       <span class="players-directory-card__status">
-        <span></span> NEXUS PLAYER
+        <span></span> ARKHAM PLAYER
       </span>
     </div>
 
@@ -175,7 +175,7 @@ function renderModal(player, games, team) {
     <section class="players-directory-modal" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
       <header class="players-directory-modal__header">
         <div>
-          <span class="players-directory-modal__eyebrow">NEXUS PLAYER</span>
+          <span class="players-directory-modal__eyebrow">ARKHAM PLAYER</span>
           <h2 id="player-profile-title">${escapeHtml(player.gamertag || "PLAYER")}</h2>
           <p>${escapeHtml(`${player.name || ""} ${player.lastName || ""}`.trim() || "Perfil competitivo")}</p>
         </div>
@@ -275,10 +275,10 @@ export function PlayersDirectory() {
   page.innerHTML = `
     <div class="players-directory__container">
       <header class="players-directory__header">
-        <div class="players-directory__eyebrow"><span>04</span><span>NEXUS PLAYERS</span></div>
+        <div class="players-directory__eyebrow"><span>04</span><span>ARKHAM PLAYERS</span></div>
         <div class="players-directory__heading">
           <h1>LOS JUGADORES <span>QUE COMPITEN.</span></h1>
-          <p>Explora el talento competitivo de NEXUS y descubre perfiles disponibles para competir.</p>
+          <p>Explora el talento competitivo de ARKHAM y descubre perfiles disponibles para competir.</p>
         </div>
       </header>
 
@@ -340,7 +340,7 @@ export function PlayersDirectory() {
       state.hidden = true;
       loadMoreWrap.hidden = !result.hasMore;
     } catch (error) {
-      console.error("NEXUS — Error cargando Players:", error);
+      console.error("ARKHAM — Error cargando Players:", error);
       state.hidden = false;
       state.textContent = "No se pudo cargar el directorio de Players.";
       loadMoreWrap.hidden = true;
@@ -380,7 +380,7 @@ export function PlayersDirectory() {
         }
       });
     } catch (error) {
-      console.error("NEXUS — Error abriendo perfil Player:", error);
+      console.error("ARKHAM — Error abriendo perfil Player:", error);
     }
   }
 
@@ -402,4 +402,3 @@ export function PlayersDirectory() {
 
   return page;
 }
-console.log("sucesss")

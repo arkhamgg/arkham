@@ -37,7 +37,7 @@ export function PlayerBasicInfo() {
 
           <p>
             Define la identidad con la que
-            competirás dentro de NEXUS.
+            competirás dentro de ARKHAM.
           </p>
 
         </div>
@@ -101,7 +101,7 @@ export function PlayerBasicInfo() {
 
                 <span>
                   Puedes agregarla ahora
-                  o posteriormente desde Mi NEXUS.
+                  o posteriormente desde Mi ARKHAM.
                 </span>
 
               </div>
@@ -189,7 +189,7 @@ export function PlayerBasicInfo() {
             id="player-gamertag"
             name="gamertag"
             class="player-basic-info__input"
-            placeholder="Ej. NEXUSPlayer"
+            placeholder="Ej. ARKHAMPlayer"
             autocomplete="nickname"
             required
           />
@@ -247,7 +247,7 @@ export function PlayerBasicInfo() {
 
           <p>
             Conecta tus perfiles para construir
-            tu presencia dentro de NEXUS.
+            tu presencia dentro de ARKHAM.
           </p>
 
         </div>
@@ -418,7 +418,7 @@ export function PlayerBasicInfo() {
 
 
     <!-- ========================================
-         NEXUS ROLES
+         ARKHAMS ROLES
     ======================================== -->
 
     <section class="player-basic-info__section">

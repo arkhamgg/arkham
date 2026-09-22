@@ -100,10 +100,6 @@ export function FormatSelector({
   select.addEventListener("change", (event) => {
     value = event.target.value;
 
-    console.log(
-      "NEXUS — FormatSelector change:",
-      value
-    );
 
     if (typeof onChange === "function") {
       onChange(value);

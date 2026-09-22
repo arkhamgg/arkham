@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Tournament Recognition API
+// ARKHAM — Tournament Recognition API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
@@ -115,8 +115,8 @@ function competitionSummary(tournamentId, eventId, tournament, event, entityType
   return {
     tournamentId,
     eventId,
-    name: event.name || tournament.name || tournament.title || "Competencia NEXUS",
-    tournamentName: tournament.name || tournament.title || "Torneo NEXUS",
+    name: event.name || tournament.name || tournament.title || "Competencia ARKHAM",
+    tournamentName: tournament.name || tournament.title || "Torneo ARKHAM",
     gameId: event.gameId || null,
     participationType: event.participationType || null,
     format: event.format || null,
@@ -191,8 +191,8 @@ export default async function handler(req, res) {
           const competition = {
             tournamentId: doc.id,
             eventId: currentEventId,
-            name: event.name || tournament.name || tournament.title || "Competencia NEXUS",
-            tournamentName: tournament.name || tournament.title || "Torneo NEXUS",
+            name: event.name || tournament.name || tournament.title || "Competencia ARKHAM",
+            tournamentName: tournament.name || tournament.title || "Torneo ARKHAM",
             status: event.pro?.status || event.status || null,
             gameId: event.gameId || null,
             dateTime: event.dateTime || event.startDateTime || null
@@ -364,13 +364,13 @@ export default async function handler(req, res) {
           const achievements = Array.isArray(player.achievements) ? [...player.achievements] : [];
           const achievement = {
             title: eligible.position === 1 ? "Campeón" : eligible.position === 2 ? "Subcampeón" : `${eligible.position}.º lugar`,
-            name: event.name || tournament.name || tournament.title || "Competencia NEXUS",
+            name: event.name || tournament.name || tournament.title || "Competencia ARKHAM",
             competitionId: eventId,
             tournamentId,
             gameId: event.gameId || null,
             position: eligible.position,
             awardedAt: now,
-            verification: "nexus"
+            verification: "ARKHAM"
           };
           const exists = achievements.some((item) => item && typeof item === "object" && item.competitionId === eventId && Number(item.position) === Number(eligible.position));
           if (!exists) achievements.push(achievement);
@@ -388,7 +388,7 @@ export default async function handler(req, res) {
 
     throw new Error("Acción de reconocimiento no válida.");
   } catch (error) {
-    console.error("NEXUS — Tournament Recognition API:", error);
+    console.error("ARKHAM — Tournament Recognition API:", error);
     return json(res, error?.message?.includes("permiso") ? 403 : 400, { success: false, error: error?.message || "No fue posible procesar el reconocimiento." });
   }
 }

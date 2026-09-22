@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Public Tournament Bracket
+// ARKHAM — Public Tournament Bracket
 // ========================================
 
 function escapeHtml(value) {
@@ -122,7 +122,7 @@ export function getPublicTournamentBracketMarkup(event = {}, registrationState =
         <div class="public-bracket__container">
           <header class="public-bracket__header">
             <div>
-              <span class="public-bracket__eyebrow">NEXUS // TOURNAMENT PRO</span>
+              <span class="public-bracket__eyebrow">ARKHAM // TOURNAMENT PRO</span>
               <h2>COMPETIDORES</h2>
               <p>La competencia todavía no ha generado su bracket.</p>
             </div>
@@ -154,7 +154,7 @@ export function getPublicTournamentBracketMarkup(event = {}, registrationState =
       <div class="public-bracket__container">
         <header class="public-bracket__header">
           <div>
-            <span class="public-bracket__eyebrow">NEXUS // TOURNAMENT PRO</span>
+            <span class="public-bracket__eyebrow">ARKHAM // TOURNAMENT PRO</span>
             <h2>BRACKET</h2>
             <p>Los competidores se incorporan al cuadro conforme el organizador los asigna.</p>
           </div>

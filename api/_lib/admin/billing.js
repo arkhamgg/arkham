@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Billing API
+// ARKHAM — Admin Billing API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
@@ -146,7 +146,7 @@ export async function handle(req, res) {
       recentPayments
     });
   } catch (error) {
-    console.error("NEXUS — Admin Billing API:", error);
+    console.error("ARKHAM — Admin Billing API:", error);
     return errorResponse(res, error?.message || "No fue posible cargar Billing.", error?.status || 500);
   }
 }

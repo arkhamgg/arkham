@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Subscription Service
+// ARKHAM — Subscription Service
 // ========================================
 
 import {
@@ -230,7 +230,7 @@ export async function getAccountSubscription(
   ) {
 
     console.error(
-      "NEXUS — La suscripción no pertenece a la cuenta."
+      "ARKHAM — La suscripción no pertenece a la cuenta."
     );
 
     return null;
@@ -269,7 +269,7 @@ export async function getEntitySubscription(
     subscription.entityId !== entityId
   ) {
     console.error(
-      "NEXUS — La suscripción no corresponde a la entidad."
+      "ARKHAM — La suscripción no corresponde a la entidad."
     );
     return null;
   }

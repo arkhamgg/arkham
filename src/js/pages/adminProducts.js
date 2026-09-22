@@ -1,10 +1,10 @@
 // ========================================
-// NEXUS — Admin Products
+// ARKHAM — Admin Products
 // ========================================
 //
 // Catálogo administrativo de productos.
 // Los productos son las unidades principales
-// de NEXUS: Tournament, League, Team y Player.
+// de ARKHAM: Tournament, League, Team y Player.
 //
 // La relación Producto × Capacidad vive en
 // productCapabilities.js. Esta pantalla no
@@ -28,7 +28,7 @@ function getProductDescription(productId) {
     player: "Perfil y presencia competitiva de jugadores."
   };
 
-  return descriptions[productId] || "Producto disponible en NEXUS.";
+  return descriptions[productId] || "Producto disponible en ARKHAM.";
 }
 
 function getCapabilityLabel(capability) {
@@ -67,13 +67,13 @@ export function AdminProducts() {
       <header class="admin-products__header">
         <div>
           <span class="admin-products__eyebrow">
-            NEXUS ADMIN
+            ARKHAM ADMIN
           </span>
 
           <h1>Productos</h1>
 
           <p>
-            Administra las unidades principales de NEXUS
+            Administra las unidades principales de ARKHAM
             y consulta las capacidades disponibles para cada una.
           </p>
         </div>
@@ -92,7 +92,7 @@ export function AdminProducts() {
       <section class="admin-products__intro">
         <div>
           <span class="admin-products__section-label">CATÁLOGO</span>
-          <h2>Productos NEXUS</h2>
+          <h2>Productos ARKHAM</h2>
           <p>
             Un producto define dónde puede utilizarse una capacidad.
             Los planes determinan posteriormente qué capacidades recibe cada cuenta.
@@ -124,7 +124,7 @@ export function AdminProducts() {
       grid.innerHTML = `
         <div class="admin-products__empty">
           <h2>No hay productos configurados.</h2>
-          <p>El catálogo de productos de NEXUS está vacío.</p>
+          <p>El catálogo de productos de ARKHAM está vacío.</p>
         </div>
       `;
       return;
@@ -253,7 +253,7 @@ export function AdminProducts() {
         <footer class="admin-products__modal-footer">
           <p>
             Las asociaciones Producto × Capacidad se definen en el catálogo
-            de capacidades de NEXUS. Los planes se administran por separado.
+            de capacidades de ARKHAM. Los planes se administran por separado.
           </p>
         </footer>
       </section>
@@ -291,7 +291,7 @@ export function AdminProducts() {
       await requireAdminPermission("products.view");
       renderProducts();
     } catch (error) {
-      console.error("NEXUS — Admin Products:", error);
+      console.error("ARKHAM — Admin Products:", error);
       message.textContent = error?.message || "No tienes permisos para consultar productos.";
       grid.innerHTML = `
         <div class="admin-products__error">

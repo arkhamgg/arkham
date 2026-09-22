@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Create Player Page
+// ARKHAM — Create Player Page
 // ========================================
 
 import { PlayerBasicInfo } from "../components/playerBasicInfo.js";
@@ -76,7 +76,7 @@ export function CreatePlayer() {
 
           <p>
             Define tu identidad y presencia
-            dentro de NEXUS.
+            dentro de ARKHAM.
           </p>
 
         </div>
@@ -379,9 +379,6 @@ export function CreatePlayer() {
         // CREATE FIREBASE ACCOUNT
         // ========================================
 
-        console.log(
-          "NEXUS — Creando cuenta..."
-        );
 
 
         const user =
@@ -390,11 +387,6 @@ export function CreatePlayer() {
             passwordValue
           );
 
-
-        console.log(
-          "NEXUS — Cuenta creada:",
-          user.uid
-        );
 
 
         // ========================================
@@ -453,10 +445,6 @@ export function CreatePlayer() {
           );
 
 
-        console.log(
-          "NEXUS — Jugador creado:",
-          playerId
-        );
 
 
         // ========================================
@@ -465,9 +453,6 @@ export function CreatePlayer() {
 
         if (photoFile) {
 
-          console.log(
-            "NEXUS — Subiendo foto del jugador..."
-          );
 
 
           const photoResult =
@@ -480,10 +465,6 @@ export function CreatePlayer() {
             );
 
 
-          console.log(
-            "NEXUS — Foto del jugador subida:",
-            photoResult
-          );
 
 
           // ========================================
@@ -512,15 +493,8 @@ export function CreatePlayer() {
           );
 
 
-          console.log(
-            "NEXUS — Referencia de la foto guardada."
-          );
-
         } else {
 
-          console.log(
-            "NEXUS — Jugador sin foto de perfil."
-          );
 
         }
 
@@ -547,10 +521,7 @@ export function CreatePlayer() {
         );
 
 
-        console.log(
-          "NEXUS — Perfil de usuario creado:",
-          user.uid
-        );
+
 
 
         // ========================================
@@ -561,38 +532,25 @@ export function CreatePlayer() {
           await provisionCurrentAccount();
 
 
-        console.log(
-          "NEXUS — Account provisionada:",
-          accountProvision
-        );
-
 
         // ========================================
-        // WAIT FOR NEXUS SESSION
+        // WAIT FOR ARKHAM SESSION
         // ========================================
 
         const session =
           await waitForAuthenticatedSession();
 
 
-        console.log(
-          "NEXUS — Sesión autenticada:",
-          session
-        );
 
 
         // ========================================
-        // REFRESH NEXUS SESSION
+        // REFRESH ARKHAM SESSION
         // ========================================
 
         const refreshedSession =
           await refreshSession();
 
 
-        console.log(
-          "NEXUS — Sesión actualizada:",
-          refreshedSession
-        );
 
 
         // ========================================
@@ -613,7 +571,7 @@ export function CreatePlayer() {
       } catch (error) {
 
         console.error(
-          "NEXUS — Error creando Jugador:",
+          "ARKHAM — Error creando Jugador:",
           error
         );
 

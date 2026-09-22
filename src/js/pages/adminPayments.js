@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Payments
+// ARKHAM — Admin Payments
 // ========================================
 
 import {
@@ -35,7 +35,7 @@ export function AdminPayments() {
         <div class="admin-payments__heading">
 
           <span class="admin-payments__eyebrow">
-            NEXUS ADMIN
+            ARKHAM ADMIN
           </span>
 
           <h1>
@@ -44,7 +44,7 @@ export function AdminPayments() {
 
           <p>
             Revisa y administra los pagos enviados
-            por las cuentas NEXUS.
+            por las cuentas ARKHAM.
           </p>
 
         </div>
@@ -551,7 +551,7 @@ export function AdminPayments() {
           <i class="fa-solid fa-lock" aria-hidden="true"></i>
         </div>
         <h2>Acceso restringido</h2>
-        <p>No tienes permisos para consultar los pagos de NEXUS.</p>
+        <p>No tienes permisos para consultar los pagos de ARKHAM.</p>
       </div>
     `;
 
@@ -1055,7 +1055,7 @@ export function AdminPayments() {
     } catch (error) {
 
       console.error(
-        "NEXUS — Admin Payments: error aprobando pago.",
+        "ARKHAM — Admin Payments: error aprobando pago.",
         error
       );
 
@@ -1144,7 +1144,7 @@ export function AdminPayments() {
     } catch (error) {
 
       console.error(
-        "NEXUS — Admin Payments: error rechazando pago.",
+        "ARKHAM — Admin Payments: error rechazando pago.",
         error
       );
 
@@ -1312,7 +1312,7 @@ export function AdminPayments() {
     } catch (error) {
 
       console.error(
-        "NEXUS — Admin Payments:",
+        "ARKHAM — Admin Payments:",
         error
       );
 

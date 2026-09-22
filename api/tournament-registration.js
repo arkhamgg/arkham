@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Tournament Registration API
+// ARKHAM — Tournament Registration API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
@@ -220,7 +220,7 @@ export default async function handler(req, res) {
             {
               success: false,
               error:
-                "Tu cuenta NEXUS no tiene un perfil competitivo."
+                "Tu cuenta ARKHAM no tiene un perfil competitivo."
             }
           );
 
@@ -849,7 +849,7 @@ export default async function handler(req, res) {
                   tournamentName:
                     tournament.name ||
                     tournament.title ||
-                    "Torneo NEXUS",
+                    "Torneo ARKHAM",
 
                   gameId:
                     event.gameId ||
@@ -1158,7 +1158,7 @@ export default async function handler(req, res) {
   } catch (error) {
 
     console.error(
-      "NEXUS — Tournament Registration API:",
+      "ARKHAM — Tournament Registration API:",
       error
     );
 

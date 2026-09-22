@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Dashboard
+// ARKHAM — Admin Dashboard
 // ========================================
 //
 // Panel central de administración.
@@ -37,7 +37,7 @@ const ADMIN_MODULES = [
     id: "accounts",
     title: "Cuentas",
     description:
-      "Consulta y administra las cuentas de NEXUS.",
+      "Consulta y administra las cuentas de ARKHAM.",
     permission:
       "accounts.view",
     path:
@@ -59,7 +59,7 @@ const ADMIN_MODULES = [
     id: "products",
     title: "Productos",
     description:
-      "Gestiona los productos disponibles en NEXUS.",
+      "Gestiona los productos disponibles en ARKHAM.",
     permission:
       "products.view",
     path:
@@ -168,7 +168,7 @@ export function Admin() {
         <div class="admin__header-content">
 
           <span class="admin__eyebrow">
-            NEXUS ADMIN
+            ARKHAM ADMIN
           </span>
 
           <h1 class="admin__title">
@@ -448,7 +448,7 @@ export function Admin() {
     } catch (error) {
 
       console.error(
-        "NEXUS — Admin Dashboard:",
+        "ARKHAM — Admin Dashboard:",
         error
       );
 
@@ -554,15 +554,12 @@ export function Admin() {
           await logout();
 
 
-          console.log(
-            "NEXUS — Sesión administrativa cerrada correctamente."
-          );
 
 
         } catch (error) {
 
           console.error(
-            "NEXUS — Error cerrando sesión administrativa:",
+            "ARKHAM — Error cerrando sesión administrativa:",
             error
           );
 

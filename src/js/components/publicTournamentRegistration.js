@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Public Tournament Registration
+// ARKHAM — Public Tournament Registration
 // ========================================
 
 import { uploadImage } from "../services/imagekit.js";
@@ -29,7 +29,7 @@ export async function openPublicTournamentRegistration({ page, tournament, event
     : [];
   const requiresProof = requirements.some((item) => item?.requiresProof === true);
   const profile = session.profile || {};
-  const identityName = profile.entityId ? `${profile.entityType === "team" ? "TEAM" : "PLAYER"} · ${profile.entityId}` : "Cuenta NEXUS";
+  const identityName = profile.entityId ? `${profile.entityType === "team" ? "TEAM" : "PLAYER"} · ${profile.entityId}` : "Cuenta ARKHAM";
 
   const modal = document.createElement("div");
   modal.className = "competition-public-registration-modal";
@@ -40,7 +40,7 @@ export async function openPublicTournamentRegistration({ page, tournament, event
         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
       </button>
 
-      <span class="competition-public-registration-modal__eyebrow">NEXUS // REGISTRATION</span>
+      <span class="competition-public-registration-modal__eyebrow">ARKHAM // REGISTRATION</span>
       <h2 id="public-registration-title">SOLICITAR ASIENTO</h2>
       <p class="competition-public-registration-modal__event">${escapeHtml(event?.name || tournament?.name || "Competencia")}</p>
 
@@ -132,7 +132,7 @@ export async function openPublicTournamentRegistration({ page, tournament, event
 
       window.setTimeout(close, 1200);
     } catch (error) {
-      console.error("NEXUS — Error enviando solicitud:", error);
+      console.error("ARKHAM — Error enviando solicitud:", error);
       status.className = "competition-public-registration-modal__status is-error";
       status.textContent = error?.message || "No fue posible enviar la solicitud.";
       submit.disabled = false;

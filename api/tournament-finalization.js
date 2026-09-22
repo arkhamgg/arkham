@@ -119,7 +119,7 @@ export default async function handler(req, res) {
 
     return json(res, 200, { success: true, event: result.event, history: result.history });
   } catch (error) {
-    console.error("NEXUS — Tournament Finalization API:", error);
+    console.error("ARKHAM — Tournament Finalization API:", error);
     const message = error?.message || "No fue posible finalizar el torneo.";
     return json(res, message.includes("permiso") ? 403 : 400, { success: false, error: message });
   }

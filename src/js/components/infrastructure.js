@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Infrastructure Component
+// ARKHAM — Infrastructure Component
 // ========================================
 
 export function Infrastructure() {
@@ -19,7 +19,7 @@ export function Infrastructure() {
 
         <div class="infrastructure__eyebrow">
           <span>05</span>
-          <span>NEXUS INFRASTRUCTURE</span>
+          <span>ARKHAM INFRASTRUCTURE</span>
         </div>
 
         <div class="infrastructure__heading">
@@ -63,7 +63,7 @@ export function Infrastructure() {
         </div>
 
         <div class="infrastructure__visual-index">
-          NEXUS / 05
+          ARKHAM / 05
         </div>
 
       </div>
@@ -79,7 +79,7 @@ export function Infrastructure() {
       >
 
         <span>
-          EXPLORAR NEXUS INFRASTRUCTURE
+          EXPLORAR ARKHAM INFRASTRUCTURE
         </span>
 
         <i

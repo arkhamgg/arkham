@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Billing API Gateway
+// ARKHAM — Billing API Gateway
 // ========================================
 //
 // The resource is selected through ?resource=...

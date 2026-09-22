@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Capability Resolver
+// ARKHAM — Capability Resolver
 // ========================================
 //
 // Resuelve las capacidades efectivamente

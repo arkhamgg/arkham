@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Create League Page
+// ARKHAM — Create League Page
 // ========================================
 
 import { EntityBasicInfo } from "../components/entityBasicInfo.js";
@@ -75,7 +75,7 @@ export function CreateLeague() {
 
           <p>
             Define la identidad y presencia
-            oficial de tu liga dentro de NEXUS.
+            oficial de tu liga dentro de ARKHAM.
           </p>
 
         </div>
@@ -373,9 +373,6 @@ export function CreateLeague() {
 
       try {
 
-        console.log(
-          "NEXUS — Creando cuenta..."
-        );
 
 
         const user =
@@ -385,10 +382,6 @@ export function CreateLeague() {
           );
 
 
-        console.log(
-          "NEXUS — Cuenta creada:",
-          user.uid
-        );
 
 
         // ========================================
@@ -448,10 +441,6 @@ export function CreateLeague() {
           );
 
 
-        console.log(
-          "NEXUS — Liga creada:",
-          leagueId
-        );
 
 
         // ========================================
@@ -460,9 +449,6 @@ export function CreateLeague() {
 
         if (logoFile) {
 
-          console.log(
-            "NEXUS — Subiendo logo de la liga..."
-          );
 
 
           const logoResult =
@@ -475,10 +461,6 @@ export function CreateLeague() {
             );
 
 
-          console.log(
-            "NEXUS — Logo subido:",
-            logoResult
-          );
 
 
           // ========================================
@@ -505,15 +487,9 @@ export function CreateLeague() {
           );
 
 
-          console.log(
-            "NEXUS — Referencia del logo guardada."
-          );
 
         } else {
 
-          console.log(
-            "NEXUS — Liga sin logo."
-          );
 
         }
 
@@ -540,10 +516,6 @@ export function CreateLeague() {
         );
 
 
-        console.log(
-          "NEXUS — Perfil de usuario creado:",
-          user.uid
-        );
 
 
         // ========================================
@@ -554,38 +526,25 @@ export function CreateLeague() {
           await provisionCurrentAccount();
 
 
-        console.log(
-          "NEXUS — Account provisionada:",
-          accountProvision
-        );
-
 
         // ========================================
-        // WAIT FOR NEXUS SESSION
+        // WAIT FOR ARKHAM SESSION
         // ========================================
 
         const session =
           await waitForAuthenticatedSession();
 
 
-        console.log(
-          "NEXUS — Sesión autenticada:",
-          session
-        );
 
 
         // ========================================
-        // REFRESH NEXUS SESSION
+        // REFRESH ARKHAM SESSION
         // ========================================
 
         const refreshedSession =
           await refreshSession();
 
 
-        console.log(
-          "NEXUS — Sesión actualizada:",
-          refreshedSession
-        );
 
 
         // ========================================
@@ -607,7 +566,7 @@ export function CreateLeague() {
       } catch (error) {
 
         console.error(
-          "NEXUS — Error creando Liga:",
+          "ARKHAM — Error creando Liga:",
           error
         );
 

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Tournament Registration Requests
+// ARKHAM — Tournament Registration Requests
 // ========================================
 
 import { getTournamentRegistrationRequests } from "../services/tournamentRegistration.js";

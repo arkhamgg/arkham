@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Divisions Service
+// ARKHAM — Team Divisions Service
 // ========================================
 
 import { getAuth } from "firebase/auth";

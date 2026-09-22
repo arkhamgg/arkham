@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Public Team Landing
+// ARKHAM — Public Team Landing
 // ========================================
 
 import { getPublicTeamLanding } from "../services/teamLanding.js";
@@ -50,7 +50,7 @@ async function loadPublicLanding(page, teamId) {
 
     renderLanding(page, data);
   } catch (error) {
-    console.error("NEXUS — Error cargando Team público:", error);
+    console.error("ARKHAM — Error cargando Team público:", error);
     renderError(page, error?.message || "No fue posible cargar el Team.");
   }
 }
@@ -70,7 +70,7 @@ function renderLanding(page, data) {
       <header class="public-team-landing__hero" ${background ? `style="background-image:linear-gradient(180deg, rgba(5,5,5,.25), rgba(5,5,5,.96)),url('${escapeHtml(background)}')"` : ""}>
         <div class="public-team-landing__hero-overlay"></div>
         <div class="public-team-landing__nav">
-          <span>NEXUS</span>
+          <span>ARKHAM</span>
           <span>TEAM</span>
         </div>
         <div class="public-team-landing__hero-content">
@@ -79,7 +79,7 @@ function renderLanding(page, data) {
           </div>
           <span class="public-team-landing__tag">${escapeHtml(team.shortName || "TEAM")}</span>
           <h1>${escapeHtml(team.name || "Team")}</h1>
-          <p>${escapeHtml(team.description || "Equipo competitivo dentro del ecosistema NEXUS.")}</p>
+          <p>${escapeHtml(team.description || "Equipo competitivo dentro del ecosistema ARKHAM.")}</p>
           ${renderSocials(team)}
         </div>
       </header>
@@ -110,7 +110,7 @@ function renderLanding(page, data) {
       </main>
 
       <footer class="public-team-landing__footer">
-        <span>NEXUS TEAMS</span>
+        <span>ARKHAM TEAMS</span>
         <strong>${escapeHtml(team.name || "Team")}</strong>
         <a href="/teams">EXPLORAR TEAMS <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
       </footer>
@@ -180,9 +180,9 @@ function renderBasicTeam(page, team) {
       <div class="public-team-basic__logo">
         ${team.logo?.url ? `<img src="${escapeHtml(team.logo.url)}" alt="">` : `<span>${escapeHtml(team.shortName || team.name?.charAt(0) || "NX")}</span>`}
       </div>
-      <span>TEAM NEXUS</span>
+      <span>TEAM ARKHAM</span>
       <h1>${escapeHtml(team.name || "Team")}</h1>
-      <p>${escapeHtml(team.description || "Este Team forma parte del ecosistema NEXUS.")}</p>
+      <p>${escapeHtml(team.description || "Este Team forma parte del ecosistema ARKHAM.")}</p>
       <small>La Landing pública completa está disponible con Team Pro.</small>
     </section>
   `;

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Card Component
+// ARKHAM — Team Card Component
 // ========================================
 
 export function TeamCard(

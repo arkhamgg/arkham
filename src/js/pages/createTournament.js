@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Create Tournament Page
+// ARKHAM — Create Tournament Page
 // ========================================
 
 import { EntityBasicInfo } from "../components/entityBasicInfo.js";
@@ -75,7 +75,7 @@ export function CreateTournament() {
 
           <p>
             Define la identidad y presencia
-            oficial de tu torneo dentro de NEXUS.
+            oficial de tu torneo dentro de ARKHAM.
           </p>
 
         </div>
@@ -373,9 +373,6 @@ export function CreateTournament() {
 
       try {
 
-        console.log(
-          "NEXUS — Creando cuenta..."
-        );
 
 
         const user =
@@ -385,10 +382,6 @@ export function CreateTournament() {
           );
 
 
-        console.log(
-          "NEXUS — Cuenta creada:",
-          user.uid
-        );
 
 
         // ========================================
@@ -441,10 +434,6 @@ export function CreateTournament() {
           );
 
 
-        console.log(
-          "NEXUS — Torneo creado:",
-          tournamentId
-        );
 
 
         // ========================================
@@ -453,9 +442,6 @@ export function CreateTournament() {
 
         if (logoFile) {
 
-          console.log(
-            "NEXUS — Subiendo logo del torneo..."
-          );
 
 
           const logoResult =
@@ -468,10 +454,6 @@ export function CreateTournament() {
             );
 
 
-          console.log(
-            "NEXUS — Logo del torneo subido:",
-            logoResult
-          );
 
 
           // ========================================
@@ -498,15 +480,11 @@ export function CreateTournament() {
           );
 
 
-          console.log(
-            "NEXUS — Referencia del logo del torneo guardada."
-          );
+          
 
         } else {
 
-          console.log(
-            "NEXUS — Torneo sin logo."
-          );
+          
 
         }
 
@@ -533,10 +511,7 @@ export function CreateTournament() {
         );
 
 
-        console.log(
-          "NEXUS — Perfil de usuario creado:",
-          user.uid
-        );
+        
 
 
         // ========================================
@@ -547,38 +522,26 @@ export function CreateTournament() {
           await provisionCurrentAccount();
 
 
-        console.log(
-          "NEXUS — Account provisionada:",
-          accountProvision
-        );
 
 
         // ========================================
-        // WAIT FOR NEXUS SESSION
+        // WAIT FOR ARKHAM SESSION
         // ========================================
 
         const session =
           await waitForAuthenticatedSession();
 
 
-        console.log(
-          "NEXUS — Sesión autenticada:",
-          session
-        );
 
 
         // ========================================
-        // REFRESH NEXUS SESSION
+        // REFRESH ARKHAM SESSION
         // ========================================
 
         const refreshedSession =
           await refreshSession();
 
 
-        console.log(
-          "NEXUS — Sesión actualizada:",
-          refreshedSession
-        );
 
 
         // ========================================
@@ -600,7 +563,7 @@ export function CreateTournament() {
       } catch (error) {
 
         console.error(
-          "NEXUS — Error creando Torneo:",
+          "ARKHAM — Error creando Torneo:",
           error
         );
 

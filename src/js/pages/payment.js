@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Billing Payment Page
+// ARKHAM — Billing Payment Page
 // ========================================
 
 import {
@@ -180,7 +180,7 @@ function renderError(
           </div>
 
           <span class="payment-page__eyebrow">
-            NEXUS BILLING
+            ARKHAM BILLING
           </span>
 
           <h1>
@@ -242,7 +242,7 @@ function renderSuccess(
           </div>
 
           <span class="payment-page__eyebrow">
-            NEXUS BILLING
+            ARKHAM BILLING
           </span>
 
           <h1>
@@ -251,7 +251,7 @@ function renderSuccess(
 
           <p class="payment-page__success-description">
             Tu solicitud de pago y comprobante fueron enviados
-            correctamente. Ahora serán revisados por NEXUS.
+            correctamente. Ahora serán revisados por ARKHAM.
           </p>
 
           <div class="payment-page__success-card">
@@ -385,7 +385,7 @@ function renderPaymentForm(
           </button>
 
           <span class="payment-page__eyebrow">
-            NEXUS BILLING
+            ARKHAM BILLING
           </span>
 
           <h1>
@@ -838,7 +838,7 @@ function renderPaymentForm(
             </strong>
 
             <p>
-              Esta solicitud será revisada por NEXUS.
+              Esta solicitud será revisada por ARKHAM.
               Tu plan no cambiará hasta que el pago
               sea aprobado.
             </p>
@@ -1297,7 +1297,7 @@ async function handlePaymentConfirmation(
      * cuándo realizó el usuario el pago.
      *
      * createdAt representa automáticamente
-     * cuándo NEXUS recibió la solicitud.
+     * cuándo ARKHAM recibió la solicitud.
      */
 
     const entityContext =
@@ -1552,7 +1552,7 @@ async function handlePaymentConfirmation(
   } catch (error) {
 
     console.error(
-      "NEXUS — Payment Page: error procesando payment.",
+      "ARKHAM — Payment Page: error procesando payment.",
       error
     );
 
@@ -1966,7 +1966,7 @@ async function renderPaymentContent(
   } catch (error) {
 
     console.error(
-      "NEXUS — Payment Page: error cargando página.",
+      "ARKHAM — Payment Page: error cargando página.",
       error
     );
 

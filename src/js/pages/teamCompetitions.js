@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Competitions
+// ARKHAM — Team Competitions
 // ========================================
 
 import { getCurrentEntityContext } from "../services/entityContext.js";
@@ -87,7 +87,7 @@ async function loadTeamCompetitiveView(page, view) {
       await loadCompetitions(state);
     }
   } catch (error) {
-    console.error("NEXUS — Error cargando módulo competitivo del Team:", error);
+    console.error("ARKHAM — Error cargando módulo competitivo del Team:", error);
     renderError(state, "No fue posible cargar la información", error?.message || "Intenta nuevamente.", true, page, view);
   }
 }
@@ -150,7 +150,7 @@ async function loadCompetitions(state) {
             </div>
             <div class="team-competition-card__main">
               <span>COMPETENCIA</span>
-              <h2>${escapeHtml(competition.name || competition.tournamentName || "Competencia NEXUS")}</h2>
+              <h2>${escapeHtml(competition.name || competition.tournamentName || "Competencia ARKHAM")}</h2>
               <p>${escapeHtml(competition.format || "—")} · ${escapeHtml(competition.matchSystem || "—")}</p>
             </div>
             <div class="team-competition-card__meta">
@@ -240,8 +240,8 @@ async function loadRequests(state) {
             </div>
             <div class="team-competition-request__main">
               <span>TORNEO</span>
-              <h2>${escapeHtml(request.tournamentName || "Torneo NEXUS")}</h2>
-              <small>${escapeHtml(request.gameId || "Competencia NEXUS")}</small>
+              <h2>${escapeHtml(request.tournamentName || "Torneo ARKHAM")}</h2>
+              <small>${escapeHtml(request.gameId || "Competencia ARKHAM")}</small>
             </div>
             <div class="team-competition-request__date">
               <span>FECHA DE SOLICITUD</span>

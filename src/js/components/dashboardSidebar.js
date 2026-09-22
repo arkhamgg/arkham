@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Dashboard Sidebar Component
+// ARKHAM — Dashboard Sidebar Component
 // ========================================
 
 import { logout } from "../services/auth.js";
@@ -15,7 +15,7 @@ const NAVIGATION_BY_ENTITY = {
     {
       group: "PRINCIPAL",
       items: [
-        { id: "overview", label: "Mi NEXUS", icon: "fa-grid-2" }
+        { id: "overview", label: "Mi ARKHAM", icon: "fa-grid-2" }
       ]
     },
 
@@ -165,7 +165,7 @@ const LOGOUT_NAVIGATION = {
 
 export function DashboardSidebar({
   entityType = null,
-  entityName = "Mi NEXUS",
+  entityName = "Mi ARKHAM",
   access = null,
   activeView = "overview",
   onNavigate = null
@@ -242,7 +242,7 @@ export function DashboardSidebar({
       <div class="dashboard-sidebar__topbar">
 
         <div class="dashboard-sidebar__brand">
-          NEXUS
+          ARKHAM
         </div>
 
 
@@ -298,7 +298,7 @@ export function DashboardSidebar({
 
       <nav
         class="dashboard-sidebar__nav"
-        aria-label="Navegación de Mi NEXUS"
+        aria-label="Navegación de Mi ARKHAM"
       >
 
         ${navigation
@@ -453,7 +453,7 @@ export function DashboardSidebar({
           dashboard-sidebar__mobile-menu
           ${mobileNavOpen ? "is-open" : ""}
         "
-        aria-label="Navegación móvil de Mi NEXUS"
+        aria-label="Navegación móvil de Mi ARKHAM"
         aria-hidden="${!mobileNavOpen}"
       >
 
@@ -714,17 +714,10 @@ export function DashboardSidebar({
 
               try {
 
-                console.log(
-                  "NEXUS — Cerrando sesión..."
-                );
-
 
                 await logout();
 
 
-                console.log(
-                  "NEXUS — Sesión cerrada correctamente."
-                );
 
 
                 window.history.pushState(
@@ -744,7 +737,7 @@ export function DashboardSidebar({
               } catch (error) {
 
                 console.error(
-                  "NEXUS — Error cerrando sesión:",
+                  "ARKHAM — Error cerrando sesión:",
                   error
                 );
 
@@ -850,7 +843,7 @@ export function DashboardSidebar({
 
   function setContext({
     type = null,
-    name = "Mi NEXUS",
+    name = "Mi ARKHAM",
     accessContext = null
   } = {}) {
 

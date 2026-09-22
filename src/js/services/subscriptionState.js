@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Subscription State Machine
+// ARKHAM — Subscription State Machine
 // ========================================
 
 import {

@@ -96,10 +96,6 @@ export function CapacitySelector({
   select.addEventListener("change", (event) => {
     value = Number(event.target.value);
 
-    console.log(
-      "NEXUS — Capacidad seleccionada:",
-      value
-    );
 
     if (typeof onChange === "function") {
       onChange(value);

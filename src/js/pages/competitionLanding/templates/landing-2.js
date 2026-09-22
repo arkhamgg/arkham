@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Competition Landing / Landing 2
+// ARKHAM — Competition Landing / Landing 2
 // Competitive
 // ========================================
 
@@ -49,7 +49,7 @@ export function renderLanding2({
 
   const eventName =
     tournament?.name ||
-    "COMPETENCIA NEXUS";
+    "COMPETENCIA ARKHAM";
 
   const gameName =
     game?.name ||
@@ -184,7 +184,7 @@ export function renderLanding2({
             <span
               class="competition-landing__competitive-eyebrow"
             >
-              NEXUS // COMPETITIVE EVENT
+              ARKHAM // COMPETITIVE EVENT
             </span>
 
           </div>
@@ -901,7 +901,7 @@ export function renderLanding2({
           >
 
             <span>
-              NEXUS ENTERTAINMENT
+              ARKHAM ENTERTAINMENT
             </span>
 
 
@@ -936,13 +936,6 @@ export function renderLanding2({
       "click",
       () => {
 
-        console.log(
-          "NEXUS — Registro público pendiente de implementación.",
-          {
-            tournamentId,
-            eventId
-          }
-        );
 
       }
     );

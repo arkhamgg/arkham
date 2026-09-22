@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Public Shell
+// ARKHAM — Public Shell
 // ========================================
 
 import { Navbar } from "./navbar.js";

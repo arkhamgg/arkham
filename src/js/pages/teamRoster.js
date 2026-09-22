@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Roster
+// ARKHAM — Team Roster
 // ========================================
 
 import { getCurrentEntityContext } from "../services/entityContext.js";
@@ -71,7 +71,7 @@ async function loadRoster(page) {
     const response = await getTeamRoster(context.id);
     renderRoster(state, response);
   } catch (error) {
-    console.error("NEXUS — Error cargando Team Roster:", error);
+    console.error("ARKHAM — Error cargando Team Roster:", error);
     state.innerHTML = `
       <div class="team-roster__empty team-roster__empty--error">
         <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
@@ -193,7 +193,7 @@ function renderRoster(state, response) {
         await removeTeamMember({ teamId, playerId });
         await loadRoster(state.closest(".team-roster-page") || state);
       } catch (error) {
-        console.error("NEXUS — Error expulsando Player del Team:", error);
+        console.error("ARKHAM — Error expulsando Player del Team:", error);
         button.disabled = false;
         window.alert(error?.message || "No fue posible expulsar al Player.");
       }
@@ -222,7 +222,7 @@ function renderRoster(state, response) {
 
         await loadRoster(state.closest(".team-roster-page") || state);
       } catch (error) {
-        console.error("NEXUS — Error procesando solicitud de Team:", error);
+        console.error("ARKHAM — Error procesando solicitud de Team:", error);
         buttons.forEach((item) => { item.disabled = false; });
         window.alert(error?.message || "No fue posible procesar la solicitud.");
       }

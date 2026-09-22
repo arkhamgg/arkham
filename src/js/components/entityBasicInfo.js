@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Entity Basic Info Component
+// ARKHAM — Entity Basic Info Component
 // ========================================
 
 export function EntityBasicInfo(options = {}) {

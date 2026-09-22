@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Competition Landing Utilities
+// ARKHAM — Competition Landing Utilities
 // ========================================
 
 function escapeHtml(value) {

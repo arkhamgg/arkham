@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Competitions Component
+// ARKHAM — Competitions Component
 // ========================================
 
 export function Competitions() {

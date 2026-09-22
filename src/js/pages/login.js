@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Login Page
+// ARKHAM — Login Page
 // ========================================
 
 import { login } from "../services/auth.js";
@@ -83,10 +83,7 @@ export function Login() {
       await resolveDashboardPath();
 
 
-    console.log(
-      "NEXUS — Dashboard de destino:",
-      destination
-    );
+    
 
 
     const currentPath =
@@ -165,7 +162,7 @@ export function Login() {
         } catch (error) {
 
           console.error(
-            "NEXUS — Error determinando dashboard:",
+            "ARKHAM — Error determinando dashboard:",
             error
           );
 
@@ -177,7 +174,7 @@ export function Login() {
       (error) => {
 
         console.error(
-          "NEXUS — Error verificando sesión:",
+          "ARKHAM — Error verificando sesión:",
           error
         );
 
@@ -202,7 +199,7 @@ export function Login() {
         <header class="login-page__header">
 
           <span class="login-page__eyebrow">
-            NEXUS ACCOUNT
+            ARKHAM ACCOUNT
           </span>
 
           <h1>
@@ -212,7 +209,7 @@ export function Login() {
 
           <p>
             Accede a tu espacio de gestión
-            dentro de NEXUS.
+            dentro de ARKHAM.
           </p>
 
         </header>
@@ -474,24 +471,18 @@ export function Login() {
           );
 
 
-        console.log(
-          "NEXUS — Login exitoso:",
-          user.uid
-        );
+        
 
 
         // ========================================
-        // WAIT FOR NEXUS SESSION
+        // WAIT FOR ARKHAM SESSION
         // ========================================
 
         const session =
           await waitForAuthenticatedSession();
 
 
-        console.log(
-          "NEXUS — Sesión autenticada:",
-          session
-        );
+        
 
 
         // ========================================
@@ -504,7 +495,7 @@ export function Login() {
       } catch (error) {
 
         console.error(
-          "NEXUS — Error iniciando sesión:",
+          "ARKHAM — Error iniciando sesión:",
           error
         );
 

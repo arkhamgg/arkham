@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Players Directory Page
+// ARKHAM — Players Directory Page
 // ========================================
 
 import { PlayersDirectory } from "../components/playersDirectory.js";

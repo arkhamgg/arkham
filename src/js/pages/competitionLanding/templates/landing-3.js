@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Competition Landing / Landing 3
+// ARKHAM — Competition Landing / Landing 3
 // Game Showcase
 // ========================================
 
@@ -32,7 +32,7 @@ export function renderLanding3({
   const secondaryColor = palette.secondary || "#111111";
   const accentColor = palette.accent || primaryColor;
 
-  const eventName = tournament?.name || "COMPETENCIA NEXUS";
+  const eventName = tournament?.name || "COMPETENCIA ARKHAM";
   const gameName = game?.name || "CALL OF DUTY";
 
   const dateRange = getDateRange(event?.dateTime);
@@ -376,7 +376,7 @@ export function renderLanding3({
       <footer class="competition-landing__showcase-footer">
         <div class="competition-landing__showcase-container">
           <div class="competition-landing__showcase-footer-inner">
-            <span>NEXUS</span>
+            <span>ARKHAM</span>
             <span>${escapeHtml(gameName)}</span>
             <span>${escapeHtml(eventName)}</span>
           </div>
@@ -388,10 +388,6 @@ export function renderLanding3({
 
   page.querySelectorAll("[data-registration-cta]").forEach((button) => {
     button.addEventListener("click", () => {
-      console.log("NEXUS — Registro público pendiente de implementación:", {
-        tournamentId,
-        eventId
-      });
     });
   });
 }

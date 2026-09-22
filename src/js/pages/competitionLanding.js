@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Public Competition Landing
+// ARKHAM — Public Competition Landing
 // ========================================
 
 import { getEntity, getMapEntity, subscribeMapEntity } from "../services/firestore.js";
@@ -236,7 +236,7 @@ async function loadCompetition({
             }
             await openPublicTournamentRegistration({ page, tournament, event, tournamentId, eventId });
           } catch (error) {
-            console.error("NEXUS — Error abriendo registro público:", error);
+            console.error("ARKHAM — Error abriendo registro público:", error);
           }
         });
       });
@@ -246,13 +246,13 @@ async function loadCompetition({
       try {
         const statusResponse = await getMyTournamentRegistrationStatus({ tournamentId, eventId });
         let recognitionResponse = null;
-        try { recognitionResponse = await getMyRecognitionStatus({ tournamentId, eventId }); } catch (recognitionError) { console.warn("NEXUS — No fue posible resolver el reconocimiento:", recognitionError); }
+        try { recognitionResponse = await getMyRecognitionStatus({ tournamentId, eventId }); } catch (recognitionError) { console.warn("ARKHAM — No fue posible resolver el reconocimiento:", recognitionError); }
         registrationState = { ...registrationState, request: statusResponse?.request || null, recognition: recognitionResponse?.eligible ? recognitionResponse.recognition : null };
         updatePublicTournamentBracket(page, event, registrationState);
         bindRegistration();
         bindRecognition();
       } catch (error) {
-        console.warn("NEXUS — No fue posible actualizar el estado de inscripción:", error);
+        console.warn("ARKHAM — No fue posible actualizar el estado de inscripción:", error);
       }
     });
 
@@ -264,14 +264,14 @@ async function loadCompetition({
       if (getCurrentSession()) {
         const statusResponse = await getMyTournamentRegistrationStatus({ tournamentId, eventId });
         let recognitionResponse = null;
-        try { recognitionResponse = await getMyRecognitionStatus({ tournamentId, eventId }); } catch (recognitionError) { console.warn("NEXUS — No fue posible resolver el reconocimiento:", recognitionError); }
+        try { recognitionResponse = await getMyRecognitionStatus({ tournamentId, eventId }); } catch (recognitionError) { console.warn("ARKHAM — No fue posible resolver el reconocimiento:", recognitionError); }
         registrationState = { ...registrationState, request: statusResponse?.request || null, recognition: recognitionResponse?.eligible ? recognitionResponse.recognition : null };
         updatePublicTournamentBracket(page, event, registrationState);
         bindRegistration();
         bindRecognition();
       }
     } catch (error) {
-      console.warn("NEXUS — No fue posible resolver el estado de inscripción pública:", error);
+      console.warn("ARKHAM — No fue posible resolver el estado de inscripción pública:", error);
     }
 
 
@@ -293,7 +293,7 @@ async function loadCompetition({
   } catch (error) {
 
     console.error(
-      "NEXUS — Error cargando competencia pública:",
+      "ARKHAM — Error cargando competencia pública:",
       error
     );
 

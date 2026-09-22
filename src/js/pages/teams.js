@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Teams Page
+// ARKHAM — Teams Page
 // ========================================
 
 import { TeamCard } from "../components/teamCard.js";
@@ -246,9 +246,7 @@ export function Teams() {
 
     try {
 
-      console.log(
-        "ARKHAM — Cargando equipos..."
-      );
+      
 
 
       const teams =
@@ -257,10 +255,7 @@ export function Teams() {
         );
 
 
-      console.log(
-        "AKRAMA — Equipos cargados:",
-        teams
-      );
+      
 
 
       // ========================================
@@ -422,7 +417,7 @@ export function Teams() {
     } catch (error) {
 
       console.error(
-        "NEXUS — Error cargando equipos:",
+        "ARKHAM — Error cargando equipos:",
         error
       );
 

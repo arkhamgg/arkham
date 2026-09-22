@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Dashboard Shell
+// ARKHAM — Dashboard Shell
 // ========================================
 
 import {
@@ -276,7 +276,7 @@ export function DashboardShell(Page) {
         if (!route) {
 
           console.warn(
-            "NEXUS — Vista de Dashboard no configurada:",
+            "ARKHAM — Vista de Dashboard no configurada:",
             view
           );
 
@@ -442,7 +442,7 @@ async function loadDashboardContext(
       const entityName =
         entityContext.entity?.name ||
         entityContext.type ||
-        "Mi NEXUS";
+        "Mi ARKHAM";
 
 
       sidebar.setContext({
@@ -470,7 +470,7 @@ async function loadDashboardContext(
         null,
 
       name:
-        "Mi NEXUS",
+        "Mi ARKHAM",
 
       accessContext:
         access
@@ -480,7 +480,7 @@ async function loadDashboardContext(
   } catch (error) {
 
     console.error(
-      "NEXUS — Error cargando contexto del Dashboard Shell:",
+      "ARKHAM — Error cargando contexto del Dashboard Shell:",
       error
     );
 

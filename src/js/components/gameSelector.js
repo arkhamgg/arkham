@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Game Selector
+// ARKHAM — Game Selector
 // ========================================
 
 import {
@@ -153,7 +153,7 @@ export function GameSelector({
     } catch (error) {
 
       console.error(
-        "NEXUS — Error cargando juegos:",
+        "ARKHAM — Error cargando juegos:",
         error
       );
 

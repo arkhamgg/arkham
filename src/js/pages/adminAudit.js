@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Audit
+// ARKHAM — Admin Audit
 // ========================================
 
 import { getAdminAuditLogs, getAuditActionLabel } from "../services/adminAudit.js";
@@ -9,7 +9,7 @@ export function AdminAudit() {
   page.className = "admin-audit-page";
   page.innerHTML = `
     <section class="admin-audit">
-      <header class="admin-audit__header"><div><span class="admin-audit__eyebrow">NEXUS ADMIN</span><h1>Auditoría</h1><p>Registro de acciones administrativas y cambios sensibles.</p></div><button type="button" data-refresh><i class="fa-solid fa-rotate"></i> Actualizar</button></header>
+      <header class="admin-audit__header"><div><span class="admin-audit__eyebrow">ARKHAM ADMIN</span><h1>Auditoría</h1><p>Registro de acciones administrativas y cambios sensibles.</p></div><button type="button" data-refresh><i class="fa-solid fa-rotate"></i> Actualizar</button></header>
       <div class="admin-audit__toolbar"><label><i class="fa-solid fa-magnifying-glass"></i><input type="search" placeholder="Buscar acción, actor o entidad…" data-search></label></div>
       <div class="admin-audit__message" data-message></div>
       <section class="admin-audit__summary"><article><span>EVENTOS</span><strong data-total>—</strong></article><article><span>ÚLTIMAS 24H</span><strong data-day>—</strong></article></section>

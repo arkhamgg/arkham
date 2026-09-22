@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Player Account Views
+// ARKHAM — Player Account Views
 // ========================================
 
 import { getCurrentEntityContext } from "../services/entityContext.js";
@@ -129,7 +129,7 @@ async function loadPlayerCompetitions(page) {
       });
     });
   } catch (error) {
-    console.error("NEXUS — Error cargando competencias del Player:", error);
+    console.error("ARKHAM — Error cargando competencias del Player:", error);
     body.innerHTML = `<div class="player-requests-empty is-error"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><strong>No fue posible cargar tus competencias.</strong><span>${escapeHtml(error?.message || "Intenta nuevamente más tarde.")}</span></div>`;
   }
 }
@@ -172,7 +172,7 @@ async function loadPlayerTournamentRequests(page) {
               <div class="player-request-card__main">
                 <span class="player-request-card__eyebrow">TORNEO</span>
                 <h2>${escapeHtml(request.tournamentName)}</h2>
-                <span>${escapeHtml(request.gameId || "Competencia NEXUS")}</span>
+                <span>${escapeHtml(request.gameId || "Competencia ARKHAM")}</span>
               </div>
               ${request.status === "rejected" && request.rejectionReason ? `
                 <div class="player-request-card__reason">
@@ -191,7 +191,7 @@ async function loadPlayerTournamentRequests(page) {
         }).join("")}
       </div>`;
   } catch (error) {
-    console.error("NEXUS — Error cargando solicitudes del Player:", error);
+    console.error("ARKHAM — Error cargando solicitudes del Player:", error);
     body.innerHTML = `
       <div class="player-requests-empty is-error">
         <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
@@ -232,7 +232,7 @@ async function loadPlayerTeamRequests(page) {
 
     body.appendChild(section);
   } catch (error) {
-    console.error("NEXUS — Error cargando solicitudes de Team del Player:", error);
+    console.error("ARKHAM — Error cargando solicitudes de Team del Player:", error);
 
     const section = document.createElement("section");
     section.className = "player-team-requests";
@@ -263,7 +263,7 @@ function renderPlayerTeamRequest(request) {
         <i class="fa-solid ${icon}" aria-hidden="true"></i>
       </div>
       <div class="player-team-request__main">
-        <span>TEAM · ${escapeHtml(request.teamId || "NEXUS")}</span>
+        <span>TEAM · ${escapeHtml(request.teamId || "ARKHAM")}</span>
         <strong>${escapeHtml(label)}</strong>
         <small>${message}</small>
       </div>
@@ -274,7 +274,7 @@ function renderPlayerTeamRequest(request) {
 function PlayerProfileView() {
   const page = document.createElement("main");
   page.className = "player-profile-page";
-  page.innerHTML = `<section class="player-profile-page__content"><header><span class="player-profile-page__eyebrow">CUENTA</span><h1>Mi perfil</h1><p>Edita la información que utilizas para identificarte dentro de NEXUS.</p></header><div data-player-profile-state>Cargando perfil...</div></section>`;
+  page.innerHTML = `<section class="player-profile-page__content"><header><span class="player-profile-page__eyebrow">CUENTA</span><h1>Mi perfil</h1><p>Edita la información que utilizas para identificarte dentro de ARKHAM.</p></header><div data-player-profile-state>Cargando perfil...</div></section>`;
 
   (async () => {
     const context = await getCurrentEntityContext();
@@ -310,7 +310,7 @@ function PlayerProfileView() {
         await updateEntity("players", context.id, update);
         message.textContent = "Perfil actualizado correctamente.";
       } catch (error) {
-        console.error("NEXUS — Error actualizando perfil Player:", error);
+        console.error("ARKHAM — Error actualizando perfil Player:", error);
         message.textContent = "No se pudo actualizar el perfil.";
       } finally { button.disabled = false; }
     });
@@ -706,7 +706,7 @@ export function PlayerCompetitiveProfileView() {
           teamSearch = "";
           render();
         } catch (error) {
-          console.error("NEXUS — Error enviando solicitud de Team:", error);
+          console.error("ARKHAM — Error enviando solicitud de Team:", error);
 
           // Restore the previous in-memory state if persistence failed.
           pendingTeamId = previousPendingTeamId;
@@ -756,7 +756,7 @@ export function PlayerCompetitiveProfileView() {
           const input = state.querySelector("[data-team-search]");
           input?.focus();
         } catch (error) {
-          console.error("NEXUS — Error saliendo del Team:", error);
+          console.error("ARKHAM — Error saliendo del Team:", error);
           leave.disabled = false;
           leave.textContent = "SALIR DEL TEAM";
           window.alert(error?.message || "No fue posible salir del Team.");
@@ -810,7 +810,7 @@ export function PlayerCompetitiveProfileView() {
             teamSearch = "";
             render();
           } catch (error) {
-            console.error("NEXUS — Error cancelando solicitud de Team:", error);
+            console.error("ARKHAM — Error cancelando solicitud de Team:", error);
             clearPending.disabled = false;
             window.alert(error?.message || "No fue posible cancelar la solicitud.");
           }
@@ -889,7 +889,7 @@ export function PlayerCompetitiveProfileView() {
         render();
         state.querySelector("[data-competitive-message]").textContent = "Perfil competitivo actualizado correctamente.";
       } catch (error) {
-        console.error("NEXUS — Error actualizando perfil competitivo:", error);
+        console.error("ARKHAM — Error actualizando perfil competitivo:", error);
         message.textContent = "No se pudo guardar el perfil competitivo.";
       } finally {
         const currentButton = state.querySelector("button[type=submit]");
@@ -899,7 +899,7 @@ export function PlayerCompetitiveProfileView() {
 
     render();
   })().catch((error) => {
-    console.error("NEXUS — Error cargando perfil competitivo:", error);
+    console.error("ARKHAM — Error cargando perfil competitivo:", error);
     page.querySelector("[data-competitive-profile-state]").textContent = "No se pudo cargar el perfil competitivo.";
   });
 

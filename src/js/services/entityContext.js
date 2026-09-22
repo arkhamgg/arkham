@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Entity Context Service
+// ARKHAM — Entity Context Service
 // ========================================
 
 import {
@@ -20,12 +20,12 @@ import {
 // ========================================
 //
 // Relaciona el tipo de entidad de la sesión
-// con el Product correspondiente de NEXUS.
+// con el Product correspondiente de ARKHAM.
 //
 // IMPORTANTE:
 //
 // entityType identifica la entidad actual.
-// productId identifica el producto NEXUS.
+// productId identifica el producto ARKHAM.
 //
 // No define planes.
 // No define capacidades.
@@ -128,7 +128,7 @@ export async function getCurrentEntityContext() {
   if (!productId) {
 
     console.error(
-      "NEXUS — Producto de entidad no soportado:",
+      "ARKHAM — Producto de entidad no soportado:",
       entityType
     );
 
@@ -150,7 +150,7 @@ export async function getCurrentEntityContext() {
   if (!collection) {
 
     console.error(
-      "NEXUS — Tipo de entidad no soportado:",
+      "ARKHAM — Tipo de entidad no soportado:",
       entityType
     );
 
@@ -173,7 +173,7 @@ export async function getCurrentEntityContext() {
   if (!entity) {
 
     console.error(
-      "NEXUS — Entidad no encontrada:",
+      "ARKHAM — Entidad no encontrada:",
       {
         entityType,
         entityId,

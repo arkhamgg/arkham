@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Landing Configuration
+// ARKHAM — Team Landing Configuration
 // ========================================
 
 import { getCurrentEntityContext } from "../services/entityContext.js";
@@ -41,7 +41,7 @@ export function TeamLanding() {
       <header class="team-page__header">
         <span>TEAM</span>
         <h1>Landing</h1>
-        <p>Configura la presencia pública de tu Team con un solo template NEXUS.</p>
+        <p>Configura la presencia pública de tu Team con un solo template ARKHAM.</p>
       </header>
       <div class="team-landing__state" data-landing-state>
         <span>Cargando configuración...</span>
@@ -95,7 +95,7 @@ async function loadLanding(page) {
       hasLanding
     });
   } catch (error) {
-    console.error("NEXUS — Error cargando configuración de Landing:", error);
+    console.error("ARKHAM — Error cargando configuración de Landing:", error);
     renderError(state, "No se pudo cargar Landing", error?.message || "Intenta nuevamente.");
   }
 }
@@ -160,7 +160,7 @@ function renderEditor(state, { teamId, team, landing, hasLanding }) {
           <span>02</span>
           <div>
             <strong>Color principal</strong>
-            <small>NEXUS controla el template; tú defines el acento visual.</small>
+            <small>ARKHAM controla el template; tú defines el acento visual.</small>
           </div>
         </header>
         <div class="team-landing__color-field">
@@ -195,7 +195,7 @@ function renderEditor(state, { teamId, team, landing, hasLanding }) {
           <span>04</span>
           <div>
             <strong>Patrocinadores</strong>
-            <small>Sube únicamente sus logos. NEXUS se encarga de la composición.</small>
+            <small>Sube únicamente sus logos. ARKHAM se encarga de la composición.</small>
           </div>
         </header>
         <div class="team-landing__sponsors" data-sponsors>
@@ -280,7 +280,7 @@ function bindEditor(state, { teamId, landing }) {
       backgroundPreview.innerHTML = "";
       backgroundStatus.textContent = "FONDO LISTO PARA GUARDAR";
     } catch (error) {
-      console.error("NEXUS — Error subiendo fondo:", error);
+      console.error("ARKHAM — Error subiendo fondo:", error);
       backgroundStatus.textContent = error?.message || "No fue posible subir el fondo.";
     } finally {
       backgroundFile.disabled = false;
@@ -308,7 +308,7 @@ function bindEditor(state, { teamId, landing }) {
       bindSponsorRemoveEvents(sponsorsContainer, currentSponsors, renderSponsorsState);
       renderSponsorsState();
     } catch (error) {
-      console.error("NEXUS — Error subiendo patrocinador:", error);
+      console.error("ARKHAM — Error subiendo patrocinador:", error);
       saveStatus.textContent = error?.message || "No fue posible subir el logo.";
     } finally {
       sponsorFile.disabled = false;
@@ -340,7 +340,7 @@ function bindEditor(state, { teamId, landing }) {
       currentSponsors = saved.sponsors;
       saveStatus.textContent = "LANDING GUARDADA CORRECTAMENTE.";
     } catch (error) {
-      console.error("NEXUS — Error guardando Landing:", error);
+      console.error("ARKHAM — Error guardando Landing:", error);
       saveStatus.textContent = error?.message || "No fue posible guardar la Landing.";
     } finally {
       saveButton.disabled = false;

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Roster API
+// ARKHAM — Team Roster API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
 
       const profile = profileSnap.exists ? profileSnap.data() : null;
       const playerId = String(profile?.entityType === "player" ? profile?.entityId || "" : "").trim();
-      if (!playerId) return json(res, 400, { error: "Tu cuenta NEXUS no tiene un perfil Player." });
+      if (!playerId) return json(res, 400, { error: "Tu cuenta ARKHAM no tiene un perfil Player." });
 
       const playerRef = db.collection("players").doc(playerId);
       const playerSnap = await playerRef.get();
@@ -338,7 +338,7 @@ export default async function handler(req, res) {
 
     return json(res, 400, { error: "Acción de Roster no reconocida." });
   } catch (error) {
-    console.error("NEXUS — Team Roster API error:", error);
+    console.error("ARKHAM — Team Roster API error:", error);
     return json(res, error?.status || 500, { error: error?.message || "No fue posible procesar el Roster." });
   }
 }

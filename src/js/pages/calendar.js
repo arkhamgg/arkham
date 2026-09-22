@@ -10,13 +10,13 @@ export function Calendar() {
     <section class="calendar-page__header">
       <div class="calendar-page__container">
         <div class="calendar-page__eyebrow">
-          NEXUS // COMPETITIVE CALENDAR
+          ARKHAM // COMPETITIVE CALENDAR
         </div>
 
         <div class="calendar-page__heading">
           <div>
             <h1>CALENDAR</h1>
-            <p>Consulta las próximas competencias y eventos de NEXUS.</p>
+            <p>Consulta las próximas competencias y eventos de ARKHAM.</p>
           </div>
 
           <div class="calendar-page__controls">
@@ -223,7 +223,7 @@ export function Calendar() {
             game: null
           };
         } catch (error) {
-          console.error("NEXUS — Error cargando evento de Calendar:", error);
+          console.error("ARKHAM — Error cargando evento de Calendar:", error);
           return {
             ...entry,
             tournament: null,
@@ -310,7 +310,7 @@ export function Calendar() {
   });
 
   hydrateEntries().catch((error) => {
-    console.error("NEXUS — Error cargando Calendar:", error);
+    console.error("ARKHAM — Error cargando Calendar:", error);
 
     state.innerHTML = `
       <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>

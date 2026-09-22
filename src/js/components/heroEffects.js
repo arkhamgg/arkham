@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Hero Effects Component
+// ARKHAM — Hero Effects Component
 // ========================================
 
 export function HeroEffects() {

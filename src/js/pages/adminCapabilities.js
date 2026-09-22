@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Capabilities
+// ARKHAM — Admin Capabilities
 // ========================================
 //
 // Catálogo administrativo de capacidades.
@@ -66,8 +66,8 @@ function getCapabilityLabel(capability) {
     global_calendar: "Calendario global",
     public_registration: "Registro público",
     participant_management: "Gestión de participantes",
-    nexus_player_search: "Búsqueda de jugadores NEXUS",
-    nexus_team_search: "Búsqueda de equipos NEXUS",
+    nexus_player_search: "Búsqueda de jugadores ARKHAM",
+    nexus_team_search: "Búsqueda de equipos ARKHAM",
     participation_requests: "Solicitudes de participación",
     dynamic_bracket: "Bracket dinámico",
     check_in: "Check-in",
@@ -191,10 +191,10 @@ export function AdminCapabilities() {
 
       <header class="admin-capabilities__header">
         <div>
-          <span class="admin-capabilities__eyebrow">NEXUS ADMIN</span>
+          <span class="admin-capabilities__eyebrow">ARKHAM ADMIN</span>
           <h1>Capacidades</h1>
           <p>
-            Consulta las funcionalidades disponibles en NEXUS,
+            Consulta las funcionalidades disponibles en ARKHAM,
             su estado global y las relaciones con productos y planes.
           </p>
         </div>
@@ -414,7 +414,7 @@ export function AdminCapabilities() {
         <div class="admin-capabilities__modal-note">
           <strong>Configuración actual</strong>
           <p>
-            Esta capacidad proviene del catálogo estático de NEXUS.
+            Esta capacidad proviene del catálogo estático de ARKHAM.
             La administración persistente de estado, productos y planes
             se habilitará cuando exista una fuente administrativa persistente.
           </p>
@@ -440,7 +440,7 @@ export function AdminCapabilities() {
     try {
       await requireAdminPermission("capabilities.view");
     } catch (error) {
-      console.error("NEXUS — Admin Capabilities:", error);
+      console.error("ARKHAM — Admin Capabilities:", error);
       message.textContent = error?.message || "No tienes acceso a este módulo.";
     }
   }

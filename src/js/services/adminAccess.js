@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Access Service
+// ARKHAM — Admin Access Service
 // ========================================
 //
 // Control de acceso administrativo.
@@ -68,7 +68,7 @@ export async function getAdminUser(
   } catch (error) {
 
     console.error(
-      "NEXUS — Error leyendo adminUsers:",
+      "ARKHAM — Error leyendo adminUsers:",
       error
     );
 
@@ -96,7 +96,7 @@ export async function getCurrentAdminAccess() {
   if (!user) {
 
     console.warn(
-      "NEXUS — Admin Access: no hay usuario autenticado."
+      "ARKHAM — Admin Access: no hay usuario autenticado."
     );
 
     return null;
@@ -104,10 +104,7 @@ export async function getCurrentAdminAccess() {
   }
 
 
-  console.log(
-    "NEXUS — Admin Access: usuario autenticado:",
-    user.uid
-  );
+  
 
 
   // ----------------------------------------
@@ -126,7 +123,7 @@ export async function getCurrentAdminAccess() {
   } catch (error) {
 
     console.error(
-      "NEXUS — Admin Access: error consultando adminUsers.",
+      "ARKHAM — Admin Access: error consultando adminUsers.",
       error
     );
 
@@ -138,7 +135,7 @@ export async function getCurrentAdminAccess() {
   if (!adminUser) {
 
     console.warn(
-      `NEXUS — Admin Access: no existe adminUsers/${user.uid}`
+      `ARKHAM — Admin Access: no existe adminUsers/${user.uid}`
     );
 
     return null;
@@ -146,10 +143,7 @@ export async function getCurrentAdminAccess() {
   }
 
 
-  console.log(
-    "NEXUS — Admin Access: documento encontrado:",
-    adminUser
-  );
+  
 
 
   // ----------------------------------------
@@ -161,10 +155,6 @@ export async function getCurrentAdminAccess() {
     null;
 
 
-  console.log(
-    "NEXUS — Admin Access: roleId:",
-    roleId
-  );
 
 
   // ----------------------------------------
@@ -177,16 +167,13 @@ export async function getCurrentAdminAccess() {
     );
 
 
-  console.log(
-    "NEXUS — Admin Access: rol válido:",
-    validRole
-  );
+  
 
 
   if (!validRole) {
 
     console.error(
-      "NEXUS — Admin Access: roleId inválido.",
+      "ARKHAM — Admin Access: roleId inválido.",
       {
         roleId,
         expectedRoles: [
@@ -210,10 +197,7 @@ export async function getCurrentAdminAccess() {
     ADMIN_USER_STATUS.ACTIVE;
 
 
-  console.log(
-    "NEXUS — Admin Access: status:",
-    status
-  );
+  
 
 
   /*
@@ -230,7 +214,7 @@ export async function getCurrentAdminAccess() {
   ) {
 
     console.error(
-      "NEXUS — Admin Access: usuario administrativo inactivo.",
+      "ARKHAM — Admin Access: usuario administrativo inactivo.",
       {
         status,
         expectedStatus:
@@ -253,10 +237,7 @@ export async function getCurrentAdminAccess() {
     );
 
 
-  console.log(
-    "NEXUS — Admin Access: permissions:",
-    permissions
-  );
+  
 
 
   // ----------------------------------------
@@ -290,10 +271,7 @@ export async function getCurrentAdminAccess() {
   };
 
 
-  console.log(
-    "NEXUS — Admin Access: acceso concedido.",
-    access
-  );
+  
 
 
   return access;

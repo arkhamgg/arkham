@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — ImageKit Authentication
+// ARKHAM — ImageKit Authentication
 // ========================================
 
 import ImageKit from "@imagekit/nodejs";
@@ -63,7 +63,7 @@ export async function GET(request) {
     ) {
 
       console.error(
-        "NEXUS — IMAGEKIT_PRIVATE_KEY no está configurada."
+        "ARKHAM — IMAGEKIT_PRIVATE_KEY no está configurada."
       );
 
       return Response.json(
@@ -120,7 +120,7 @@ export async function GET(request) {
     } catch (error) {
 
       console.error(
-        "NEXUS — ImageKit Auth: token Firebase inválido.",
+        "ARKHAM — ImageKit Auth: token Firebase inválido.",
         error
       );
 
@@ -194,7 +194,7 @@ export async function GET(request) {
   } catch (error) {
 
     console.error(
-      "NEXUS — Error generando autenticación de ImageKit:",
+      "ARKHAM — Error generando autenticación de ImageKit:",
       error
     );
 

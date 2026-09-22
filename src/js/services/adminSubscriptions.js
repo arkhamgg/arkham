@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Subscriptions Service
+// ARKHAM — Admin Subscriptions Service
 // ========================================
 
 import { auth } from "./firebase.js";

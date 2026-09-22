@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Divisions API
+// ARKHAM — Team Divisions API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
@@ -338,7 +338,7 @@ export default async function handler(req, res) {
     await teamRef.update({ updatedAt: FieldValue.serverTimestamp() });
     return json(res, 200, { ok: true });
   } catch (error) {
-    console.error("NEXUS — Team Divisions API:", error);
+    console.error("ARKHAM — Team Divisions API:", error);
     return json(res, error?.status || 500, {
       error: error?.message || "No fue posible procesar las divisiones."
     });

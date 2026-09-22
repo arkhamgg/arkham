@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Payment State Machine
+// ARKHAM — Payment State Machine
 // ========================================
 
 import {

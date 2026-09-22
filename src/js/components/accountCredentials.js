@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Account Credentials Component
+// ARKHAM — Account Credentials Component
 // ========================================
 
 export function AccountCredentials() {
@@ -26,7 +26,7 @@ export function AccountCredentials() {
       <div>
 
         <span class="account-credentials__eyebrow">
-          NEXUS ACCOUNT
+          ARKHAM ACCOUNT
         </span>
 
         <h2>
@@ -35,7 +35,7 @@ export function AccountCredentials() {
 
         <p>
           Crea las credenciales que utilizarás
-          para administrar tu entidad en NEXUS.
+          para administrar tu entidad en ARKHAM.
         </p>
 
       </div>

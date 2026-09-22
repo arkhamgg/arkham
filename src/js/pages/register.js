@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Register Page
+// ARKHAM — Register Page
 // ========================================
 
 export function Register() {
@@ -32,7 +32,7 @@ export function Register() {
           </h1>
 
           <p>
-            Elige qué quieres crear dentro de NEXUS
+            Elige qué quieres crear dentro de ARKHAM
             para comenzar.
           </p>
 
@@ -145,7 +145,7 @@ export function Register() {
 
               <span>
                 Crea tu perfil competitivo
-                dentro de NEXUS.
+                dentro de ARKHAM.
               </span>
 
             </span>
@@ -387,10 +387,7 @@ export function Register() {
       }
 
 
-      console.log(
-        "NEXUS — Tipo de cuenta seleccionado:",
-        selectedType
-      );
+      
 
 
       // ========================================

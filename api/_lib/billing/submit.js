@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Billing Payment Submit API
+// ARKHAM — Billing Payment Submit API
 // ========================================
 
 import {
@@ -1248,7 +1248,7 @@ export default async function handler(
   ) {
 
     console.error(
-      "NEXUS — Billing Payment Submit API:",
+      "ARKHAM — Billing Payment Submit API:",
       error
     );
 

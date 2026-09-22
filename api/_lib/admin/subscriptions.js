@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Subscriptions API
+// ARKHAM — Admin Subscriptions API
 // ========================================
 
 import { getAuth } from "firebase-admin/auth";
@@ -114,7 +114,7 @@ export async function handle(req, res) {
 
     return res.status(200).json({ success: true, subscriptions });
   } catch (error) {
-    console.error("NEXUS — Admin Subscriptions API:", error);
+    console.error("ARKHAM — Admin Subscriptions API:", error);
     return errorResponse(
       res,
       error?.message || "No fue posible cargar las suscripciones.",

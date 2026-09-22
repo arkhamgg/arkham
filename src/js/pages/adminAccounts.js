@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Accounts
+// ARKHAM — Admin Accounts
 // ========================================
 
 import { requireAdminPermission } from "../services/adminAccess.js";
@@ -21,10 +21,10 @@ export function AdminAccounts() {
 
       <header class="admin-accounts__header">
         <div>
-          <span class="admin-accounts__eyebrow">NEXUS ADMIN</span>
+          <span class="admin-accounts__eyebrow">ARKHAM ADMIN</span>
           <h1>Accounts</h1>
           <p>
-            Consulta y administra las cuentas registradas en NEXUS.
+            Consulta y administra las cuentas registradas en ARKHAM.
           </p>
         </div>
 
@@ -331,7 +331,7 @@ export function AdminAccounts() {
       renderAccounts();
       message.textContent = "";
     } catch (error) {
-      console.error("NEXUS — Admin Accounts:", error);
+      console.error("ARKHAM — Admin Accounts:", error);
 
       container.innerHTML = `
         <div class="admin-accounts__error">
@@ -385,7 +385,7 @@ export function AdminAccounts() {
     if (suspendButton) {
       const uid = suspendButton.dataset.accountSuspend;
 
-      if (!window.confirm("¿Seguro que deseas suspender esta cuenta? El usuario perderá el acceso a NEXUS.")) {
+      if (!window.confirm("¿Seguro que deseas suspender esta cuenta? El usuario perderá el acceso a ARKHAM.")) {
         return;
       }
 

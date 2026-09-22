@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Players Component
+// ARKHAM — Players Component
 // ========================================
 
 export function Players() {
@@ -430,4 +430,3 @@ export function Players() {
 
   return section;
 }
-console.log("error to deploy")

@@ -39,10 +39,7 @@ export async function syncCalendarEvent({
   const date = getEventDate(event);
 
   if (!date) {
-    console.log(
-      "NEXUS — Evento sin fecha. No se sincroniza con Calendar.",
-      { tournamentId, eventId }
-    );
+    
 
     return null;
   }

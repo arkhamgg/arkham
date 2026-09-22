@@ -1,8 +1,8 @@
 // ========================================
-// NEXUS — Admin Accounts API
+// ARKHAM — Admin Accounts API
 // ========================================
 //
-// Gestión segura de las cuentas de NEXUS.
+// Gestión segura de las cuentas de ARKHAM.
 //
 // Frontend
 //    ↓
@@ -118,7 +118,7 @@ async function getAuthenticatedAdmin(req) {
     decodedToken = await adminAuth.verifyIdToken(idToken);
   } catch (error) {
     console.error(
-      "NEXUS — Admin Accounts: token inválido.",
+      "ARKHAM — Admin Accounts: token inválido.",
       error
     );
 
@@ -258,7 +258,7 @@ async function handleGet(req, res) {
 
     return successResponse(res, { accounts });
   } catch (error) {
-    console.error("NEXUS — Admin Accounts GET:", error);
+    console.error("ARKHAM — Admin Accounts GET:", error);
     return errorResponse(
       res,
       error.message || "No fue posible cargar las cuentas.",
@@ -334,7 +334,7 @@ async function handlePatch(req, res) {
       }
     });
   } catch (error) {
-    console.error("NEXUS — Admin Accounts PATCH:", error);
+    console.error("ARKHAM — Admin Accounts PATCH:", error);
     return errorResponse(
       res,
       error.message || "No fue posible actualizar la cuenta.",

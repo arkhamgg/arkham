@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Account Service
+// ARKHAM — Account Service
 // ========================================
 
 import {
@@ -191,7 +191,7 @@ export async function getCurrentAccountContext(
     } catch (error) {
 
       console.warn(
-        "NEXUS — No fue posible obtener el último pago de la cuenta.",
+        "ARKHAM — No fue posible obtener el último pago de la cuenta.",
         error
       );
 

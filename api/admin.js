@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Consolidated Admin API
+// ARKHAM — Consolidated Admin API
 // ========================================
 //
 // Single Vercel Serverless Function for Admin Core.
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
   try {
     return await selectedHandler(req, res);
   } catch (error) {
-    console.error("NEXUS — Consolidated Admin API:", error);
+    console.error("ARKHAM — Consolidated Admin API:", error);
     return errorResponse(
       res,
       error?.message || "No fue posible procesar la solicitud administrativa.",

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Upgrade to Pro Page
+// ARKHAM — Upgrade to Pro Page
 // ========================================
 
 
@@ -127,7 +127,7 @@ function renderError(
           </div>
 
           <span class="upgrade-page__eyebrow">
-            NEXUS BILLING
+            ARKHAM BILLING
           </span>
 
           <h1>
@@ -172,7 +172,7 @@ function renderHeader() {
       <div>
 
         <span class="upgrade-page__eyebrow">
-          NEXUS PRO
+          ARKHAM PRO
         </span>
 
         <h1>
@@ -182,7 +182,7 @@ function renderHeader() {
         <p>
           Compara los planes disponibles y descubre
           lo que obtienes al llevar tu operación
-          competitiva a NEXUS Pro.
+          competitiva a ARKHAM Pro.
         </p>
 
       </div>
@@ -250,7 +250,7 @@ function renderPlanComparison() {
 
           <p class="upgrade-page__plan-description">
 
-            Comienza a utilizar NEXUS y construye
+            Comienza a utilizar ARKHAM y construye
             tu presencia competitiva.
 
           </p>
@@ -277,7 +277,7 @@ function renderPlanComparison() {
               <i class="fa-solid fa-check"></i>
 
               <span>
-                Publicar tus competencias en NEXUS.
+                Publicar tus competencias en ARKHAM.
               </span>
 
             </li>
@@ -288,7 +288,7 @@ function renderPlanComparison() {
 
               <span>
                 Construir tu presencia dentro
-                del ecosistema NEXUS.
+                del ecosistema ARKHAM.
               </span>
 
             </li>
@@ -407,7 +407,7 @@ function renderPlanComparison() {
 
               <span>
                 Acceso a capacidades Pro según
-                la configuración de NEXUS.
+                la configuración de ARKHAM.
               </span>
 
             </li>
@@ -516,7 +516,7 @@ function renderValueSection() {
           <p>
             Activa las capacidades disponibles para
             Pro mediante el sistema central de
-            entitlements de NEXUS.
+            entitlements de ARKHAM.
           </p>
 
         </article>
@@ -542,7 +542,7 @@ function renderCTA() {
       <div class="upgrade-page__cta-content">
 
         <span class="upgrade-page__eyebrow">
-          NEXUS PRO
+          ARKHAM PRO
         </span>
 
         <h2>
@@ -679,7 +679,7 @@ function renderTeamUpgrade(
 
             <p>
               Activa Team Pro y habilita la Landing
-              personalizada de tu organización dentro de NEXUS.
+              personalizada de tu organización dentro de ARKHAM.
             </p>
           </div>
 
@@ -743,7 +743,7 @@ function renderTeamUpgrade(
 
               <p class="upgrade-page__plan-description">
                 Presencia profesional para tu Team dentro
-                del ecosistema NEXUS.
+                del ecosistema ARKHAM.
               </p>
 
               <div class="upgrade-page__divider"></div>
@@ -795,7 +795,7 @@ function renderTeamUpgrade(
             </span>
 
             <h2>
-              Construye la presencia de tu Team en NEXUS.
+              Construye la presencia de tu Team en ARKHAM.
             </h2>
 
             <p>
@@ -965,7 +965,7 @@ async function renderUpgradeContent(
   } catch (error) {
 
     console.error(
-      "NEXUS — Upgrade Page: error cargando información.",
+      "ARKHAM — Upgrade Page: error cargando información.",
       error
     );
 

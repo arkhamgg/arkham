@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Tournament Recognition Management
+// ARKHAM — Tournament Recognition Management
 // ========================================
 
 import { getCurrentAccountContext } from "../services/account.js";
@@ -157,8 +157,8 @@ function renderCompetitionMeta(item) {
   return `
     <div class="tournament-recognition-card__competition">
       <span class="tournament-recognition-card__eyebrow">COMPETENCIA</span>
-      <strong>${escapeHtml(item.competitionName || "Competencia NEXUS")}</strong>
-      <small>${escapeHtml(item.tournamentName || "Torneo NEXUS")}</small>
+      <strong>${escapeHtml(item.competitionName || "Competencia ARKHAM")}</strong>
+      <small>${escapeHtml(item.tournamentName || "Torneo ARKHAM")}</small>
     </div>`;
 }
 
@@ -195,4 +195,3 @@ function renderHistory(item) {
       </div>
     </article>`;
 }
-console.log("sucess")

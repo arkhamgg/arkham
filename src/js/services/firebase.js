@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Firebase
+// ARKHAM — Firebase
 // ========================================
 
 import { initializeApp } from "firebase/app";

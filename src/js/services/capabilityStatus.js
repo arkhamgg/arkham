@@ -57,7 +57,7 @@ export const CAPABILITY_STATUS = {
 // registradas comienzan activas.
 //
 // Posteriormente este estado podrá ser
-// administrado desde NEXUS Admin.
+// administrado desde ARKHAM Admin.
 //
 // ========================================
 

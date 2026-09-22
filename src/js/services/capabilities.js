@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Capabilities Catalog
+// ARKHAM — Capabilities Catalog
 // ========================================
 //
 // Las capacidades representan funcionalidades
@@ -41,7 +41,7 @@ export const CAPABILITIES = {
   // ======================================
   //
   // Capacidades relacionadas con la cuenta
-  // y el espacio "Mi NEXUS".
+  // y el espacio "Mi ARKHAM".
   //
   // Estas capacidades permanecen separadas
   // de las capacidades competitivas.

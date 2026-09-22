@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Plans
+// ARKHAM — Admin Plans
 // ========================================
 //
 // Catálogo administrativo de planes.
@@ -22,7 +22,7 @@ import { PRODUCTS } from "../services/products.js";
 // ========================================
 
 function getPlanDescription(planId) {
-  return PLANS[planId]?.description || "Plan disponible en NEXUS.";
+  return PLANS[planId]?.description || "Plan disponible en ARKHAM.";
 }
 
 function getPlanStatusLabel(status) {
@@ -80,13 +80,13 @@ export function AdminPlans() {
       <header class="admin-plans__header">
         <div>
           <span class="admin-plans__eyebrow">
-            NEXUS ADMIN
+            ARKHAM ADMIN
           </span>
 
           <h1>Planes</h1>
 
           <p>
-            Administra la estructura comercial de NEXUS
+            Administra la estructura comercial de ARKHAM
             y consulta las capacidades incluidas en cada plan.
           </p>
         </div>
@@ -105,7 +105,7 @@ export function AdminPlans() {
       <section class="admin-plans__intro">
         <div>
           <span class="admin-plans__section-label">CATÁLOGO</span>
-          <h2>Planes NEXUS</h2>
+          <h2>Planes ARKHAM</h2>
           <p>
             Un plan agrupa capacidades. La disponibilidad final
             se resuelve según el producto y la cuenta.
@@ -302,7 +302,7 @@ export function AdminPlans() {
     try {
       await requireAdminPermission("plans.view");
     } catch (error) {
-      console.error("NEXUS — Admin Plans:", error);
+      console.error("ARKHAM — Admin Plans:", error);
       message.textContent = error?.message || "No tienes acceso a este módulo.";
       page.querySelector("[data-admin-plans]").innerHTML = `
         <div class="admin-plans__error">

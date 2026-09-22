@@ -46,7 +46,7 @@ export const MODULES = {
   // ======================================
   //
   // Funciones relacionadas con la cuenta
-  // y Mi NEXUS.
+  // y Mi ARKHAM.
   //
 
   ACCOUNT: {

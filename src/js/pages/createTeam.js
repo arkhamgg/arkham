@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Create Team Page
+// ARKHAM — Create Team Page
 // ========================================
 
 import { EntityBasicInfo } from "../components/entityBasicInfo.js";
@@ -67,7 +67,7 @@ export function CreateTeam() {
 
           <p>
             Define la identidad y presencia
-            oficial de tu equipo dentro de NEXUS.
+            oficial de tu equipo dentro de ARKHAM.
           </p>
 
         </div>
@@ -356,9 +356,6 @@ export function CreateTeam() {
         // CREATE ACCOUNT
         // ========================================
 
-        console.log(
-          "NEXUS — Creando cuenta..."
-        );
 
 
         const user =
@@ -368,10 +365,6 @@ export function CreateTeam() {
           );
 
 
-        console.log(
-          "NEXUS — Cuenta creada:",
-          user.uid
-        );
 
 
         // ========================================
@@ -424,10 +417,6 @@ export function CreateTeam() {
           );
 
 
-        console.log(
-          "NEXUS — Equipo creado:",
-          teamId
-        );
 
 
         // ========================================
@@ -436,9 +425,6 @@ export function CreateTeam() {
 
         if (logoFile) {
 
-          console.log(
-            "NEXUS — Subiendo logo del equipo..."
-          );
 
 
           const logoResult =
@@ -450,11 +436,6 @@ export function CreateTeam() {
               }
             );
 
-
-          console.log(
-            "NEXUS — Logo del equipo subido:",
-            logoResult
-          );
 
 
           // ========================================
@@ -483,15 +464,10 @@ export function CreateTeam() {
           );
 
 
-          console.log(
-            "NEXUS — Referencia del logo guardada."
-          );
+
 
         } else {
 
-          console.log(
-            "NEXUS — Equipo sin logo."
-          );
 
         }
 
@@ -518,10 +494,6 @@ export function CreateTeam() {
         );
 
 
-        console.log(
-          "NEXUS — Perfil de usuario creado:",
-          user.uid
-        );
 
 
         // ========================================
@@ -532,10 +504,7 @@ export function CreateTeam() {
           await provisionCurrentAccount();
 
 
-        console.log(
-          "NEXUS — Account provisionada:",
-          accountProvision
-        );
+
 
 
         // ========================================
@@ -546,11 +515,6 @@ export function CreateTeam() {
           await waitForAuthenticatedSession();
 
 
-        console.log(
-          "NEXUS — Sesión autenticada:",
-          session
-        );
-
 
         // ========================================
         // REFRESH SESSION PROFILE
@@ -560,10 +524,6 @@ export function CreateTeam() {
           await refreshSession();
 
 
-        console.log(
-          "NEXUS — Sesión actualizada:",
-          refreshedSession
-        );
 
 
         // ========================================
@@ -584,7 +544,7 @@ export function CreateTeam() {
       } catch (error) {
 
         console.error(
-          "NEXUS — Error creando Equipo:",
+          "ARKHAM — Error creando Equipo:",
           error
         );
 

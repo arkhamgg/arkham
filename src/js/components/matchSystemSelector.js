@@ -77,10 +77,6 @@ export function MatchSystemSelector({
   select.addEventListener("change", (event) => {
     value = event.target.value;
 
-    console.log(
-      "NEXUS — Match System seleccionado:",
-      value
-    );
 
     if (typeof onChange === "function") {
       onChange(value);

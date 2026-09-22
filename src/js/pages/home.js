@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Home Page
+// ARKHAM — Home Page
 // ========================================
 
 import { Hero } from "../components/hero.js";

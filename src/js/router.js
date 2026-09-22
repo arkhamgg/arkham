@@ -451,7 +451,7 @@ async function resolveProtectedPath(
     if (!session) {
 
       console.warn(
-        "NEXUS — Ruta administrativa sin sesión."
+        "ARKHAM — Ruta administrativa sin sesión."
       );
 
       return "/login";
@@ -478,7 +478,7 @@ async function resolveProtectedPath(
     ) {
 
       console.warn(
-        "NEXUS — Acceso administrativo rechazado."
+        "ARKHAM — Acceso administrativo rechazado."
       );
 
       return "/dashboard";
@@ -511,7 +511,7 @@ async function resolveProtectedPath(
     if (!session) {
 
       console.warn(
-        "NEXUS — Dashboard cliente sin sesión."
+        "ARKHAM — Dashboard cliente sin sesión."
       );
 
       return "/login";
@@ -534,9 +534,7 @@ async function resolveProtectedPath(
       )
     ) {
 
-      console.log(
-        "NEXUS — Cuenta administrativa detectada. Redirigiendo al Admin Dashboard."
-      );
+      
 
       return "/dashboard/admin";
 
@@ -617,16 +615,7 @@ export function Router(app) {
         requestedPath
       ) {
 
-        console.log(
-          "NEXUS — Redirección protegida:",
-          {
-            from:
-              requestedPath,
-
-            to:
-              resolvedPath
-          }
-        );
+        
 
 
         window.history.replaceState(
@@ -689,7 +678,7 @@ export function Router(app) {
     } catch (error) {
 
       console.error(
-        "NEXUS — Error resolviendo ruta:",
+        "ARKHAM — Error resolviendo ruta:",
         error
       );
 
@@ -716,7 +705,7 @@ export function Router(app) {
       } catch (fallbackError) {
 
         console.error(
-          "NEXUS — Error renderizando fallback:",
+          "ARKHAM — Error renderizando fallback:",
           fallbackError
         );
 
@@ -792,7 +781,7 @@ export function Router(app) {
       (error) => {
 
         console.error(
-          "NEXUS — Error inicializando sesión:",
+          "ARKHAM — Error inicializando sesión:",
           error
         );
 

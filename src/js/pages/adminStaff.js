@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Admin Staff
+// ARKHAM — Admin Staff
 // ========================================
 
 import {
@@ -38,7 +38,7 @@ export function AdminStaff() {
         <div>
 
           <span class="admin-staff__eyebrow">
-            NEXUS ADMIN
+            ARKHAM ADMIN
           </span>
 
           <h1>
@@ -47,7 +47,7 @@ export function AdminStaff() {
 
           <p>
             Administra los usuarios con acceso
-            administrativo a NEXUS.
+            administrativo a ARKHAM.
           </p>
 
         </div>
@@ -342,7 +342,7 @@ export function AdminStaff() {
     } catch (error) {
 
       console.error(
-        "NEXUS — Admin Staff:",
+        "ARKHAM — Admin Staff:",
         error
       );
 

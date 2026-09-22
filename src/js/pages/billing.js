@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Billing Page
+// ARKHAM — Billing Page
 // ========================================
 
 import {
@@ -395,7 +395,7 @@ function renderFreePlan(
 
             <p>
               Administra el plan y la facturación
-              de tu cuenta NEXUS.
+              de tu cuenta ARKHAM.
             </p>
 
           </div>
@@ -437,7 +437,7 @@ function renderFreePlan(
                   </h2>
 
                   <p>
-                    Acceso actual de tu cuenta NEXUS.
+                    Acceso actual de tu cuenta ARKHAM.
                   </p>
 
                 </div>
@@ -469,7 +469,7 @@ function renderFreePlan(
                 </strong>
 
                 <span>
-                  Comienza a utilizar NEXUS
+                  Comienza a utilizar ARKHAM
                   sin una suscripción de pago.
                 </span>
 
@@ -527,7 +527,7 @@ function renderFreePlan(
                     </h2>
 
                     <p>
-                      Tu solicitud para activar NEXUS Pro fue rechazada.
+                      Tu solicitud para activar ARKHAM Pro fue rechazada.
                       Revisa el motivo y, si lo deseas, realiza un nuevo intento.
                     </p>
 
@@ -579,7 +579,7 @@ function renderFreePlan(
           <div class="billing-page__section-heading">
 
             <span>
-              NEXUS PRO
+              ARKHAM PRO
             </span>
 
           </div>
@@ -771,7 +771,7 @@ function renderSubscribedPlan(
 
             <p>
               Consulta y administra el estado
-              de tu suscripción NEXUS.
+              de tu suscripción ARKHAM.
             </p>
 
           </div>
@@ -926,7 +926,7 @@ function renderSubscribedPlan(
 
                     <p>
                       Las herramientas Pro están bloqueadas hasta que renueves tu suscripción.
-                      Tu plan Pro se conserva y volverá a activarse cuando NEXUS apruebe tu renovación.
+                      Tu plan Pro se conserva y volverá a activarse cuando ARKHAM apruebe tu renovación.
                     </p>
 
                     <div class="billing-page__payment-alert-actions">
@@ -1387,7 +1387,7 @@ async function renderBillingContent(
   } catch (error) {
 
     console.error(
-      "NEXUS — Billing Page: error cargando información.",
+      "ARKHAM — Billing Page: error cargando información.",
       error
     );
 

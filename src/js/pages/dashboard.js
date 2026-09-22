@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Dashboard
+// ARKHAM — Dashboard
 // ========================================
 
 import {
@@ -61,7 +61,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         <span
           class="dashboard-page__eyebrow"
         >
-          NEXUS
+          ARKHAM
         </span>
 
         <h1>
@@ -70,7 +70,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
         <p>
           No hay una sesión activa
-          en NEXUS.
+          en ARKHAM.
         </p>
 
       </div>
@@ -100,7 +100,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
             <span
               class="dashboard-header__eyebrow"
             >
-              MI NEXUS
+              MI ARKHAM
             </span>
 
             <h1>
@@ -110,7 +110,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
             <p
               data-dashboard-description
             >
-              Cargando tu espacio NEXUS...
+              Cargando tu espacio ARKHAM...
             </p>
 
           </div>
@@ -153,7 +153,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
               <strong>
                 ${
                   session.user?.email ||
-                  "Cuenta NEXUS"
+                  "Cuenta ARKHAM"
                 }
               </strong>
 
@@ -185,7 +185,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
               <span
                 class="dashboard-section__eyebrow"
               >
-                NEXUS COMPETITIONS
+                ARKHAM COMPETITIONS
               </span>
 
               <h2>
@@ -287,7 +287,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
                 <p>
                   Crea tu primer torneo para
                   comenzar a construir tu
-                  competencia en NEXUS.
+                  competencia en ARKHAM.
                 </p>
 
               </div>
@@ -480,7 +480,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
           <p>
             Crea tu primer torneo para comenzar
-            a construir tu competencia en NEXUS.
+            a construir tu competencia en ARKHAM.
           </p>
 
         </div>
@@ -814,15 +814,11 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
       );
 
 
-      console.log(
-        "NEXUS — Competencias cargadas:",
-        tournament?.events || {}
-      );
 
     } catch (error) {
 
       console.error(
-        "NEXUS — Error cargando competencias:",
+        "ARKHAM — Error cargando competencias:",
         error
       );
 
@@ -884,7 +880,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
         if (!tournamentId || !eventId) {
           console.error(
-            "NEXUS — No se pudo abrir la configuración del evento.",
+            "ARKHAM — No se pudo abrir la configuración del evento.",
             { tournamentId, eventId }
           );
           return;
@@ -917,7 +913,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
         if (!tournamentId || !eventId || !hasEffectivePro) {
           console.error(
-            "NEXUS — No se pudo abrir la administración Pro del evento.",
+            "ARKHAM — No se pudo abrir la administración Pro del evento.",
             { tournamentId, eventId, hasEffectivePro }
           );
           return;
@@ -956,7 +952,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         ) {
 
           console.error(
-            "NEXUS — No se pudo eliminar la competencia.",
+            "ARKHAM — No se pudo eliminar la competencia.",
             {
               tournamentId,
               eventId
@@ -995,13 +991,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
           );
 
 
-          console.log(
-            "NEXUS — Competencia eliminada correctamente:",
-            {
-              tournamentId,
-              eventId
-            }
-          );
+          
 
 
           await loadCompetitions(
@@ -1011,7 +1001,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         } catch (error) {
 
           console.error(
-            "NEXUS — Error eliminando la competencia:",
+            "ARKHAM — Error eliminando la competencia:",
             error
           );
 
@@ -1054,7 +1044,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         ) {
 
           console.error(
-            "NEXUS — No se pudo abrir la competencia pública.",
+            "ARKHAM — No se pudo abrir la competencia pública.",
             {
               tournamentId,
               eventId
@@ -1097,7 +1087,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
     const gamertag =
       entity.gamertag ||
       entity.name ||
-      "Jugador NEXUS";
+      "Jugador ARKHAM";
 
     const roles =
       Array.isArray(entity.roles)
@@ -1114,7 +1104,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
     const rolesText =
       roles.length
         ? roles.map(role => roleLabels[role] || role).join(" · ")
-        : "Perfil NEXUS";
+        : "Perfil ARKHAM";
 
     const workspace =
       main?.querySelector(".dashboard-workspace");
@@ -1161,7 +1151,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
           <article class="player-dashboard__card">
             <span>RESULTADOS</span>
             <strong>0</strong>
-            <p>Resultados registrados en NEXUS.</p>
+            <p>Resultados registrados en ARKHAM.</p>
           </article>
 
           <article class="player-dashboard__card">
@@ -1233,7 +1223,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
             <div class="dashboard-create__content">
               <span class="dashboard-section__eyebrow">ORGANIZACIÓN</span>
               <h2>Construye tu Team competitivo.</h2>
-              <p>Administra tus divisiones, incorpora jugadores y prepara tus rosters para competir en NEXUS.</p>
+              <p>Administra tus divisiones, incorpora jugadores y prepara tus rosters para competir en ARKHAM.</p>
             </div>
 
             <div class="dashboard-create__team-identity" aria-label="Identidad de ${escapeHtml(teamName)}">
@@ -1278,7 +1268,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
                 <div class="dashboard-team-overview__body">
                   <span class="dashboard-team-overview__eyebrow">DIVISIONES</span>
                   <h3>Organiza tus juegos</h3>
-                  <p>Crea divisiones según los juegos competitivos disponibles en NEXUS.</p>
+                  <p>Crea divisiones según los juegos competitivos disponibles en ARKHAM.</p>
                 </div>
                 <a href="/dashboard/team/divisions" class="dashboard-team-overview__link" data-team-navigation>
                   Gestionar divisiones
@@ -1302,7 +1292,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
 
   // ========================================
-  // LOAD NEXUS CONTEXT
+  // LOAD ARKHAM CONTEXT
   // ========================================
 
   async function loadNexusContext() {
@@ -1353,28 +1343,6 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
           );
 
 
-        console.log(
-          "NEXUS — Access Context:",
-          access
-        );
-
-
-        console.log(
-          "NEXUS — Plan:",
-          accountContext.subscription.planId
-        );
-
-
-        console.log(
-          "NEXUS — Product:",
-          entityContext.productId
-        );
-
-
-        console.log(
-          "NEXUS — Capabilities:",
-          access.getCapabilities()
-        );
 
       }
 
@@ -1437,7 +1405,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
         const entityName =
           entityContext.entity?.name ||
           entityContext.type ||
-          "Mi NEXUS";
+          "Mi ARKHAM";
 
 
         if (sidebar) {
@@ -1462,10 +1430,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
           `Gestionando ${entityName}.`;
 
 
-        console.log(
-          "NEXUS — Entity Context:",
-          entityContext
-        );
+        
 
       } else {
 
@@ -1477,7 +1442,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
               null,
 
             name:
-              "Mi NEXUS",
+              "Mi ARKHAM",
 
             accessContext:
               access
@@ -1488,7 +1453,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
 
 
         headerDescription.textContent =
-          "Bienvenido a tu espacio NEXUS.";
+          "Bienvenido a tu espacio ARKHAM.";
 
       }
 
@@ -1497,21 +1462,18 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
       // ACCOUNT LOG
       // ====================================
 
-      console.log(
-        "NEXUS — Account Context:",
-        accountContext
-      );
+      
 
     } catch (error) {
 
       console.error(
-        "NEXUS — Error cargando contexto NEXUS:",
+        "ARKHAM — Error cargando contexto ARKHAM:",
         error
       );
 
 
       headerDescription.textContent =
-        "Ocurrió un error cargando el contexto de NEXUS.";
+        "Ocurrió un error cargando el contexto de ARKHAM.";
 
     }
 
@@ -1526,9 +1488,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
     "click",
     async () => {
 
-      console.log(
-        "NEXUS — Crear torneo"
-      );
+      
 
       /*
        * El Dashboard ya conoce el Tournament actual.
@@ -1540,7 +1500,7 @@ export function Dashboard({ dashboardSidebar = null } = {}) {
       if (!currentTournamentId) {
 
         console.error(
-          "NEXUS — No se puede abrir el Builder: no hay Tournament ID actual."
+          "ARKHAM — No se puede abrir el Builder: no hay Tournament ID actual."
         );
 
         return;

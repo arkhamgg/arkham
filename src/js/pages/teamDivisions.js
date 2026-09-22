@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Team Divisions
+// ARKHAM — Team Divisions
 // ========================================
 
 import { getCurrentEntityContext } from "../services/entityContext.js";
@@ -129,7 +129,7 @@ async function loadDivisions(page) {
       members: Array.isArray(rosterResponse?.members) ? rosterResponse.members : []
     });
   } catch (error) {
-    console.error("NEXUS — Error cargando Divisiones:", error);
+    console.error("ARKHAM — Error cargando Divisiones:", error);
     renderError(state, "No se pudieron cargar las Divisiones", error?.message || "Intenta nuevamente.", true, page);
   }
 }
@@ -178,7 +178,7 @@ function renderDivisions(state, { teamId, divisions, games, members }) {
               <option value="">Selecciona un juego</option>
               ${games.map((game) => `<option value="${escapeHtml(game.id)}">${escapeHtml(game.name || game.title || game.id)}</option>`).join("")}
             </select>
-            <small>Los roles competitivos se cargarán desde la configuración del juego en NEXUS.</small>
+            <small>Los roles competitivos se cargarán desde la configuración del juego en ARKHAM.</small>
           </label>
 
           <div class="team-divisions__builder" data-division-builder hidden>
@@ -293,7 +293,7 @@ function bindDivisionEvents(state, { teamId, divisions, games, members }) {
         await deleteTeamDivision({ teamId, divisionId });
         await refreshDivisions(state, teamId);
       } catch (error) {
-        console.error("NEXUS — Error eliminando división:", error);
+        console.error("ARKHAM — Error eliminando división:", error);
         button.disabled = false;
         window.alert(error?.message || "No fue posible eliminar la división.");
       }
@@ -343,7 +343,7 @@ function bindDivisionEvents(state, { teamId, divisions, games, members }) {
       closeModal(state);
       await refreshDivisions(state, teamId);
     } catch (error) {
-      console.error("NEXUS — Error guardando división:", error);
+      console.error("ARKHAM — Error guardando división:", error);
       errorBox.textContent = error?.message || "No fue posible guardar la división.";
       errorBox.hidden = false;
       submit.disabled = false;

@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Competition Detail Page
+// ARKHAM — Competition Detail Page
 // ========================================
 
 import {
@@ -853,10 +853,6 @@ export function CompetitionDetail() {
       }
 
 
-      console.log(
-        "NEXUS — Cargando competencia:",
-        competitionId
-      );
 
 
       /*
@@ -1118,7 +1114,7 @@ export function CompetitionDetail() {
     } catch (loadError) {
 
       console.error(
-        "NEXUS — Error cargando competencia:",
+        "ARKHAM — Error cargando competencia:",
         {
           competitionId,
           error: loadError

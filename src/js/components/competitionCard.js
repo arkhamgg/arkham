@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Competition Card Component
+// ARKHAM — Competition Card Component
 // ========================================
 
 export function CompetitionCard(competition) {

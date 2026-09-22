@@ -1,9 +1,9 @@
 // ========================================
-// NEXUS — Products Catalog
+// ARKHAM — Products Catalog
 // ========================================
 //
 // Los productos representan los tipos de
-// entidades/productos competitivos que NEXUS
+// entidades/productos competitivos que ARKHAM
 // puede ofrecer.
 //
 // IMPORTANTE:

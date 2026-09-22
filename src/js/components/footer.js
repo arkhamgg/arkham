@@ -1,5 +1,5 @@
 // ========================================
-// NEXUS — Footer Component
+// ARKHAM — Footer Component
 // ========================================
 
 export function Footer() {
@@ -123,7 +123,7 @@ export function Footer() {
 
 
       <!-- ========================================
-           NEXUS WORDMARK
+           ARKHAM WORDMARK
            ======================================== -->
 
       <div class="footer__wordmark">
