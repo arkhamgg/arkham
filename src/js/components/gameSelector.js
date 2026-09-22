@@ -31,13 +31,13 @@ export function GameSelector({
 
     <label
       class="game-selector__label"
-      for="nexus-game-selector"
+      for="arkham-game-selector"
     >
       JUEGO
     </label>
 
     <select
-      id="nexus-game-selector"
+      id="arkham-game-selector"
       class="game-selector__select"
     >
 

@@ -10,13 +10,13 @@ export function FormatSelector({
   container.innerHTML = `
     <label
       class="format-selector__label"
-      for="nexus-format-selector"
+      for="arkham-format-selector"
     >
       FORMATO
     </label>
 
     <select
-      id="nexus-format-selector"
+      id="arkham-format-selector"
       class="format-selector__select"
     >
       <option value="">
@@ -28,7 +28,7 @@ export function FormatSelector({
   `;
 
   const select = container.querySelector(
-    "#nexus-format-selector"
+    "#arkham-format-selector"
   );
 
   const message = container.querySelector(

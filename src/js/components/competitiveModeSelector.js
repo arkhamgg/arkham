@@ -32,13 +32,13 @@ export function CompetitiveModeSelector({
 
     <label
       class="competitive-mode-selector__label"
-      for="nexus-competitive-mode-selector"
+      for="arkham-competitive-mode-selector"
     >
       MODALIDAD
     </label>
 
     <select
-      id="nexus-competitive-mode-selector"
+      id="arkham-competitive-mode-selector"
       class="competitive-mode-selector__select"
       disabled
     >

@@ -68,13 +68,13 @@ export function RegistrationCostSelector({
     <div class="registration-cost-selector__field">
       <label
         class="registration-cost-selector__label"
-        for="nexus-registration-cost-type"
+        for="arkham-registration-cost-type"
       >
         COSTO DE INSCRIPCIÓN
       </label>
 
       <select
-        id="nexus-registration-cost-type"
+        id="arkham-registration-cost-type"
         class="registration-cost-selector__select"
       >
         <option value="free">GRATIS</option>
@@ -94,7 +94,7 @@ export function RegistrationCostSelector({
   `;
 
   const typeSelect = container.querySelector(
-    "#nexus-registration-cost-type"
+    "#arkham-registration-cost-type"
   );
 
   const content = container.querySelector(
@@ -113,13 +113,13 @@ export function RegistrationCostSelector({
           <div class="registration-cost-selector__field">
             <label
               class="registration-cost-selector__label"
-              for="nexus-registration-cost-amount"
+              for="arkham-registration-cost-amount"
             >
               MONTO
             </label>
 
             <input
-              id="nexus-registration-cost-amount"
+              id="arkham-registration-cost-amount"
               class="registration-cost-selector__input"
               type="number"
               min="0"
@@ -131,13 +131,13 @@ export function RegistrationCostSelector({
           <div class="registration-cost-selector__field">
             <label
               class="registration-cost-selector__label"
-              for="nexus-registration-cost-currency"
+              for="arkham-registration-cost-currency"
             >
               MONEDA
             </label>
 
             <select
-              id="nexus-registration-cost-currency"
+              id="arkham-registration-cost-currency"
               class="registration-cost-selector__select"
             >
               <option value="GTQ">
@@ -153,13 +153,13 @@ export function RegistrationCostSelector({
           <div class="registration-cost-selector__field registration-cost-selector__field--benefit">
             <label
               class="registration-cost-selector__label"
-              for="nexus-registration-cost-benefit"
+              for="arkham-registration-cost-benefit"
             >
               BENEFICIO INCLUIDO
             </label>
 
             <textarea
-              id="nexus-registration-cost-benefit"
+              id="arkham-registration-cost-benefit"
               class="registration-cost-selector__textarea"
               rows="3"
               placeholder="Ej. Combo de comida y bebida..."
@@ -170,15 +170,15 @@ export function RegistrationCostSelector({
       `;
 
       const amountInput = content.querySelector(
-        "#nexus-registration-cost-amount"
+        "#arkham-registration-cost-amount"
       );
 
       const currencySelect = content.querySelector(
-        "#nexus-registration-cost-currency"
+        "#arkham-registration-cost-currency"
       );
 
       const benefitInput = content.querySelector(
-        "#nexus-registration-cost-benefit"
+        "#arkham-registration-cost-benefit"
       );
 
       amountInput.value =

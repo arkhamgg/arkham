@@ -27,13 +27,13 @@ export function DateTimeSelector({
       <div class="date-time-selector__field">
         <label
           class="date-time-selector__label"
-          for="nexus-start-date"
+          for="arkham-start-date"
         >
           FECHA DE INICIO
         </label>
 
         <input
-          id="nexus-start-date"
+          id="arkham-start-date"
           class="date-time-selector__input"
           type="date"
         />
@@ -42,13 +42,13 @@ export function DateTimeSelector({
       <div class="date-time-selector__field">
         <label
           class="date-time-selector__label"
-          for="nexus-start-time"
+          for="arkham-start-time"
         >
           HORA DE INICIO
         </label>
 
         <input
-          id="nexus-start-time"
+          id="arkham-start-time"
           class="date-time-selector__input"
           type="time"
         />
@@ -57,13 +57,13 @@ export function DateTimeSelector({
       <div class="date-time-selector__field">
         <label
           class="date-time-selector__label"
-          for="nexus-end-date"
+          for="arkham-end-date"
         >
           FECHA DE FINALIZACIÓN
         </label>
 
         <input
-          id="nexus-end-date"
+          id="arkham-end-date"
           class="date-time-selector__input"
           type="date"
         />
@@ -72,13 +72,13 @@ export function DateTimeSelector({
       <div class="date-time-selector__field">
         <label
           class="date-time-selector__label"
-          for="nexus-end-time"
+          for="arkham-end-time"
         >
           HORA DE FINALIZACIÓN
         </label>
 
         <input
-          id="nexus-end-time"
+          id="arkham-end-time"
           class="date-time-selector__input"
           type="time"
         />
@@ -87,13 +87,13 @@ export function DateTimeSelector({
       <div class="date-time-selector__field date-time-selector__field--timezone">
         <label
           class="date-time-selector__label"
-          for="nexus-timezone"
+          for="arkham-timezone"
         >
           ZONA HORARIA
         </label>
 
         <select
-          id="nexus-timezone"
+          id="arkham-timezone"
           class="date-time-selector__select"
         >
           <option value="America/Guatemala">
@@ -110,11 +110,11 @@ export function DateTimeSelector({
     ></p>
   `;
 
-  const startDate = container.querySelector("#nexus-start-date");
-  const startTime = container.querySelector("#nexus-start-time");
-  const endDate = container.querySelector("#nexus-end-date");
-  const endTime = container.querySelector("#nexus-end-time");
-  const timezone = container.querySelector("#nexus-timezone");
+  const startDate = container.querySelector("#arkham-start-date");
+  const startTime = container.querySelector("#arkham-start-time");
+  const endDate = container.querySelector("#arkham-end-date");
+  const endTime = container.querySelector("#arkham-end-time");
+  const timezone = container.querySelector("#arkham-timezone");
   const message = container.querySelector("[data-date-time-message]");
 
   function emitChange() {

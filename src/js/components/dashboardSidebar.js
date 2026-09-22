@@ -252,7 +252,7 @@ export function DashboardSidebar({
           type="button"
           class="dashboard-sidebar__mobile-toggle"
           aria-expanded="${mobileNavOpen}"
-          aria-controls="nexus-mobile-navigation"
+          aria-controls="arkham-mobile-navigation"
           aria-label="${
             mobileNavOpen
               ? "Cerrar navegación"
@@ -448,7 +448,7 @@ export function DashboardSidebar({
       <!-- ================================= -->
 
       <nav
-        id="nexus-mobile-navigation"
+        id="arkham-mobile-navigation"
         class="
           dashboard-sidebar__mobile-menu
           ${mobileNavOpen ? "is-open" : ""}

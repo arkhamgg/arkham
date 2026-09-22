@@ -28,13 +28,13 @@ export function LocationSelector({
 
       <label
         class="location-selector__label"
-        for="nexus-location-type"
+        for="arkham-location-type"
       >
         TIPO DE COMPETICIÓN
       </label>
 
       <select
-        id="nexus-location-type"
+        id="arkham-location-type"
         class="location-selector__select"
       >
         <option value="online">ONLINE</option>
@@ -50,7 +50,7 @@ export function LocationSelector({
   `;
 
   const typeSelect = container.querySelector(
-    "#nexus-location-type"
+    "#arkham-location-type"
   );
 
   const content = container.querySelector(
@@ -73,13 +73,13 @@ export function LocationSelector({
           <div class="location-selector__field">
             <label
               class="location-selector__label"
-              for="nexus-location-venue"
+              for="arkham-location-venue"
             >
               LUGAR
             </label>
 
             <input
-              id="nexus-location-venue"
+              id="arkham-location-venue"
               class="location-selector__input"
               type="text"
               placeholder="Nombre del lugar"
@@ -89,13 +89,13 @@ export function LocationSelector({
           <div class="location-selector__field">
             <label
               class="location-selector__label"
-              for="nexus-location-address"
+              for="arkham-location-address"
             >
               DIRECCIÓN
             </label>
 
             <input
-              id="nexus-location-address"
+              id="arkham-location-address"
               class="location-selector__input"
               type="text"
               placeholder="Dirección del evento"
@@ -105,13 +105,13 @@ export function LocationSelector({
           <div class="location-selector__field">
             <label
               class="location-selector__label"
-              for="nexus-location-city"
+              for="arkham-location-city"
             >
               CIUDAD
             </label>
 
             <input
-              id="nexus-location-city"
+              id="arkham-location-city"
               class="location-selector__input"
               type="text"
               placeholder="Ciudad"
@@ -121,13 +121,13 @@ export function LocationSelector({
           <div class="location-selector__field">
             <label
               class="location-selector__label"
-              for="nexus-location-instructions"
+              for="arkham-location-instructions"
             >
               INDICACIONES
             </label>
 
             <textarea
-              id="nexus-location-instructions"
+              id="arkham-location-instructions"
               class="location-selector__textarea"
               rows="3"
               placeholder="Información adicional para los participantes..."
@@ -138,19 +138,19 @@ export function LocationSelector({
       `;
 
       const venue = content.querySelector(
-        "#nexus-location-venue"
+        "#arkham-location-venue"
       );
 
       const address = content.querySelector(
-        "#nexus-location-address"
+        "#arkham-location-address"
       );
 
       const city = content.querySelector(
-        "#nexus-location-city"
+        "#arkham-location-city"
       );
 
       const instructions = content.querySelector(
-        "#nexus-location-instructions"
+        "#arkham-location-instructions"
       );
 
       venue.value = currentValue.venue || "";
@@ -187,13 +187,13 @@ export function LocationSelector({
         <div class="location-selector__field">
           <label
             class="location-selector__label"
-            for="nexus-location-platform"
+            for="arkham-location-platform"
           >
             PLATAFORMA
           </label>
 
           <input
-            id="nexus-location-platform"
+            id="arkham-location-platform"
             class="location-selector__input"
             type="text"
             placeholder="Ej. Discord, Battle.net, PlayStation Network..."
@@ -203,13 +203,13 @@ export function LocationSelector({
         <div class="location-selector__field">
           <label
             class="location-selector__label"
-            for="nexus-location-url"
+            for="arkham-location-url"
           >
             ENLACE
           </label>
 
           <input
-            id="nexus-location-url"
+            id="arkham-location-url"
             class="location-selector__input"
             type="url"
             placeholder="https://..."
@@ -219,13 +219,13 @@ export function LocationSelector({
         <div class="location-selector__field">
           <label
             class="location-selector__label"
-            for="nexus-location-instructions"
+            for="arkham-location-instructions"
           >
             INDICACIONES
           </label>
 
           <textarea
-            id="nexus-location-instructions"
+            id="arkham-location-instructions"
             class="location-selector__textarea"
             rows="3"
             placeholder="Información adicional para los participantes..."
@@ -236,15 +236,15 @@ export function LocationSelector({
     `;
 
     const platform = content.querySelector(
-      "#nexus-location-platform"
+      "#arkham-location-platform"
     );
 
     const url = content.querySelector(
-      "#nexus-location-url"
+      "#arkham-location-url"
     );
 
     const instructions = content.querySelector(
-      "#nexus-location-instructions"
+      "#arkham-location-instructions"
     );
 
     platform.value = currentValue.platform || "";

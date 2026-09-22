@@ -10,13 +10,13 @@ export function MatchSystemSelector({
   container.innerHTML = `
     <label
       class="match-system-selector__label"
-      for="nexus-match-system-selector"
+      for="arkham-match-system-selector"
     >
       SISTEMA DE PARTIDA
     </label>
 
     <select
-      id="nexus-match-system-selector"
+      id="arkham-match-system-selector"
       class="match-system-selector__select"
     >
       <option value="">SELECCIONA UN SISTEMA</option>
@@ -26,7 +26,7 @@ export function MatchSystemSelector({
   `;
 
   const select = container.querySelector(
-    "#nexus-match-system-selector"
+    "#arkham-match-system-selector"
   );
 
   const message = container.querySelector(

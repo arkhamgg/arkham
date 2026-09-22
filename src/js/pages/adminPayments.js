@@ -905,7 +905,7 @@ export function AdminPayments() {
     renderModalActions(payment);
 
     modal.hidden = false;
-    document.body.classList.add("nexus-modal-open");
+    document.body.classList.add("arkham-modal-open");
 
   }
 
@@ -989,7 +989,7 @@ export function AdminPayments() {
 
     modal.hidden = true;
     selectedPaymentId = null;
-    document.body.classList.remove("nexus-modal-open");
+    document.body.classList.remove("arkham-modal-open");
 
   }
 

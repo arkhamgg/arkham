@@ -11,13 +11,13 @@ export function CapacitySelector({
   container.innerHTML = `
     <label
       class="capacity-selector__label"
-      for="nexus-capacity-selector"
+      for="arkham-capacity-selector"
     >
       CAPACIDAD
     </label>
 
     <select
-      id="nexus-capacity-selector"
+      id="arkham-capacity-selector"
       class="capacity-selector__select"
     >
       <option value="">SELECCIONA UNA CAPACIDAD</option>
@@ -27,7 +27,7 @@ export function CapacitySelector({
   `;
 
   const select = container.querySelector(
-    "#nexus-capacity-selector"
+    "#arkham-capacity-selector"
   );
 
   const message = container.querySelector(
