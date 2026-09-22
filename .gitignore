@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 .vercel
+.imagekit-*.cjs
+.firestore-imagekit-*.cjs
+nexus-auth-users.json
+nexus-firestore-backup-*.json
+arkham-imagekit-firestore-backup-*.json
