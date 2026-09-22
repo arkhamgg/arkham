@@ -60,3 +60,5 @@ export async function submitTournamentParticipationRequest({ tournamentId, event
 }
 console.log("sucess")
 console.log("sucess")
+console.log("sucess")
+console.log("sucess")
