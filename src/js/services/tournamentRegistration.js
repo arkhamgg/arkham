@@ -1,4 +1,4 @@
-// ========================================
+﻿// ========================================
 // NEXUS — Tournament Registration Service
 // ========================================
 
@@ -58,3 +58,4 @@ export async function submitTournamentParticipationRequest({ tournamentId, event
     body: { action: "submit", proof }
   });
 }
+console.log("sucess")
