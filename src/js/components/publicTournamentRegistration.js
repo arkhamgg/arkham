@@ -128,7 +128,7 @@ export async function openPublicTournamentRegistration({ page, tournament, event
 
       status.className = "competition-public-registration-modal__status is-success";
       status.textContent = "Solicitud enviada. El organizador debe otorgarte un asiento.";
-      page.dispatchEvent(new CustomEvent("nexus:registration-submitted", { detail: { tournamentId, eventId } }));
+      page.dispatchEvent(new CustomEvent("arkham:registration-submitted", { detail: { tournamentId, eventId } }));
 
       window.setTimeout(close, 1200);
     } catch (error) {

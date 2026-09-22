@@ -754,7 +754,7 @@ export function Router(app) {
   // ========================================
 
   window.addEventListener(
-    "nexus:billing-upgrade",
+    "arkham:billing-upgrade",
     () => {
 
       navigate(

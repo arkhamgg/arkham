@@ -242,7 +242,7 @@ async function loadCompetition({
       });
     };
 
-    page.addEventListener("nexus:registration-submitted", async () => {
+    page.addEventListener("arkham:registration-submitted", async () => {
       try {
         const statusResponse = await getMyTournamentRegistrationStatus({ tournamentId, eventId });
         let recognitionResponse = null;

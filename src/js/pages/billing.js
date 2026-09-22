@@ -1220,7 +1220,7 @@ function bindEvents(
 
           window.dispatchEvent(
             new CustomEvent(
-              "nexus:billing-upgrade"
+              "arkham:billing-upgrade"
             )
           );
 
