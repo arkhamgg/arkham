@@ -198,7 +198,7 @@ export async function uploadImage(
 
   const folder =
     options.folder ||
-    "/nexus";
+    "/arkham";
 
 
   // ======================================
@@ -254,7 +254,7 @@ export async function uploadImage(
 //
 // Ruta:
 //
-// /nexus/payment-proofs/{uid}/{paymentId}/
+// /arkham/payment-proofs/{uid}/{paymentId}/
 //
 
 export async function uploadPaymentProof(
@@ -307,7 +307,7 @@ export async function uploadPaymentProof(
   // ======================================
 
   const folder =
-    `/nexus/payment-proofs/${uid}/${paymentId}`;
+    `/arkham/payment-proofs/${uid}/${paymentId}`;
 
 
   // ======================================

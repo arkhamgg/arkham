@@ -456,7 +456,7 @@ export function CreateLeague() {
               logoFile,
               {
                 folder:
-                  "/nexus/leagues"
+                  "/arkham/leagues"
               }
             );
 

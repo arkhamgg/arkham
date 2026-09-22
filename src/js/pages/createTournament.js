@@ -449,7 +449,7 @@ export function CreateTournament() {
               logoFile,
               {
                 folder:
-                  "/nexus/tournaments"
+                  "/arkham/tournaments"
               }
             );
 

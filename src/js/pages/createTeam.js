@@ -432,7 +432,7 @@ export function CreateTeam() {
               logoFile,
               {
                 folder:
-                  "/nexus/teams"
+                  "/arkham/teams"
               }
             );
 

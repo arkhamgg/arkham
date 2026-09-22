@@ -45,7 +45,7 @@ const ALLOWED_CONTENT_TYPES = [
 ];
 
 const IMAGEKIT_PROOF_ROOT =
-  "/nexus/payment-proofs";
+  "/arkham/payment-proofs";
 
 
 // ========================================

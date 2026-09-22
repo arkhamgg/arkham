@@ -304,7 +304,7 @@ function PlayerProfileView() {
         const update = { name: data.get("name"), lastName: data.get("lastName"), gamertag: data.get("gamertag"), birthDate: data.get("birthDate"), instagram: data.get("instagram"), facebook: data.get("facebook"), tiktok: data.get("tiktok"), youtube: data.get("youtube"), twitch: data.get("twitch"), kick: data.get("kick"), roles: data.getAll("roles") };
         const photo = form.querySelector("#player-profile-photo")?.files?.[0];
         if (photo) {
-          const result = await uploadImage(photo, { folder: "/nexus/players" });
+          const result = await uploadImage(photo, { folder: "/arkham/players" });
           update.photo = { url: result.url, fileId: result.fileId, filePath: result.filePath };
         }
         await updateEntity("players", context.id, update);

@@ -460,7 +460,7 @@ export function CreatePlayer() {
               photoFile,
               {
                 folder:
-                  "/nexus/players"
+                  "/arkham/players"
               }
             );
 

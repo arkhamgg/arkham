@@ -112,7 +112,7 @@ export async function openPublicTournamentRegistration({ page, tournament, event
 
       if (file) {
         const uploaded = await uploadImage(file, {
-          folder: `/nexus/tournament-registration/${session.user.uid}/${tournamentId}/${eventId}`,
+          folder: `/arkham/tournament-registration/${session.user.uid}/${tournamentId}/${eventId}`,
           fileName: file.name
         });
         proof = {

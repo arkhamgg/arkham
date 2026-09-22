@@ -39,13 +39,13 @@ export async function saveTeamLandingConfig(teamId, landing) {
 
 export async function uploadTeamLandingBackground(file) {
   return uploadImage(file, {
-    folder: "/nexus/teams/landings"
+    folder: "/arkham/teams/landings"
   });
 }
 
 export async function uploadTeamSponsorLogo(file) {
   return uploadImage(file, {
-    folder: "/nexus/teams/sponsors"
+    folder: "/arkham/teams/sponsors"
   });
 }
 
