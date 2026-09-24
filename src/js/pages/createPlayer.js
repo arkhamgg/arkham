@@ -207,15 +207,33 @@ export function CreatePlayer() {
     );
 
 
-  // ========================================
-  // CANCEL
-  // ========================================
+  const submitButton =
+    page.querySelector(
+      ".create-player-page__button--primary"
+    );
+
 
   const cancelButton =
     page.querySelector(
       ".create-player-page__button--cancel"
     );
 
+
+  const submitButtonLabel =
+    submitButton.querySelector("span");
+
+
+  const submitButtonIcon =
+    submitButton.querySelector("i");
+
+
+  let isSubmitting =
+    false;
+
+
+  // ========================================
+  // CANCEL
+  // ========================================
 
   cancelButton.addEventListener(
     "click",
@@ -244,6 +262,13 @@ export function CreatePlayer() {
     async (event) => {
 
       event.preventDefault();
+
+
+      if (isSubmitting) {
+
+        return;
+
+      }
 
 
       // ========================================
@@ -340,6 +365,35 @@ export function CreatePlayer() {
         return;
 
       }
+
+
+      // ========================================
+      // SUBMITTING STATE
+      // ========================================
+
+      isSubmitting =
+        true;
+
+      submitButton.disabled =
+        true;
+
+      submitButton.setAttribute(
+        "aria-busy",
+        "true"
+      );
+
+      submitButton.classList.add(
+        "create-player-page__button--loading"
+      );
+
+      submitButtonLabel.textContent =
+        "CREANDO PERFIL...";
+
+      submitButtonIcon.className =
+        "create-player-page__spinner";
+
+      cancelButton.disabled =
+        true;
 
 
       // ========================================
@@ -574,6 +628,29 @@ export function CreatePlayer() {
           "ARKHAM — Error creando Jugador:",
           error
         );
+
+        isSubmitting =
+          false;
+
+        submitButton.disabled =
+          false;
+
+        submitButton.removeAttribute(
+          "aria-busy"
+        );
+
+        submitButton.classList.remove(
+          "create-player-page__button--loading"
+        );
+
+        submitButtonLabel.textContent =
+          "CREAR PERFIL";
+
+        submitButtonIcon.className =
+          "fa-solid fa-arrow-right";
+
+        cancelButton.disabled =
+          false;
 
       }
 

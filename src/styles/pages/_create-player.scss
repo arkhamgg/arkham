@@ -380,6 +380,75 @@
   }
 
 
+  // ========================================
+  // LOADING
+  // ========================================
+
+  &__button--loading {
+
+    cursor:
+      wait;
+
+    opacity:
+      0.75;
+
+    pointer-events:
+      none;
+
+  }
+
+
+  &__button--loading:hover {
+
+    background:
+      $color-red;
+
+    border-color:
+      $color-red;
+
+    box-shadow:
+      none;
+
+  }
+
+
+  &__spinner {
+
+    display: inline-block;
+
+    width: 14px;
+    height: 14px;
+
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: $color-white;
+
+    border-radius: 50%;
+
+    animation:
+      create-player-spin 0.7s linear infinite;
+
+    flex: 0 0 auto;
+
+  }
+
+
+  @keyframes create-player-spin {
+
+    to {
+      transform: rotate(360deg);
+    }
+
+  }
+
+
+  &__button:disabled {
+
+    cursor:
+      wait;
+
+  }
+
+
   &__button:active {
 
     transform:
