@@ -1,6 +1,11 @@
-// ========================================
+﻿// ========================================
 // NEXUS — Tournament Pro Domain
 // ========================================
+
+import {
+  getCompetitionFormatCapability,
+  COMPETITION_CONFIGURATION_STATUS
+} from "./competitionConfiguration.js";
 
 export const TOURNAMENT_EVENT_STATUS = {
   DRAFT: "draft",
@@ -178,9 +183,17 @@ export function createParticipant({
 
 export function generateBracket(participants = [], capacity = null, format = null) {
   const type = normalizeBracketType(format);
+
+  if (!type) {
+    throw new Error(
+      `El formato "${format || "seleccionado"}" no tiene una implementación disponible en el motor competitivo.`
+    );
+  }
+
   if (type === BRACKET_TYPES.DOUBLE_ELIMINATION) {
     return generateDoubleEliminationBracket(participants, capacity);
   }
+
   return generateSingleEliminationBracket(participants, capacity);
 }
 
@@ -516,9 +529,15 @@ function normalizeBracket(bracket, format) {
 }
 
 function normalizeBracketType(format) {
-  const value = String(format || "").toLowerCase();
-  if (value.includes("double") || value.includes("doble")) return BRACKET_TYPES.DOUBLE_ELIMINATION;
-  return BRACKET_TYPES.SINGLE_ELIMINATION;
+  const capability = getCompetitionFormatCapability(format);
+
+  if (capability.status !== COMPETITION_CONFIGURATION_STATUS.SUPPORTED) {
+    return null;
+  }
+
+  return capability.engineFormat === BRACKET_TYPES.DOUBLE_ELIMINATION
+    ? BRACKET_TYPES.DOUBLE_ELIMINATION
+    : BRACKET_TYPES.SINGLE_ELIMINATION;
 }
 
 function normalizeParticipants(participants) {

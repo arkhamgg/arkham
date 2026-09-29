@@ -1,4 +1,4 @@
-// ========================================
+﻿// ========================================
 // NEXUS — Tournament Pro Operations
 // ========================================
 
@@ -21,6 +21,10 @@ import {
   RECOGNITION_STATUS,
   TOURNAMENT_EVENT_STATUS
 } from "./tournamentPro.js";
+import {
+  validateCompetitionConfiguration,
+  COMPETITION_CONFIGURATION_STATUS
+} from "./competitionConfiguration.js";
 
 export async function getTournamentProEvent(tournamentId, eventId) {
   return getMapEntity("tournaments", tournamentId, "events", eventId);
@@ -60,6 +64,26 @@ export async function searchTournamentEntities(type, term = "") {
 
 export async function prepareBracket({ tournamentId, eventId, event }) {
   const pro = ensureTournamentProState(event);
+  const validation = validateCompetitionConfiguration({
+    gameId: event?.gameId,
+    competitionOption: event?.competitionOption,
+    participationType: event?.participationType,
+    format: pro.format || event?.format,
+    matchSystem: pro.matchSystem || event?.matchSystem,
+    capacity: pro.capacity?.value || pro.capacity || event?.capacity?.value || event?.capacity
+  });
+
+  if (validation.status === COMPETITION_CONFIGURATION_STATUS.INVALID) {
+    throw new Error(
+      `La configuración competitiva no es válida: ${validation.errors.join(" ")}`
+    );
+  }
+
+  if (validation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED) {
+    throw new Error(
+      `El formato "${event?.format || "seleccionado"}" está disponible en la configuración del juego, pero todavía no está soportado por el motor competitivo de ARKHAM.`
+    );
+  }
 
   if ([TOURNAMENT_EVENT_STATUS.LIVE, TOURNAMENT_EVENT_STATUS.FINISHED].includes(pro.status)) {
     throw new Error("No puedes preparar el bracket después de iniciar el evento.");
@@ -682,6 +706,25 @@ export async function setEventStatus({
   }
 
   if (status === TOURNAMENT_EVENT_STATUS.LIVE) {
+    const validation = validateCompetitionConfiguration({
+      gameId: event?.gameId,
+      competitionOption: event?.competitionOption,
+      participationType: event?.participationType,
+      format: pro.format || event?.format,
+      matchSystem: pro.matchSystem || event?.matchSystem,
+      capacity: pro.capacity?.value || pro.capacity || event?.capacity?.value || event?.capacity
+    });
+
+    if (validation.status === COMPETITION_CONFIGURATION_STATUS.INVALID) {
+      throw new Error(`La configuración competitiva no es válida: ${validation.errors.join(" ")}`);
+    }
+
+    if (validation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED) {
+      throw new Error(
+        `El formato "${event?.format || "seleccionado"}" todavía no puede ejecutarse con el motor competitivo actual.`
+      );
+    }
+
     validateCanStartEvent(pro);
   }
 

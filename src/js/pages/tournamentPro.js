@@ -19,6 +19,10 @@ import {
 } from "../services/tournamentProOperations.js";
 import { getTournamentRegistrationRequestsMarkup, loadTournamentRegistrationRequests, bindTournamentRegistrationRequests } from "../components/tournamentRegistrationRequests.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
+import {
+  validateCompetitionConfiguration,
+  COMPETITION_CONFIGURATION_STATUS
+} from "../services/competitionConfiguration.js";
 
 export function TournamentPro() {
   const page = document.createElement("main");
@@ -82,6 +86,14 @@ export function TournamentPro() {
       if (!event) throw new Error("Evento no encontrado.");
 
       let pro = ensureTournamentProState(event);
+      let competitionValidation = validateCompetitionConfiguration({
+        gameId: event.gameId,
+        competitionOption: event.competitionOption,
+        participationType: event.participationType,
+        format: pro.format || event.format,
+        matchSystem: pro.matchSystem || event.matchSystem,
+        capacity: pro.capacity?.value || pro.capacity || event.capacity?.value || event.capacity
+      });
       let registrationRequests = [];
       let registrationRequestsError = "";
       try {
@@ -89,9 +101,21 @@ export function TournamentPro() {
       } catch (error) {
         registrationRequestsError = error?.message || "No fue posible cargar las solicitudes.";
       }
-      if (!pro.bracket?.generated) {
+      if (
+        !pro.bracket?.generated &&
+        competitionValidation.status !== COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED &&
+        competitionValidation.status !== COMPETITION_CONFIGURATION_STATUS.INVALID
+      ) {
         event = await prepareBracket({ tournamentId, eventId, event });
         pro = ensureTournamentProState(event);
+        competitionValidation = validateCompetitionConfiguration({
+          gameId: event.gameId,
+          competitionOption: event.competitionOption,
+          participationType: event.participationType,
+          format: pro.format || event.format,
+          matchSystem: pro.matchSystem || event.matchSystem,
+          capacity: pro.capacity?.value || pro.capacity || event.capacity?.value || event.capacity
+        });
       }
 
       let selectedSlotId = null;
@@ -102,6 +126,14 @@ export function TournamentPro() {
       const refresh = async () => {
         event = await getTournamentProEvent(tournamentId, eventId);
         pro = ensureTournamentProState(event || {});
+        competitionValidation = validateCompetitionConfiguration({
+          gameId: event?.gameId,
+          competitionOption: event?.competitionOption,
+          participationType: event?.participationType,
+          format: pro.format || event?.format,
+          matchSystem: pro.matchSystem || event?.matchSystem,
+          capacity: pro.capacity?.value || pro.capacity || event?.capacity?.value || event?.capacity
+        });
         registrationRequestsError = "";
         try {
           registrationRequests = await loadTournamentRegistrationRequests({ tournamentId, eventId });
@@ -278,7 +310,17 @@ export function TournamentPro() {
               <div><span>Capacidad</span><strong>${escapeHtml(capacity)}</strong></div>
             </div>
             <div class="tournament-pro-page__operation-bar">
-              ${!checkInOpen && !checkInCompleted && !eventLive && !eventFinished ? `
+              ${competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED ? `
+                <div>
+                  <strong>Configuración disponible · ejecución pendiente</strong>
+                  <span>La opción existe para este juego, pero el motor competitivo actual todavía no puede ejecutarla. No se generará un bracket automáticamente.</span>
+                </div>
+              ` : competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.INVALID ? `
+                <div>
+                  <strong>Configuración inválida</strong>
+                  <span>${escapeHtml(competitionValidation.errors.join(" "))}</span>
+                </div>
+              ` : !checkInOpen && !checkInCompleted && !eventLive && !eventFinished ? `
                 <div>
                   <strong>Antes de comenzar</strong>
                   <span>${assigned >= 2 ? "Hay suficientes participantes para iniciar el torneo." : "Necesitas al menos 2 participantes asignados para iniciar."}</span>
@@ -416,6 +458,17 @@ export function TournamentPro() {
             </div>
           ` : ""}
 
+          ${competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED || competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.INVALID ? `
+            <section class="tournament-pro-page__card tournament-pro-page__card--wide tournament-pro-page__bracket-card">
+              <div class="tournament-pro-page__section-heading">
+                <div>
+                  <span class="tournament-pro-page__eyebrow">MOTOR COMPETITIVO</span>
+                  <h2>${competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED ? "Formato no soportado todavía" : "Configuración inválida"}</h2>
+                </div>
+              </div>
+              <p class="tournament-pro-page__helper">${competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED ? "La configuración permanece guardada como fue seleccionada, pero ARKHAM no puede convertirla en un bracket operativo hasta que exista la capacidad correspondiente en el motor." : escapeHtml(competitionValidation.errors.join(" "))}</p>
+            </section>
+          ` : `
           <section class="tournament-pro-page__card tournament-pro-page__card--wide tournament-pro-page__bracket-card">
             <div class="tournament-pro-page__section-heading">
               <div>
@@ -461,6 +514,7 @@ export function TournamentPro() {
               </div>
             </div>
           </section>
+          `}
 
           ${getTournamentRegistrationRequestsMarkup(registrationRequests, registrationRequestsError)}
 

@@ -18,6 +18,10 @@ import { createSubscriptionAccess } from "../services/planService.js";
 import { hasEffectiveSubscriptionAccess } from "../services/subscription.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
 import {
+  validateCompetitionConfiguration,
+  COMPETITION_CONFIGURATION_STATUS
+} from "../services/competitionConfiguration.js";
+import {
   createMapEntity,
   updateMapEntity,
   getEntity
@@ -296,6 +300,12 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
               </article>
 
             </div>
+
+            <div
+              class="tournament-builder__competition-validation"
+              data-competition-validation
+              aria-live="polite"
+            ></div>
 
           </section>
 
@@ -715,6 +725,10 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     "[data-landing-template-description]"
   );
 
+  const competitionValidationElement = page.querySelector(
+    "[data-competition-validation]"
+  );
+
 
   /*
    * --------------------------------------------------
@@ -799,6 +813,51 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
    * --------------------------------------------------
    */
 
+  function getCompetitionValidation() {
+    return validateCompetitionConfiguration({
+      gameId: selectedGame,
+      competitionOption: selectedCompetitiveMode?.id || "",
+      participationType: selectedCompetitiveMode?.participationType || "",
+      format: selectedFormat,
+      matchSystem: selectedMatchSystem,
+      capacity: selectedCapacity,
+      availableOption: selectedCompetitiveMode
+    });
+  }
+
+  function renderCompetitionValidation() {
+    if (!competitionValidationElement) return;
+
+    const validation = getCompetitionValidation();
+
+    competitionValidationElement.className =
+      `tournament-builder__competition-validation tournament-builder__competition-validation--${validation.status}`;
+
+    if (!selectedGame || !selectedCompetitiveMode || !selectedFormat) {
+      competitionValidationElement.innerHTML = "";
+      return;
+    }
+
+    const labels = {
+      [COMPETITION_CONFIGURATION_STATUS.SUPPORTED]: "CONFIGURACIÓN SOPORTADA",
+      [COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED]: "DISPONIBLE · EJECUCIÓN PENDIENTE",
+      [COMPETITION_CONFIGURATION_STATUS.WARNING]: "CONFIGURACIÓN CON ADVERTENCIAS",
+      [COMPETITION_CONFIGURATION_STATUS.INVALID]: "CONFIGURACIÓN INVÁLIDA"
+    };
+
+    const messages = {
+      [COMPETITION_CONFIGURATION_STATUS.SUPPORTED]: "Esta configuración está disponible en Firebase y puede ser ejecutada por el motor competitivo actual.",
+      [COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED]: "Esta configuración está disponible en Firebase, pero el motor actual todavía no puede ejecutarla. Se conservará la selección y no se generará otro formato automáticamente.",
+      [COMPETITION_CONFIGURATION_STATUS.WARNING]: "Esta configuración puede ejecutarse, pero requiere atención antes de iniciar la competencia.",
+      [COMPETITION_CONFIGURATION_STATUS.INVALID]: validation.errors.join(" ")
+    };
+
+    competitionValidationElement.innerHTML = `
+      <span class="tournament-builder__competition-validation-status">${labels[validation.status]}</span>
+      <p>${messages[validation.status]}</p>
+    `;
+  }
+
   function updateNextButton() {
     const isComplete = Boolean(
       selectedGame &&
@@ -809,6 +868,7 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     );
 
     saveButton.disabled = !isComplete;
+    renderCompetitionValidation();
   }
 
 
@@ -1444,6 +1504,15 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         return;
       }
 
+      const competitionValidation = getCompetitionValidation();
+
+      if (competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.INVALID) {
+        window.alert(
+          `La configuración competitiva no es válida. ${competitionValidation.errors.join(" ")}`
+        );
+        return;
+      }
+
       const tournamentConfiguration = {
 
         gameId:
@@ -1895,6 +1964,8 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
           selectedRegistrationRequirements?.requirements?.length
         )
       );
+
+      renderCompetitionValidation();
 
       if (builderTitle) {
         builderTitle.textContent = "EDITAR TORNEO";

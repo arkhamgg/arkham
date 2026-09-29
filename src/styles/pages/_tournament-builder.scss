@@ -814,3 +814,60 @@ body:has(.tournament-builder-page) .navbar {
     grid-template-columns: 1fr;
   }
 }
+
+/* =====================================================
+ * COMPETITION CONFIGURATION VALIDATION
+ * =====================================================
+ */
+
+.tournament-builder__competition-validation {
+
+  margin-top: 12px;
+  padding: 14px 16px;
+
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.025);
+
+}
+
+.tournament-builder__competition-validation-status {
+
+  display: block;
+
+  color: rgba(255, 255, 255, 0.72);
+
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+}
+
+.tournament-builder__competition-validation p {
+
+  margin: 5px 0 0;
+
+  color: rgba(255, 255, 255, 0.44);
+
+  font-size: 0.76rem;
+  line-height: 1.5;
+
+}
+
+.tournament-builder__competition-validation--supported {
+  border-color: rgba(72, 213, 151, 0.2);
+}
+
+.tournament-builder__competition-validation--unsupported {
+  border-color: rgba(240, 184, 75, 0.24);
+}
+
+.tournament-builder__competition-validation--warning {
+  border-color: rgba(110, 168, 255, 0.24);
+}
+
+.tournament-builder__competition-validation--invalid {
+  border-color: rgba(230, 91, 106, 0.3);
+}
