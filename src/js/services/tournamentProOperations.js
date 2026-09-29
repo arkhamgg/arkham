@@ -14,12 +14,15 @@ import {
   ensureTournamentProState,
   createParticipant,
   generateBracket as buildBracket,
-  startMatch as beginMatch,
-  applyMatchResult,
   PARTICIPANT_STATUS,
   MATCH_STATUS,
   RECOGNITION_STATUS,
   TOURNAMENT_EVENT_STATUS
+} from "./tournamentPro.js";
+
+import {
+  startMatch as beginMatch,
+  applyMatchResult
 } from "./competitionCore.js";
 import {
   validateCompetitionConfiguration,
