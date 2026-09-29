@@ -165,7 +165,6 @@ export function renderLanding1({
         Number(a.position || 0) -
         Number(b.position || 0)
     )
-    .slice(0, 3)
     .map((reward, index) => ({
       ...reward,
       position:
@@ -548,7 +547,9 @@ export function renderLanding1({
               ? "1st"
               : position === 2
                 ? "2nd"
-                : "3rd"
+                : position === 3
+                  ? "3rd"
+                  : `${position}th`
           )}
         </span>
 
@@ -619,7 +620,7 @@ export function renderLanding1({
 
   page.innerHTML = `
     <div
-      class="competition-landing"
+      class="competition-landing competition-landing--landing-1"
       style="--competition-bg-image: url('${escapeHtml(backgroundImage)}')"
     >
 
@@ -628,7 +629,7 @@ export function renderLanding1({
       =================================== -->
 
       <section
-        class="competition-landing__hero"
+        class="competition-landing__hero competition-landing__hero--landing-1"
         style="
           --competition-hero-image: url('${escapeHtml(heroImage)}');
           --competition-hero-image-mobile: url('${escapeHtml(heroImageMobile)}')

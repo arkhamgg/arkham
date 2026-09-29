@@ -1,6 +1,6 @@
 // ========================================
 // ARKHAM — Competition Landing / Landing 3
-// Game Showcase
+// Cinematic
 // ========================================
 
 import {
@@ -8,399 +8,1755 @@ import {
   getDateRange,
   getTimeRange,
   getLocationLabel,
-  getRegistrationLabel,
-  getPrizeSummary,
-  getFirstPrizeDescription,
-  normalizeSupportChannels,
-  renderSupportContact
+  getRegistrationLabel
 } from "../utils/landingUtils.js";
+
 import { getPublicTournamentBracketMarkup } from "../../../components/publicTournamentBracket.js";
+
+function toRoman(number) {
+
+  let value = Number(number);
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return "—";
+  }
+
+  const pairs = [
+    [1000, "M"],
+    [900, "CM"],
+    [500, "D"],
+    [400, "CD"],
+    [100, "C"],
+    [90, "XC"],
+    [50, "L"],
+    [40, "XL"],
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"]
+  ];
+
+  let result = "";
+
+  for (const [unit, symbol] of pairs) {
+
+    while (value >= unit) {
+      result += symbol;
+      value -= unit;
+    }
+
+  }
+
+  return result;
+
+}
+
 
 export function renderLanding3({
   page,
   tournament,
   event,
   game,
-  resources = {},
+  resources,
   tournamentId,
   eventId,
-  registrationAccess = {}
+  registrationAccess
 }) {
+  // ========================================
+  // COMPETITION COLOR
+  // ========================================
+
   const palette = resources.paletteColor || {};
+  const primaryColor = palette.primary || "#7B3FF2";
 
-  const primaryColor = palette.primary || "#E30613";
-  const secondaryColor = palette.secondary || "#111111";
-  const accentColor = palette.accent || primaryColor;
+  // ========================================
+  // BASIC DATA
+  // ========================================
 
-  const eventName = tournament?.name || "COMPETENCIA ARKHAM";
-  const gameName = game?.name || "CALL OF DUTY";
+  const eventName = tournament.name || "COMPETENCIA ARKHAM";
+  const tournamentLogo = tournament.logo?.url || "";
 
-  const dateRange = getDateRange(event?.dateTime);
-  const timeRange = getTimeRange(event?.dateTime);
-  const location = getLocationLabel(event?.location);
-  const prizeSummary = getPrizeSummary(event?.prizes);
-  const prizeDescription = getFirstPrizeDescription(event?.prizes);
-  const registration = getRegistrationLabel(event?.registrationCost);
+  const gameName = game.name || "CALL OF DUTY";
 
-  const participation = event?.participationType || "—";
-  const format = event?.format || "—";
-  const matchSystem = event?.matchSystem || "—";
-  const capacity = event?.capacity ?? "—";
-  const available = event?.registrationAvailability?.available;
+  const dateRange = getDateRange(event.dateTime);
+  const startDate = dateRange.split("—")[0].trim();
 
-  const canRegister = registrationAccess?.canRegister === true;
+  const timeRange = getTimeRange(event.dateTime);
+  const location = getLocationLabel(event.location);
+
+  const registration = getRegistrationLabel(event.registrationCost);
+
+  const participation = event.participationType || "—";
+  const format = event.format || "—";
+  const matchSystem = event.matchSystem || "—";
+  const capacity = event.capacity ?? "—";
+  const available = event.registrationAvailability?.available;
+
+  const rules = Array.isArray(event.rules)
+    ? [...event.rules]
+        .filter((rule) => rule && rule.text)
+        .sort(
+          (a, b) =>
+            Number(a.order || 0) -
+            Number(b.order || 0)
+        )
+    : [];
+
+  const rulePages = [];
+
+  if (rules.length) {
+
+    rulePages.push(
+      rules.slice(0, 3)
+    );
+
+    for (
+      let index = 3;
+      index < rules.length;
+      index += 7
+    ) {
+
+      rulePages.push(
+        rules.slice(
+          index,
+          index + 7
+        )
+      );
+
+    }
+
+  }
+
+
+  // ========================================
+  // ========================================
+  // REWARDS / PODIUM
+  // ========================================
+  //
+  // Firestore structure:
+  //
+  // tournaments/{tournamentId}
+  //   └── events/{eventId}
+  //       └── prizes [array]
+  //            └── [0] {
+  //                 rewards: [ ... ]
+  //               }
+  //
+  // `prizes` is an array. The rewards array is
+  // inside the first map.
+  // ========================================
+
+  const rawRewards =
+    Array.isArray(event?.prizes)
+      ? Array.isArray(event.prizes[0]?.rewards)
+        ? event.prizes[0].rewards
+        : []
+      : [];
+
+  const prizes = rawRewards
+    .filter(
+      (reward) =>
+        reward &&
+        typeof reward === "object"
+    )
+    .sort(
+      (a, b) =>
+        Number(a.position || 0) -
+        Number(b.position || 0)
+    )
+    .map((reward, index) => ({
+      ...reward,
+      position:
+        Number(reward.position) > 0
+          ? Number(reward.position)
+          : index + 1
+    }));
+
+
+  // ========================================
+  // ORGANIZER CONTACT
+  // ========================================
+
+  const supportContact = event?.supportContact || {};
+  const supportChannels = Array.isArray(supportContact.channels)
+    ? supportContact.channels
+        .filter(
+          (channel) =>
+            channel &&
+            typeof channel === "object" &&
+            String(channel.value || "").trim()
+        )
+        .map((channel) => ({
+          ...channel,
+          type: String(channel.type || "").trim().toLowerCase(),
+          value: String(channel.value || "").trim()
+        }))
+    : [];
+
+  const contactChannelConfig = {
+    whatsapp: {
+      label: "WHATSAPP",
+      icon: "fa-brands fa-whatsapp",
+      buildHref: (value) => {
+        const phone = value.replace(/[^0-9]/g, "");
+        return phone ? `https://wa.me/${phone}` : "";
+      }
+    },
+    discord: {
+      label: "DISCORD",
+      icon: "fa-brands fa-discord",
+      buildHref: (value) =>
+        /^https?:\/\//i.test(value)
+          ? value
+          : `https://discord.gg/${value.replace(/^\/+/, "")}`
+    },
+    instagram: {
+      label: "INSTAGRAM",
+      icon: "fa-brands fa-instagram",
+      buildHref: (value) =>
+        /^https?:\/\//i.test(value)
+          ? value
+          : `https://instagram.com/${value.replace(/^@/, "")}`
+    },
+    facebook: {
+      label: "FACEBOOK",
+      icon: "fa-brands fa-facebook-f",
+      buildHref: (value) =>
+        /^https?:\/\//i.test(value)
+          ? value
+          : `https://facebook.com/${value.replace(/^\/+/, "")}`
+    },
+    kick: {
+      label: "KICK",
+      icon: "fa-brands fa-kickstarter-k",
+      buildHref: (value) =>
+        /^https?:\/\//i.test(value)
+          ? value
+          : `https://kick.com/${value.replace(/^@/, "")}`
+    },
+    twitter: {
+      label: "X",
+      icon: "fa-brands fa-x-twitter",
+      buildHref: (value) =>
+        /^https?:\/\//i.test(value)
+          ? value
+          : `https://x.com/${value.replace(/^@/, "")}`
+    },
+    x: {
+      label: "X",
+      icon: "fa-brands fa-x-twitter",
+      buildHref: (value) =>
+        /^https?:\/\//i.test(value)
+          ? value
+          : `https://x.com/${value.replace(/^@/, "")}`
+    },
+    email: {
+      label: "CORREO",
+      icon: "fa-regular fa-envelope",
+      buildHref: (value) => `mailto:${value}`
+    },
+    mail: {
+      label: "CORREO",
+      icon: "fa-regular fa-envelope",
+      buildHref: (value) => `mailto:${value}`
+    },
+    website: {
+      label: "SITIO WEB",
+      icon: "fa-solid fa-globe",
+      buildHref: (value) =>
+        /^https?:\/\//i.test(value)
+          ? value
+          : `https://${value}`
+    }
+  };
+
+  const renderContactChannel = (channel) => {
+    const config =
+      contactChannelConfig[channel.type] || {
+        label: channel.type
+          ? channel.type.toUpperCase()
+          : "CONTACTO",
+        icon: "fa-solid fa-arrow-up-right-from-square",
+        buildHref: (value) =>
+          /^https?:\/\//i.test(value)
+            ? value
+            : `https://${value}`
+      };
+
+    const href = config.buildHref(channel.value);
+
+    if (!href) {
+      return "";
+    }
+
+    return `
+      <a
+        class="competition-landing__contact-card"
+        href="${escapeHtml(href)}"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Contactar al organizador por ${escapeHtml(config.label)}"
+      >
+        <span class="competition-landing__contact-icon" aria-hidden="true">
+          <i class="${escapeHtml(config.icon)}"></i>
+        </span>
+
+        <span class="competition-landing__contact-card-content">
+          <span class="competition-landing__contact-card-label">
+            ${escapeHtml(config.label)}
+          </span>
+
+          <span class="competition-landing__contact-card-value">
+            ${escapeHtml(channel.value)}
+          </span>
+        </span>
+
+        <span class="competition-landing__contact-arrow" aria-hidden="true">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        </span>
+      </a>
+    `;
+  };
+
+  const contactChannelsMarkup = supportChannels
+    .map(renderContactChannel)
+    .filter(Boolean)
+    .join("");
+
+
+  const renderRuleCard = (
+    rule,
+    index
+  ) => {
+
+    const number =
+      Number(
+        rule.order ||
+        index + 1
+      );
+
+    const roman =
+      toRoman(number);
+
+    const text =
+      String(
+        rule.text ||
+        ""
+      ).trim();
+
+    return `
+      <article
+        class="competition-landing__rule-card"
+        tabindex="0"
+        role="button"
+        aria-label="Abrir regla ${escapeHtml(roman)}"
+        data-rule-card
+        data-rule-index="${index}"
+      >
+
+        <div
+          class="
+            competition-landing__rule-card-inner
+          "
+        >
+
+          <div
+            class="
+              competition-landing__rule-face
+              competition-landing__rule-face--front
+            "
+          >
+
+            <span>
+              ${escapeHtml(roman)}
+            </span>
+
+          </div>
+
+
+          <div
+            class="
+              competition-landing__rule-face
+              competition-landing__rule-face--back
+            "
+          >
+
+            <span
+              class="
+                competition-landing__rule-number
+              "
+            >
+              ${escapeHtml(roman)}
+            </span>
+
+            <p
+              class="
+                competition-landing__rule-text
+              "
+            >
+              ${escapeHtml(text)}
+            </p>
+
+          </div>
+
+        </div>
+
+      </article>
+    `;
+
+  };
+
+
+  const renderRulePage = (
+    pageRules,
+    pageIndex
+  ) => `
+
+    <article
+      class="
+        competition-landing__rules-page
+        ${
+          pageIndex === 0
+            ? "competition-landing__rules-page--intro"
+            : ""
+        }
+      "
+      data-rules-page
+      data-page-index="${pageIndex}"
+    >
+
+      ${
+        pageIndex === 0
+          ? `
+            <div
+              class="
+                competition-landing__rules-heading
+              "
+            >
+
+              <span
+                class="
+                  competition-landing__section-eyebrow
+                "
+              >
+                03 // REGLAS
+              </span>
+
+              <h2>
+                REGLAS
+              </h2>
+
+            </div>
+          `
+          : ""
+      }
+
+
+      <div
+        class="
+          competition-landing__rules-cards
+        "
+      >
+
+        ${pageRules
+          .map(
+            (rule, localIndex) =>
+              renderRuleCard(
+                rule,
+                rules.indexOf(rule)
+              )
+          )
+          .join("")}
+
+      </div>
+
+    </article>
+
+  `;
+
+
+  const renderPrize = (
+    prize,
+    fallbackPosition
+  ) => {
+
+    const position =
+      Number(
+        prize.position ||
+        fallbackPosition
+      );
+
+    const rewardName =
+      String(
+        prize.name ||
+        prize.title ||
+        ""
+      ).trim();
+
+    const numericAmount =
+      prize.amount === null ||
+      prize.amount === undefined ||
+      prize.amount === ""
+        ? null
+        : Number(prize.amount);
+
+    const amount =
+      Number.isFinite(numericAmount)
+        ? numericAmount
+        : null;
+
+    const currency =
+      String(
+        prize.currency ||
+        ""
+      ).trim();
+
+    const formattedAmount =
+      amount !== null
+        ? `${currency === "GTQ" ? "Q" : currency}${amount}`
+        : "";
+
+    const title =
+      rewardName ||
+      formattedAmount ||
+      "PREMIO";
+
+    const description =
+      String(
+        prize.description ||
+        ""
+      ).trim();
+
+    return `
+      <article
+        class="
+          competition-landing__podium-place
+          competition-landing__podium-place--${position}
+        "
+        data-podium-place="${position}"
+      >
+
+        <span
+          class="
+            competition-landing__podium-position
+          "
+        >
+          ${escapeHtml(
+            position === 1
+              ? "1st"
+              : position === 2
+                ? "2nd"
+                : position === 3
+                  ? "3rd"
+                  : `${position}th`
+          )}
+        </span>
+
+        <strong
+          class="
+            competition-landing__podium-title
+          "
+        >
+          ${escapeHtml(title)}
+        </strong>
+
+        ${
+          description
+            ? `
+              <p
+                class="
+                  competition-landing__podium-description
+                "
+              >
+                ${escapeHtml(
+                  description
+                )}
+              </p>
+            `
+            : ""
+        }
+
+      </article>
+    `;
+  };
+
+
+  // ========================================
+  // LANDING RESOURCES
+  // ========================================
 
   const backgroundImage = resources.backgroundImage || "";
-  const heroImage = resources.heroImage || backgroundImage;
-  const logoImage = resources.logoImage || "";
-  const formatImage = resources.formatImage || "";
 
-  const supportChannels = normalizeSupportChannels(
-    event?.supportContact
+  const heroImage = resources.heroImage || backgroundImage;
+  const heroImageMobile = resources.heroImageMobile || heroImage;
+
+  const logoImage = resources.logoImage || "";
+
+  const competitionIcons = resources.icons || {};
+
+  const modalityIcon =
+    competitionIcons.modalidad || "";
+
+  const formatIcon =
+    competitionIcons.formato || "";
+
+  const systemIcon =
+    competitionIcons.sistema || "";
+
+  const teamsImage = resources.teamsImage || "";
+  // ========================================
+  // COMPETITION COLOR → CSS VARIABLE
+  // ========================================
+
+  page.style.setProperty(
+    "--competition-primary",
+    primaryColor
   );
 
-  page.style.setProperty("--competition-primary", primaryColor);
-  page.style.setProperty("--competition-secondary", secondaryColor);
-  page.style.setProperty("--competition-accent", accentColor);
+  // ========================================
+  // RENDER
+  // ========================================
 
   page.innerHTML = `
     <div
-      class="competition-landing competition-landing--showcase"
-      style="
-        --competition-bg-image: ${toCssImage(backgroundImage)};
-        --competition-hero-image: ${toCssImage(heroImage)};
-      "
+      class="competition-landing competition-landing--landing-3"
+      style="--competition-bg-image: url('${escapeHtml(backgroundImage)}')"
     >
 
-      <!-- HERO -->
-      <section class="competition-landing__showcase-hero">
-        <div class="competition-landing__showcase-hero-media"></div>
-        <div class="competition-landing__showcase-hero-overlay"></div>
+      <!-- ==================================
+           HERO
+      =================================== -->
 
-        <div class="competition-landing__showcase-hero-content">
-          ${
-            logoImage
-              ? `
-                <div class="competition-landing__showcase-logo">
-                  <img
-                    src="${escapeHtml(logoImage)}"
-                    alt="${escapeHtml(gameName)}"
-                  />
-                </div>
-              `
-              : ""
-          }
+      <section
+        class="competition-landing__hero competition-landing__hero--landing-3"
+        style="
+          --competition-hero-image: url('${escapeHtml(heroImage)}');
+          --competition-hero-image-mobile: url('${escapeHtml(heroImageMobile)}')
+        "
+      >
 
-          <p class="competition-landing__showcase-kicker">
-            ${escapeHtml(gameName)}
-          </p>
+        <div class="competition-landing__hero-overlay"></div>
 
-          <h1 class="competition-landing__showcase-title">
-            ${escapeHtml(eventName)}
-          </h1>
+        <div class="competition-landing__hero-content">
 
-          <p class="competition-landing__showcase-lead">
-            ${escapeHtml(format)}
-            <span aria-hidden="true">•</span>
-            ${escapeHtml(participation)}
-          </p>
+          <!-- GAME LOGO -->
 
-          <div class="competition-landing__showcase-actions">
-            ${
-              canRegister
-                ? `
-                  <button
-                    type="button"
-                    class="competition-landing__showcase-button"
-                    data-registration-cta
-                  >
-                    INSCRÍBETE
-                  </button>
-                `
-                : `
-                  ${renderSupportContact(supportChannels)}
-                `
-            }
-          </div>
-
-          <div class="competition-landing__showcase-scroll">
-            <span>EXPLORAR COMPETENCIA</span>
-            <span aria-hidden="true">↓</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- EVENT SNAPSHOT -->
-      <section class="competition-landing__showcase-section competition-landing__showcase-section--intro">
-        <div class="competition-landing__showcase-container">
-          <div class="competition-landing__showcase-intro">
-            <div class="competition-landing__showcase-intro-heading">
-              <span class="competition-landing__showcase-index">01</span>
-              <p class="competition-landing__showcase-eyebrow">
-                ${escapeHtml(gameName)}
-              </p>
-              <h2>PREPÁRATE PARA COMPETIR</h2>
-            </div>
-
-            <div class="competition-landing__showcase-intro-copy">
-              <p>
-                ${escapeHtml(eventName)} reúne a los competidores
-                para una experiencia enfocada en ${escapeHtml(format)}.
-              </p>
-            </div>
-          </div>
-
-          <div class="competition-landing__showcase-stats">
-            <article class="competition-landing__showcase-stat">
-              <span>FECHA</span>
-              <strong>${escapeHtml(dateRange)}</strong>
-              <small>${escapeHtml(timeRange)}</small>
-            </article>
-
-            <article class="competition-landing__showcase-stat">
-              <span>FORMATO</span>
-              <strong>${escapeHtml(format)}</strong>
-              <small>${escapeHtml(matchSystem)}</small>
-            </article>
-
-            <article class="competition-landing__showcase-stat">
-              <span>PREMIO</span>
-              <strong>${escapeHtml(prizeSummary)}</strong>
-              <small>${escapeHtml(prizeDescription)}</small>
-            </article>
-
-            <article class="competition-landing__showcase-stat">
-              <span>INSCRIPCIÓN</span>
-              <strong>${escapeHtml(registration)}</strong>
-              <small>
-                ${
-                  available !== undefined && available !== null
-                    ? `${escapeHtml(String(available))} cupos disponibles`
-                    : `${escapeHtml(String(capacity))} cupos`
-                }
-              </small>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- GAME SHOWCASE -->
-      <section class="competition-landing__showcase-section competition-landing__showcase-section--game">
-        <div class="competition-landing__showcase-game-art">
-          ${
-            backgroundImage
-              ? `
-                <img
-                  src="${escapeHtml(backgroundImage)}"
-                  alt=""
-                  aria-hidden="true"
-                />
-              `
-              : ""
-          }
-        </div>
-
-        <div class="competition-landing__showcase-game-overlay"></div>
-
-        <div class="competition-landing__showcase-container">
-          <div class="competition-landing__showcase-game-content">
-            <span class="competition-landing__showcase-index">02</span>
-
-            <p class="competition-landing__showcase-eyebrow">
-              GAME SHOWCASE
-            </p>
-
-            <h2>${escapeHtml(gameName)}</h2>
-
-            <p>
-              Una competencia diseñada alrededor del juego,
-              su identidad y la experiencia competitiva.
-            </p>
+          <div class="competition-landing__game-logo">
 
             ${
               logoImage
                 ? `
                   <img
-                    class="competition-landing__showcase-game-logo"
                     src="${escapeHtml(logoImage)}"
                     alt="${escapeHtml(gameName)}"
-                  />
+                  >
                 `
-                : ""
+                : `
+                  <span>
+                    ${escapeHtml(gameName)}
+                  </span>
+                `
             }
+
           </div>
+
+          <!-- TOURNAMENT LOGO -->
+
+          <div class="competition-landing__tournament-logo">
+
+            ${
+              tournamentLogo
+                ? `
+                  <img
+                    src="${escapeHtml(tournamentLogo)}"
+                    alt="${escapeHtml(eventName)}"
+                  >
+                `
+                : `
+                  <h1 class="competition-landing__title">
+                    ${escapeHtml(eventName)}
+                  </h1>
+                `
+            }
+
+          </div>
+
+          <!-- START DATE -->
+
+          <div class="competition-landing__hero-date">
+
+            <i
+              class="fa-regular fa-calendar"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              ${escapeHtml(startDate)}
+            </span>
+
+          </div>
+
         </div>
+
       </section>
 
-      <!-- COMPETITION DETAILS -->
-      <section class="competition-landing__showcase-section competition-landing__showcase-section--details">
-        <div class="competition-landing__showcase-container">
-          <div class="competition-landing__showcase-heading">
-            <span class="competition-landing__showcase-index">03</span>
-            <p class="competition-landing__showcase-eyebrow">
+
+      <!-- ==================================
+           COMPETITION SNAPSHOT
+      =================================== -->
+
+      <section
+        class="
+          competition-landing__section
+          competition-landing__section--snapshot
+        "
+        id="competition-overview"
+      >
+
+        <div class="competition-landing__container">
+
+          <div class="competition-landing__snapshot-grid">
+
+            <!-- DATE -->
+
+            <article
+              class="competition-landing__snapshot-card"
+            >
+
+              <span
+                class="competition-landing__snapshot-icon"
+              >
+                <i
+                  class="fa-solid fa-calendar-days"
+                  aria-hidden="true"
+                ></i>
+              </span>
+
+              <span
+                class="competition-landing__snapshot-label"
+              >
+                FECHA
+              </span>
+
+              <strong>
+                ${escapeHtml(startDate)}
+              </strong>
+
+            </article>
+
+
+            <!-- REGISTRATION -->
+
+            <article
+              class="competition-landing__snapshot-card"
+            >
+
+              <span
+                class="competition-landing__snapshot-icon"
+              >
+                <i
+                  class="fa-solid fa-ticket"
+                  aria-hidden="true"
+                ></i>
+              </span>
+
+              <span
+                class="competition-landing__snapshot-label"
+              >
+                INSCRIPCIÓN
+              </span>
+
+              <strong>
+                ${escapeHtml(registration)}
+              </strong>
+
+            </article>
+
+
+            <!-- LOCATION -->
+
+            <article
+              class="competition-landing__snapshot-card"
+            >
+
+              <span
+                class="competition-landing__snapshot-icon"
+              >
+                <i
+                  class="fa-solid fa-location-dot"
+                  aria-hidden="true"
+                ></i>
+              </span>
+
+              <span
+                class="competition-landing__snapshot-label"
+              >
+                UBICACIÓN
+              </span>
+
+              <strong>
+                ${escapeHtml(location)}
+              </strong>
+
+            </article>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================
+           COMPETITION
+      =================================== -->
+
+      <section
+        class="
+          competition-landing__section
+          competition-landing__section--competition
+        "
+      >
+
+        <div class="competition-landing__container">
+
+          <div class="competition-landing__competition-heading">
+
+            <h2>
               COMPETENCIA
-            </p>
-            <h2>TODO LO QUE NECESITAS SABER</h2>
+            </h2>
+
           </div>
 
-          <div class="competition-landing__showcase-details">
-            <article>
-              <span>FECHA</span>
-              <strong>${escapeHtml(dateRange)}</strong>
+
+          <div class="competition-landing__competition-grid">
+
+            <!-- MODALIDAD -->
+
+            <article
+              class="competition-landing__competition-card"
+            >
+
+              <span
+                class="competition-landing__competition-tag"
+              >
+                MODALIDAD
+              </span>
+
+              <div
+                class="competition-landing__competition-icon"
+              >
+
+                ${
+                  modalityIcon
+                    ? `
+                      <img
+                        src="${escapeHtml(modalityIcon)}"
+                        alt=""
+                      >
+                    `
+                    : ""
+                }
+
+              </div>
+
+              <strong>
+                ${escapeHtml(participation)}
+              </strong>
+
             </article>
 
-            <article>
-              <span>HORA</span>
-              <strong>${escapeHtml(timeRange)}</strong>
+
+            <!-- FORMATO -->
+
+            <article
+              class="competition-landing__competition-card"
+            >
+
+              <span
+                class="competition-landing__competition-tag"
+              >
+                FORMATO
+              </span>
+
+              <div
+                class="competition-landing__competition-icon"
+              >
+
+                ${
+                  formatIcon
+                    ? `
+                      <img
+                        src="${escapeHtml(formatIcon)}"
+                        alt=""
+                      >
+                    `
+                    : ""
+                }
+
+              </div>
+
+              <strong>
+                ${escapeHtml(format)}
+              </strong>
+
             </article>
 
-            <article>
-              <span>UBICACIÓN</span>
-              <strong>${escapeHtml(location)}</strong>
+
+            <!-- SISTEMA -->
+
+            <article
+              class="competition-landing__competition-card"
+            >
+
+              <span
+                class="competition-landing__competition-tag"
+              >
+                SISTEMA
+              </span>
+
+              <div
+                class="competition-landing__competition-icon"
+              >
+
+                ${
+                  systemIcon
+                    ? `
+                      <img
+                        src="${escapeHtml(systemIcon)}"
+                        alt=""
+                      >
+                    `
+                    : ""
+                }
+
+              </div>
+
+              <strong>
+                ${escapeHtml(matchSystem)}
+              </strong>
+
             </article>
 
-            <article>
-              <span>PARTICIPACIÓN</span>
-              <strong>${escapeHtml(participation)}</strong>
-            </article>
-
-            <article>
-              <span>FORMATO</span>
-              <strong>${escapeHtml(format)}</strong>
-            </article>
-
-            <article>
-              <span>SISTEMA DE PARTIDA</span>
-              <strong>${escapeHtml(matchSystem)}</strong>
-            </article>
           </div>
+
         </div>
+
       </section>
 
-      <!-- PRO BRACKET -->
+
+      <!-- ==================================
+           BRACKET
+           DO NOT MODIFY
+      =================================== -->
+
       <div data-public-bracket-mount>
         ${getPublicTournamentBracketMarkup(event)}
       </div>
 
 
-      <!-- FORMAT -->
+      <!-- ==================================
+           TEAMS / VISUAL BREAK
+      =================================== -->
+
       ${
-        formatImage
+        teamsImage
           ? `
-            <section class="competition-landing__showcase-section competition-landing__showcase-section--format">
-              <div class="competition-landing__showcase-format-image">
-                <img
-                  src="${escapeHtml(formatImage)}"
-                  alt="${escapeHtml(format)}"
-                />
+            <section
+              class="competition-landing__visual-break"
+            >
+
+              <img
+                src="${escapeHtml(teamsImage)}"
+                alt=""
+              >
+
+              <div
+                class="
+                  competition-landing__visual-break-overlay
+                "
+              ></div>
+
+              <div
+                class="
+                  competition-landing__visual-break-content
+                "
+              >
+
+                <span>
+                  COMPETITION READY
+                </span>
+
+                <strong>
+                  ENTRA. COMPITE. DOMINA.
+                </strong>
+
               </div>
 
-              <div class="competition-landing__showcase-format-overlay"></div>
-
-              <div class="competition-landing__showcase-container">
-                <div class="competition-landing__showcase-format-content">
-                  <span class="competition-landing__showcase-index">04</span>
-                  <p class="competition-landing__showcase-eyebrow">
-                    FORMATO
-                  </p>
-                  <h2>${escapeHtml(format)}</h2>
-                  <p>${escapeHtml(matchSystem)}</p>
-                </div>
-              </div>
             </section>
           `
           : ""
       }
 
-      <!-- PRIZE -->
-      <section class="competition-landing__showcase-section competition-landing__showcase-section--prize">
-        <div class="competition-landing__showcase-container">
-          <div class="competition-landing__showcase-prize">
-            <span class="competition-landing__showcase-index">
-              ${formatImage ? "05" : "04"}
-            </span>
 
-            <p class="competition-landing__showcase-eyebrow">
-              PREMIO
-            </p>
+      <!-- ==================================
+           RULES
+      =================================== -->
 
-            <strong>${escapeHtml(prizeSummary)}</strong>
+      ${
+        rulePages.length
+          ? `
+            <section
+              class="
+                competition-landing__rules
+              "
+              id="competition-rules"
+            >
 
-            ${
-              prizeDescription
-                ? `<p>${escapeHtml(prizeDescription)}</p>`
-                : ""
-            }
-          </div>
-        </div>
-      </section>
+              <div
+                class="
+                  competition-landing__rules-shell
+                "
+              >
 
-      <!-- CTA -->
-      <section class="competition-landing__showcase-cta">
-        <div class="competition-landing__showcase-cta-overlay"></div>
+                <div
+                  class="
+                    competition-landing__rules-viewport
+                  "
+                  data-rules-viewport
+                >
 
-        <div class="competition-landing__showcase-container">
-          <div class="competition-landing__showcase-cta-content">
-            <p class="competition-landing__showcase-eyebrow">
-              ${escapeHtml(gameName)}
-            </p>
+                  <div
+                    class="
+                      competition-landing__rules-track
+                    "
+                    data-rules-track
+                  >
 
-            <h2>¿LISTO PARA ENTRAR?</h2>
+                    ${rulePages
+                      .map(renderRulePage)
+                      .join("")}
 
-            <p>
-              ${escapeHtml(eventName)}
-            </p>
+                  </div>
 
-            ${
-              canRegister
-                ? `
+                </div>
+
+
+                ${
+                  rulePages.length > 1
+                    ? `
+                      <div
+                        class="
+                          competition-landing__rules-controls
+                        "
+                      >
+
+                        <button
+                          type="button"
+                          class="
+                            competition-landing__rules-arrow
+                          "
+                          data-rules-prev
+                          aria-label="Reglas anteriores"
+                        >
+
+                          <i
+                            class="fa-solid fa-arrow-left"
+                            aria-hidden="true"
+                          ></i>
+
+                        </button>
+
+
+                        <span
+                          class="
+                            competition-landing__rules-counter
+                          "
+                        >
+
+                          <strong
+                            data-rules-current
+                          >
+                            01
+                          </strong>
+
+                          <span>/</span>
+
+                          <span
+                            data-rules-total
+                          >
+                            ${String(
+                              rulePages.length
+                            ).padStart(2, "0")}
+                          </span>
+
+                        </span>
+
+
+                        <button
+                          type="button"
+                          class="
+                            competition-landing__rules-arrow
+                          "
+                          data-rules-next
+                          aria-label="Siguiente grupo de reglas"
+                        >
+
+                          <i
+                            class="fa-solid fa-arrow-right"
+                            aria-hidden="true"
+                          ></i>
+
+                        </button>
+
+                      </div>
+                    `
+                    : ""
+                }
+
+              </div>
+
+
+              <div
+                class="
+                  competition-landing__rule-modal
+                "
+                data-rule-modal
+                aria-hidden="true"
+              >
+
+                <div
+                  class="
+                    competition-landing__rule-modal-backdrop
+                  "
+                  data-rule-modal-close
+                ></div>
+
+
+                <div
+                  class="
+                    competition-landing__rule-modal-dialog
+                  "
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="competition-rule-modal-title"
+                >
+
                   <button
                     type="button"
-                    class="competition-landing__showcase-button competition-landing__showcase-button--large"
-                    data-registration-cta
+                    class="
+                      competition-landing__rule-modal-close
+                    "
+                    data-rule-modal-close
+                    aria-label="Cerrar regla"
                   >
-                    INSCRÍBETE AHORA
-                  </button>
-                `
-                : `
-                  <div class="competition-landing__showcase-support">
-                    ${renderSupportContact(supportChannels)}
-                  </div>
-                `
-            }
-          </div>
-        </div>
-      </section>
 
-      <!-- FOOTER -->
-      <footer class="competition-landing__showcase-footer">
-        <div class="competition-landing__showcase-container">
-          <div class="competition-landing__showcase-footer-inner">
-            <span>ARKHAM</span>
-            <span>${escapeHtml(gameName)}</span>
-            <span>${escapeHtml(eventName)}</span>
-          </div>
+                    <i
+                      class="fa-solid fa-xmark"
+                      aria-hidden="true"
+                    ></i>
+
+                  </button>
+
+
+                  <span
+                    class="
+                      competition-landing__section-eyebrow
+                    "
+                    id="competition-rule-modal-title"
+                  >
+                    REGLA
+                  </span>
+
+
+                  <strong
+                    class="
+                      competition-landing__rule-modal-number
+                    "
+                    data-rule-modal-number
+                  ></strong>
+
+
+                  <p
+                    data-rule-modal-text
+                  ></p>
+
+                </div>
+
+              </div>
+
+            </section>
+          `
+          : ""
+      }
+
+
+      <!-- ==================================
+           PRIZES / PODIUM
+      =================================== -->
+
+      ${
+        prizes.length > 0
+          ? `
+            <section
+              class="
+                competition-landing__podium
+              "
+              id="competition-prizes"
+            >
+
+              <div
+                class="
+                  competition-landing__podium-container
+                "
+              >
+
+                <div
+                  class="
+                    competition-landing__podium-heading
+                  "
+                >
+
+                  <span
+                    class="
+                      competition-landing__section-eyebrow
+                    "
+                  >
+                    04 // PREMIOS
+                  </span>
+
+                  <h2>
+                    PREMIOS
+                  </h2>
+
+                </div>
+
+
+                <div
+                  class="
+                    competition-landing__podium-stage
+                    competition-landing__podium-stage--count-${Math.min(
+                      prizes.length,
+                      3
+                    )}
+                  "
+                >
+
+                  <div
+                    class="
+                      competition-landing__podium-places
+                    "
+                  >
+
+                    ${prizes
+                      .map(
+                        (prize, index) =>
+                          renderPrize(
+                            prize,
+                            index + 1
+                          )
+                      )
+                      .join("")}
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </section>
+          `
+          : ""
+      }
+
+
+      <!-- ==================================
+           CONTACT / ORGANIZER
+      =================================== -->
+
+      ${
+        contactChannelsMarkup
+          ? `
+            <section
+              class="competition-landing__contact"
+              id="competition-contact"
+            >
+
+              <div class="competition-landing__container">
+
+                <div class="competition-landing__contact-heading">
+                  <span class="competition-landing__section-eyebrow">
+                    05 // CONTACTO
+                  </span>
+
+                  <h2>
+                    ¿TIENES ALGUNA DUDA?
+                    <br>
+                    HABLA CON EL ORGANIZADOR.
+                  </h2>
+
+                  <p>
+                    ¿Tienes preguntas sobre la competencia, inscripción,
+                    horarios o participación? Contacta directamente con el
+                    organizador a través de sus canales disponibles.
+                  </p>
+                </div>
+
+                <div class="competition-landing__contact-grid">
+                  ${contactChannelsMarkup}
+                </div>
+
+              </div>
+
+            </section>
+          `
+          : ""
+      }
+
+
+      <!-- ==================================
+           FOOTER
+      =================================== -->
+
+      <footer
+        class="competition-landing__footer"
+      >
+
+        <div
+          class="
+            competition-landing__container
+            competition-landing__footer-inner
+          "
+        >
+
+          <span>
+            ARKHAM ENTERTAINMENT
+          </span>
+
+          <span>
+            ${escapeHtml(gameName)}
+            //
+            ${escapeHtml(eventName)}
+          </span>
+
         </div>
+
       </footer>
 
     </div>
   `;
 
-  page.querySelectorAll("[data-registration-cta]").forEach((button) => {
-    button.addEventListener("click", () => {
-    });
-  });
-}
 
-function toCssImage(value) {
-  if (!value) {
-    return "none";
+  // ========================================
+  // RULES SLIDER / FLIP / MODAL
+  // ========================================
+
+  const rulesTrack =
+    page.querySelector(
+      "[data-rules-track]"
+    );
+
+  const rulesPrev =
+    page.querySelector(
+      "[data-rules-prev]"
+    );
+
+  const rulesNext =
+    page.querySelector(
+      "[data-rules-next]"
+    );
+
+  const rulesCurrent =
+    page.querySelector(
+      "[data-rules-current]"
+    );
+
+  const ruleCards =
+    page.querySelectorAll(
+      "[data-rule-card]"
+    );
+
+  const ruleModal =
+    page.querySelector(
+      "[data-rule-modal]"
+    );
+
+  const ruleModalNumber =
+    page.querySelector(
+      "[data-rule-modal-number]"
+    );
+
+  const ruleModalText =
+    page.querySelector(
+      "[data-rule-modal-text]"
+    );
+
+  const rulesViewport =
+    page.querySelector(
+      "[data-rules-viewport]"
+    );
+
+
+  let currentRulePage = 0;
+
+  let rulesPointerStartX =
+    null;
+
+  let lastRuleModalTrigger =
+    null;
+
+
+  const setRulesPage = (
+    pageIndex
+  ) => {
+
+    if (
+      !rulesTrack ||
+      !rulePages.length
+    ) {
+      return;
+    }
+
+    currentRulePage =
+      Math.max(
+        0,
+        Math.min(
+          pageIndex,
+          rulePages.length - 1
+        )
+      );
+
+    rulesTrack.style.transform =
+      `translate3d(
+        -${currentRulePage * 100}%,
+        0,
+        0
+      )`;
+
+
+    if (rulesCurrent) {
+
+      rulesCurrent.textContent =
+        String(
+          currentRulePage + 1
+        ).padStart(
+          2,
+          "0"
+        );
+
+    }
+
+
+    if (rulesPrev) {
+
+      rulesPrev.disabled =
+        currentRulePage === 0;
+
+    }
+
+
+    if (rulesNext) {
+
+      rulesNext.disabled =
+        currentRulePage ===
+        rulePages.length - 1;
+
+    }
+
+  };
+
+
+  const openRuleModal = (
+    ruleIndex,
+    trigger
+  ) => {
+
+    const rule =
+      rules[ruleIndex];
+
+    if (
+      !rule ||
+      !ruleModal
+    ) {
+      return;
+    }
+
+
+    lastRuleModalTrigger =
+      trigger ||
+      null;
+
+
+    if (ruleModalNumber) {
+
+      ruleModalNumber.textContent =
+        toRoman(
+          Number(
+            rule.order ||
+            ruleIndex + 1
+          )
+        );
+
+    }
+
+
+    if (ruleModalText) {
+
+      ruleModalText.textContent =
+        String(
+          rule.text ||
+          ""
+        ).trim();
+
+    }
+
+
+    ruleModal.classList.add(
+      "is-open"
+    );
+
+    ruleModal.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+    document.body.classList.add(
+      "competition-landing--modal-open"
+    );
+
+  };
+
+
+  const closeRuleModal = () => {
+
+    if (!ruleModal) {
+      return;
+    }
+
+
+    ruleModal.classList.remove(
+      "is-open"
+    );
+
+    ruleModal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+    document.body.classList.remove(
+      "competition-landing--modal-open"
+    );
+
+
+    if (
+      lastRuleModalTrigger
+    ) {
+
+      lastRuleModalTrigger.focus();
+
+    }
+
+
+    lastRuleModalTrigger =
+      null;
+
+  };
+
+
+  if (
+    rulesTrack &&
+    rulePages.length
+  ) {
+
+    setRulesPage(0);
+
   }
 
-  const safeValue = String(value)
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, "");
 
-  return `url("${safeValue}")`;
+  if (rulesPrev) {
+
+    rulesPrev.addEventListener(
+      "click",
+      () => {
+
+        setRulesPage(
+          currentRulePage - 1
+        );
+
+      }
+    );
+
+  }
+
+
+  if (rulesNext) {
+
+    rulesNext.addEventListener(
+      "click",
+      () => {
+
+        setRulesPage(
+          currentRulePage + 1
+        );
+
+      }
+    );
+
+  }
+
+
+  ruleCards.forEach(
+    (card) => {
+
+      // Hover/focus sigue mostrando el reverso con el texto.
+      // Click/tap abre el modal con el texto completo.
+      card.addEventListener(
+        "click",
+        () => {
+
+          openRuleModal(
+            Number(
+              card.dataset.ruleIndex
+            ),
+            card
+          );
+
+        }
+      );
+
+
+      card.addEventListener(
+        "keydown",
+        (event) => {
+
+          if (
+            event.key !==
+              "Enter" &&
+            event.key !==
+              " "
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+
+          openRuleModal(
+            Number(
+              card.dataset.ruleIndex
+            ),
+            card
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+  page
+    .querySelectorAll(
+      "[data-rule-modal-close]"
+    )
+    .forEach(
+      (element) => {
+
+        element.addEventListener(
+          "click",
+          closeRuleModal
+        );
+
+      }
+    );
+
+
+  if (rulesViewport) {
+
+    rulesViewport.addEventListener(
+      "pointerdown",
+      (event) => {
+
+        rulesPointerStartX =
+          event.clientX;
+
+      }
+    );
+
+
+    rulesViewport.addEventListener(
+      "pointerup",
+      (event) => {
+
+        if (
+          rulesPointerStartX ===
+          null
+        ) {
+          return;
+        }
+
+
+        const delta =
+          event.clientX -
+          rulesPointerStartX;
+
+
+        rulesPointerStartX =
+          null;
+
+
+        if (
+          Math.abs(delta) <
+          50
+        ) {
+          return;
+        }
+
+
+        setRulesPage(
+          currentRulePage +
+          (
+            delta < 0
+              ? 1
+              : -1
+          )
+        );
+
+      }
+    );
+
+
+    rulesViewport.addEventListener(
+      "pointercancel",
+      () => {
+
+        rulesPointerStartX =
+          null;
+
+      }
+    );
+
+  }
+
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+
+      if (
+        event.key ===
+          "Escape" &&
+        ruleModal?.classList.contains(
+          "is-open"
+        )
+      ) {
+
+        closeRuleModal();
+
+      }
+
+    }
+  );
+
+
 }
