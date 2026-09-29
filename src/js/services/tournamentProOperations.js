@@ -20,7 +20,7 @@ import {
   MATCH_STATUS,
   RECOGNITION_STATUS,
   TOURNAMENT_EVENT_STATUS
-} from "./tournamentPro.js";
+} from "./competitionCore.js";
 import {
   validateCompetitionConfiguration,
   COMPETITION_CONFIGURATION_STATUS
