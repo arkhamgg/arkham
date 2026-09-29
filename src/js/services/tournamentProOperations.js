@@ -81,7 +81,7 @@ export async function prepareBracket({ tournamentId, eventId, event }) {
 
   if (validation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED) {
     throw new Error(
-      `El formato "${event?.format || "seleccionado"}" está disponible en la configuración del juego, pero todavía no está soportado por el motor competitivo de ARKHAM.`
+      `El formato "${event?.format || "seleccionado"}" todavía no está disponible para ejecutar este torneo. Tu configuración se conservará sin cambios.`
     );
   }
 
@@ -721,7 +721,7 @@ export async function setEventStatus({
 
     if (validation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED) {
       throw new Error(
-        `El formato "${event?.format || "seleccionado"}" todavía no puede ejecutarse con el motor competitivo actual.`
+        `El formato "${event?.format || "seleccionado"}" todavía no está disponible para iniciar este torneo.`
       );
     }
 

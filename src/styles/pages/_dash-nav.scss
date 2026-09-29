@@ -327,6 +327,189 @@
 
 
 // ========================================
+// DESKTOP FOCUS MODE
+// ========================================
+//
+// The dashboard stays visually compact by default.
+// Hovering/focusing the sidebar expands it so labels
+// and account/context information remain available.
+// Mobile navigation is intentionally excluded.
+//
+
+@media (min-width: 901px) {
+
+  .dashboard-sidebar {
+    width: 76px;
+    min-width: 76px;
+    padding: $space-8 $space-3;
+
+    overflow: hidden;
+
+    transition:
+      width 260ms $ease-standard,
+      min-width 260ms $ease-standard,
+      padding 260ms $ease-standard,
+      box-shadow 260ms $ease-standard;
+  }
+
+  .dashboard-sidebar:hover,
+  .dashboard-sidebar:focus-within {
+    width: 250px;
+    min-width: 250px;
+    padding: $space-8 $space-5;
+
+    overflow: visible;
+
+    box-shadow: 18px 0 40px rgba(0, 0, 0, 0.24);
+  }
+
+  .dashboard-sidebar__topbar {
+    justify-content: center;
+  }
+
+  .dashboard-sidebar__brand {
+    width: 100%;
+    margin-bottom: $space-10;
+
+    overflow: hidden;
+
+    font-size: 0;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .dashboard-sidebar__brand::after {
+    content: "A";
+
+    display: inline-block;
+
+    color: $color-white;
+    font-size: $font-size-lg;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+
+    transition: opacity 180ms $ease-standard;
+  }
+
+  .dashboard-sidebar:hover .dashboard-sidebar__brand,
+  .dashboard-sidebar:focus-within .dashboard-sidebar__brand {
+    text-align: left;
+  }
+
+  .dashboard-sidebar:hover .dashboard-sidebar__brand::after,
+  .dashboard-sidebar:focus-within .dashboard-sidebar__brand::after {
+    content: "ARKHAM";
+  }
+
+  .dashboard-sidebar__context {
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(-6px);
+    pointer-events: none;
+
+    transition:
+      opacity 160ms $ease-standard,
+      transform 220ms $ease-standard;
+  }
+
+  .dashboard-sidebar:hover .dashboard-sidebar__context,
+  .dashboard-sidebar:focus-within .dashboard-sidebar__context {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .dashboard-sidebar__nav {
+    gap: $space-8;
+  }
+
+  .dashboard-sidebar__label {
+    max-height: 0;
+    margin-bottom: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(-6px);
+
+    transition:
+      max-height 220ms $ease-standard,
+      margin-bottom 220ms $ease-standard,
+      opacity 160ms $ease-standard,
+      transform 220ms $ease-standard;
+  }
+
+  .dashboard-sidebar:hover .dashboard-sidebar__label,
+  .dashboard-sidebar:focus-within .dashboard-sidebar__label {
+    max-height: 20px;
+    margin-bottom: $space-2;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .dashboard-sidebar__link {
+    justify-content: center;
+    gap: $space-3;
+    padding: 0 $space-3;
+    white-space: nowrap;
+  }
+
+  .dashboard-sidebar__link span {
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(-6px);
+
+    transition:
+      max-width 220ms $ease-standard,
+      opacity 160ms $ease-standard,
+      transform 220ms $ease-standard;
+  }
+
+  .dashboard-sidebar:hover .dashboard-sidebar__link,
+  .dashboard-sidebar:focus-within .dashboard-sidebar__link {
+    justify-content: flex-start;
+  }
+
+  .dashboard-sidebar:hover .dashboard-sidebar__link span,
+  .dashboard-sidebar:focus-within .dashboard-sidebar__link span {
+    max-width: 210px;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .dashboard-sidebar__logout {
+    justify-content: center !important;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .dashboard-sidebar__logout span {
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(-6px);
+
+    transition:
+      max-width 220ms $ease-standard,
+      opacity 160ms $ease-standard,
+      transform 220ms $ease-standard;
+  }
+
+  .dashboard-sidebar:hover .dashboard-sidebar__logout,
+  .dashboard-sidebar:focus-within .dashboard-sidebar__logout {
+    justify-content: flex-start !important;
+  }
+
+  .dashboard-sidebar:hover .dashboard-sidebar__logout span,
+  .dashboard-sidebar:focus-within .dashboard-sidebar__logout span {
+    max-width: 160px;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+}
+
+
+// ========================================
 // MOBILE MENU
 // ========================================
 //

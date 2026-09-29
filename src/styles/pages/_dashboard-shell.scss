@@ -61,6 +61,40 @@
   min-height: 0;
   overflow-y: auto;
 
+  // Minimal ARKHAM scrollbar.
+  // Keep the navigation scrollable without introducing the browser
+  // default bulky scrollbar into the compact dashboard sidebar.
+  scrollbar-width: thin;
+  scrollbar-color: $color-700 transparent;
+
+}
+
+.dashboard-shell > .dashboard-sidebar .dashboard-sidebar__nav::-webkit-scrollbar {
+
+  width: 4px;
+
+}
+
+.dashboard-shell > .dashboard-sidebar .dashboard-sidebar__nav::-webkit-scrollbar-track {
+
+  background: transparent;
+
+}
+
+.dashboard-shell > .dashboard-sidebar .dashboard-sidebar__nav::-webkit-scrollbar-thumb {
+
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: $color-700;
+  background-clip: padding-box;
+
+}
+
+.dashboard-shell > .dashboard-sidebar .dashboard-sidebar__nav::-webkit-scrollbar-thumb:hover {
+
+  background: $color-500;
+  background-clip: padding-box;
+
 }
 
 .dashboard-shell > .dashboard-sidebar .dashboard-sidebar__footer {

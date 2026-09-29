@@ -312,8 +312,8 @@ export function TournamentPro() {
             <div class="tournament-pro-page__operation-bar">
               ${competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED ? `
                 <div>
-                  <strong>Configuración disponible · ejecución pendiente</strong>
-                  <span>La opción existe para este juego, pero el motor competitivo actual todavía no puede ejecutarla. No se generará un bracket automáticamente.</span>
+                  <strong>Configuración disponible · próximamente</strong>
+                  <span>Esta configuración todavía no está disponible para iniciar el torneo. No se generará un bracket diferente al que seleccionaste.</span>
                 </div>
               ` : competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.INVALID ? `
                 <div>
@@ -463,10 +463,10 @@ export function TournamentPro() {
               <div class="tournament-pro-page__section-heading">
                 <div>
                   <span class="tournament-pro-page__eyebrow">MOTOR COMPETITIVO</span>
-                  <h2>${competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED ? "Formato no soportado todavía" : "Configuración inválida"}</h2>
+                  <h2>${competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED ? "Formato disponible próximamente" : "Configuración inválida"}</h2>
                 </div>
               </div>
-              <p class="tournament-pro-page__helper">${competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED ? "La configuración permanece guardada como fue seleccionada, pero ARKHAM no puede convertirla en un bracket operativo hasta que exista la capacidad correspondiente en el motor." : escapeHtml(competitionValidation.errors.join(" "))}</p>
+              <p class="tournament-pro-page__helper">${competitionValidation.status === COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED ? "Tu configuración se conserva tal como fue seleccionada. Este formato todavía no está disponible para ejecutar el torneo." : escapeHtml(competitionValidation.errors.join(" "))}</p>
             </section>
           ` : `
           <section class="tournament-pro-page__card tournament-pro-page__card--wide tournament-pro-page__bracket-card">

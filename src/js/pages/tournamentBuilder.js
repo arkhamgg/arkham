@@ -840,15 +840,15 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
     const labels = {
       [COMPETITION_CONFIGURATION_STATUS.SUPPORTED]: "CONFIGURACIÓN SOPORTADA",
-      [COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED]: "DISPONIBLE · EJECUCIÓN PENDIENTE",
+      [COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED]: "DISPONIBLE · PRÓXIMAMENTE",
       [COMPETITION_CONFIGURATION_STATUS.WARNING]: "CONFIGURACIÓN CON ADVERTENCIAS",
       [COMPETITION_CONFIGURATION_STATUS.INVALID]: "CONFIGURACIÓN INVÁLIDA"
     };
 
     const messages = {
-      [COMPETITION_CONFIGURATION_STATUS.SUPPORTED]: "Esta configuración está disponible en Firebase y puede ser ejecutada por el motor competitivo actual.",
-      [COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED]: "Esta configuración está disponible en Firebase, pero el motor actual todavía no puede ejecutarla. Se conservará la selección y no se generará otro formato automáticamente.",
-      [COMPETITION_CONFIGURATION_STATUS.WARNING]: "Esta configuración puede ejecutarse, pero requiere atención antes de iniciar la competencia.",
+      [COMPETITION_CONFIGURATION_STATUS.SUPPORTED]: "Esta configuración está lista para organizar y ejecutar tu torneo.",
+      [COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED]: "Esta configuración todavía no está disponible para ejecutar el torneo. Tu selección se conservará sin cambios y ARKHAM no la reemplazará automáticamente por otra.",
+      [COMPETITION_CONFIGURATION_STATUS.WARNING]: "Esta configuración puede ejecutarse, pero hay aspectos que debes revisar antes de iniciar la competencia.",
       [COMPETITION_CONFIGURATION_STATUS.INVALID]: validation.errors.join(" ")
     };
 
