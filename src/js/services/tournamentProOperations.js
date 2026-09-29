@@ -95,7 +95,12 @@ export async function prepareBracket({ tournamentId, eventId, event }) {
     throw new Error("La capacidad del torneo debe ser de al menos 2 participantes.");
   }
 
-  pro.bracket = buildBracket([], capacity, pro.format || event.format);
+  pro.bracket = buildBracket(
+    [],
+    capacity,
+    pro.format || event.format,
+    pro.matchSystem || event.matchSystem || null
+  );
 
   pro.checkIn = {
     status: "unopened",
@@ -855,9 +860,15 @@ export async function completeMatch({
     updatedMatch?.loserId &&
     pro.participants[updatedMatch.loserId]
   ) {
-    pro.participants[
-      updatedMatch.loserId
-    ].status = PARTICIPANT_STATUS.ELIMINATED;
+    const isDoubleEliminationWinnersLoss =
+      pro.bracket?.type === "double_elimination" &&
+      updatedMatch.bracket === "winners";
+
+    if (!isDoubleEliminationWinnersLoss) {
+      pro.participants[
+        updatedMatch.loserId
+      ].status = PARTICIPANT_STATUS.ELIMINATED;
+    }
   }
 
   return savePro(
