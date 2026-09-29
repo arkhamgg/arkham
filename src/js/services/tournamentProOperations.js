@@ -99,7 +99,7 @@ export async function prepareBracket({ tournamentId, eventId, event }) {
     [],
     capacity,
     pro.format || event.format,
-    pro.matchSystem || event.matchSystem || null
+    pro.matchSystem || event?.matchSystem || null
   );
 
   pro.checkIn = {
@@ -860,15 +860,15 @@ export async function completeMatch({
     updatedMatch?.loserId &&
     pro.participants[updatedMatch.loserId]
   ) {
-    const isDoubleEliminationWinnersLoss =
-      pro.bracket?.type === "double_elimination" &&
-      updatedMatch.bracket === "winners";
-
-    if (!isDoubleEliminationWinnersLoss) {
-      pro.participants[
-        updatedMatch.loserId
-      ].status = PARTICIPANT_STATUS.ELIMINATED;
-    }
+    // A loser from a Winners Bracket match in Double Elimination
+    // remains in competition when the match has a deterministic
+    // loser route into the Losers Bracket. Only eliminate the
+    // participant when there is no route onward.
+    pro.participants[
+      updatedMatch.loserId
+    ].status = updatedMatch.loserRoute
+      ? PARTICIPANT_STATUS.COMPETING
+      : PARTICIPANT_STATUS.ELIMINATED;
   }
 
   return savePro(

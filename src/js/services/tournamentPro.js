@@ -61,6 +61,7 @@ export function createTournamentProState({
     capacity,
     format,
     matchSystem,
+    phases: [],
     status: TOURNAMENT_EVENT_STATUS.DRAFT,
     registration: {
       status: "closed",
@@ -117,7 +118,7 @@ export function ensureTournamentProState(event = {}) {
     legacyCheckIn.completed ? "completed" : legacyCheckIn.opened ? "open" : "unopened"
   );
 
-  return {
+  const normalized = {
     ...base,
     ...current,
     version: Math.max(Number(current.version) || 0, 4),
@@ -156,6 +157,14 @@ export function ensureTournamentProState(event = {}) {
         : {}
     }
   };
+
+  if (Object.prototype.hasOwnProperty.call(current, "phases")) {
+    normalized.phases = Array.isArray(current.phases) ? current.phases : [];
+  } else {
+    delete normalized.phases;
+  }
+
+  return normalized;
 }
 
 export function createParticipant({
@@ -420,7 +429,8 @@ function createMatch({
   participantAId = null,
   participantBId = null,
   winnerId = null,
-  matchSystem = null
+  matchSystem = null,
+  phaseId = null
 }) {
   return {
     id,
@@ -436,6 +446,7 @@ function createMatch({
     nextMatchId: null,
     nextSlot: null,
     matchSystem,
+    phaseId,
     startedAt: null,
     completedAt: null
   };
