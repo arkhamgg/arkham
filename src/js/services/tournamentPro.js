@@ -56,7 +56,7 @@ export function createTournamentProState({
   matchSystem = null
 } = {}) {
   return {
-    version: 3,
+    version: 4,
     participationType,
     capacity,
     format,
@@ -93,7 +93,7 @@ export function createTournamentProState({
 export function createEmptyBracket(format = null) {
   return {
     generated: false,
-    version: 3,
+    version: 4,
     type: normalizeBracketType(format),
     generatedAt: null,
     completedAt: null,
@@ -120,7 +120,7 @@ export function ensureTournamentProState(event = {}) {
   return {
     ...base,
     ...current,
-    version: Math.max(Number(current.version) || 0, 3),
+    version: Math.max(Number(current.version) || 0, 4),
     registration: {
       ...base.registration,
       ...(current.registration || {}),
@@ -181,7 +181,7 @@ export function createParticipant({
   };
 }
 
-export function generateBracket(participants = [], capacity = null, format = null) {
+export function generateBracket(participants = [], capacity = null, format = null, matchSystem = null) {
   const type = normalizeBracketType(format);
 
   if (!type) {
@@ -191,13 +191,13 @@ export function generateBracket(participants = [], capacity = null, format = nul
   }
 
   if (type === BRACKET_TYPES.DOUBLE_ELIMINATION) {
-    return generateDoubleEliminationBracket(participants, capacity);
+    return generateDoubleEliminationBracket(participants, capacity, matchSystem);
   }
 
-  return generateSingleEliminationBracket(participants, capacity);
+  return generateSingleEliminationBracket(participants, capacity, matchSystem);
 }
 
-export function generateSingleEliminationBracket(participants = [], capacity = null) {
+export function generateSingleEliminationBracket(participants = [], capacity = null, matchSystem = null) {
   const normalized = normalizeParticipants(participants);
   const targetSize = normalizeCapacity(capacity, normalized.length);
   const bracketSize = nextPowerOfTwo(Math.max(2, Math.min(targetSize, 128)));
@@ -241,7 +241,8 @@ export function generateSingleEliminationBracket(participants = [], capacity = n
         status,
         participantAId: a?.id || null,
         participantBId: b?.id || null,
-        winnerId: a && !b ? a.id : null
+        winnerId: a && !b ? a.id : null,
+        matchSystem
       }));
     }
 
@@ -261,18 +262,19 @@ export function generateSingleEliminationBracket(participants = [], capacity = n
 
   return {
     generated: true,
-    version: 3,
+    version: 4,
     type: BRACKET_TYPES.SINGLE_ELIMINATION,
     generatedAt: new Date().toISOString(),
     completedAt: null,
     stages: rounds,
     slots,
+    matchSystem,
     championId: null
   };
 }
 
-export function generateDoubleEliminationBracket(participants = [], capacity = null) {
-  const winners = generateSingleEliminationBracket(participants, capacity);
+export function generateDoubleEliminationBracket(participants = [], capacity = null, matchSystem = null) {
+  const winners = generateSingleEliminationBracket(participants, capacity, matchSystem);
   const winnersRounds = winners.stages.map((stage) => ({
     ...stage,
     bracket: "winners"
@@ -285,7 +287,9 @@ export function generateDoubleEliminationBracket(participants = [], capacity = n
 
   for (let round = 1; round <= losersRoundsCount; round += 1) {
     const stageIndex = Math.ceil(round / 2);
-    const matchCount = Math.max(1, Math.floor(bracketSize / Math.pow(2, stageIndex + (round % 2 === 0 ? 1 : 2))));
+    const matchCount = round % 2 === 1
+      ? Math.max(1, Math.floor(bracketSize / Math.pow(2, stageIndex + 1)))
+      : Math.max(1, Math.floor(bracketSize / Math.pow(2, stageIndex + 1)));
     const matches = [];
 
     for (let position = 1; position <= matchCount; position += 1) {
@@ -294,7 +298,8 @@ export function generateDoubleEliminationBracket(participants = [], capacity = n
         bracket: "losers",
         round,
         position,
-        status: MATCH_STATUS.PENDING
+        status: MATCH_STATUS.PENDING,
+        matchSystem
       }));
     }
 
@@ -306,7 +311,7 @@ export function generateDoubleEliminationBracket(participants = [], capacity = n
     });
   }
 
-  linkRoundProgression(losersRounds);
+  linkLosersProgression(losersRounds);
   linkDoubleEliminationLoserRoutes(winnersRounds, losersRounds);
 
   const finalStage = {
@@ -318,7 +323,8 @@ export function generateDoubleEliminationBracket(participants = [], capacity = n
       bracket: "grand_final",
       round: 1,
       position: 1,
-      status: MATCH_STATUS.PENDING
+      status: MATCH_STATUS.PENDING,
+      matchSystem
     })]
   };
 
@@ -335,7 +341,7 @@ export function generateDoubleEliminationBracket(participants = [], capacity = n
 
   return {
     generated: true,
-    version: 3,
+    version: 4,
     type: BRACKET_TYPES.DOUBLE_ELIMINATION,
     generatedAt: new Date().toISOString(),
     completedAt: null,
@@ -345,6 +351,7 @@ export function generateDoubleEliminationBracket(participants = [], capacity = n
       finalStage
     ],
     slots: winners.slots,
+    matchSystem,
     championId: null
   };
 }
@@ -412,7 +419,8 @@ function createMatch({
   status = MATCH_STATUS.PENDING,
   participantAId = null,
   participantBId = null,
-  winnerId = null
+  winnerId = null,
+  matchSystem = null
 }) {
   return {
     id,
@@ -427,23 +435,64 @@ function createMatch({
     score: null,
     nextMatchId: null,
     nextSlot: null,
+    matchSystem,
     startedAt: null,
     completedAt: null
   };
 }
 
 function linkDoubleEliminationLoserRoutes(winnersRounds, losersRounds) {
-  winnersRounds.forEach((round, index) => {
-    const loserRound = losersRounds[Math.min(index * 2, losersRounds.length - 1)];
-    if (!loserRound) return;
+  winnersRounds.forEach((round, roundIndex) => {
+    const winnerRound = round.number || roundIndex + 1;
+
     round.matches.forEach((match, matchIndex) => {
-      const target = loserRound.matches[Math.floor(matchIndex / 2)] || loserRound.matches[0];
-      if (target) match.loserRoute = {
+      if (winnerRound === 1) {
+        const target = losersRounds[0]?.matches[Math.floor(matchIndex / 2)];
+        if (!target) return;
+
+        match.loserRoute = {
+          matchId: target.id,
+          slot: matchIndex % 2 === 0 ? "A" : "B"
+        };
+        return;
+      }
+
+      const targetRound = losersRounds[(winnerRound * 2) - 3];
+      const target = targetRound?.matches[matchIndex];
+      if (!target) return;
+
+      match.loserRoute = {
         matchId: target.id,
-        slot: index === 0 ? (matchIndex % 2 === 0 ? "A" : "B") : "B"
+        slot: "B"
       };
     });
   });
+}
+
+function linkLosersProgression(rounds) {
+  for (let index = 0; index < rounds.length - 1; index += 1) {
+    const current = rounds[index];
+    const next = rounds[index + 1];
+    const currentRound = current.number || index + 1;
+
+    current.matches.forEach((match, matchIndex) => {
+      let nextMatch = null;
+      let nextSlot = null;
+
+      if (currentRound % 2 === 1) {
+        nextMatch = next.matches[matchIndex];
+        nextSlot = "A";
+      } else {
+        nextMatch = next.matches[Math.floor(matchIndex / 2)];
+        nextSlot = matchIndex % 2 === 0 ? "A" : "B";
+      }
+
+      if (nextMatch) {
+        match.nextMatchId = nextMatch.id;
+        match.nextSlot = nextSlot;
+      }
+    });
+  }
 }
 
 function routeLoser(bracket, match) {
@@ -521,7 +570,7 @@ function normalizeBracket(bracket, format) {
   return {
     ...createEmptyBracket(format),
     ...bracket,
-    version: Math.max(Number(bracket.version) || 0, 3),
+    version: Math.max(Number(bracket.version) || 0, 4),
     type: bracket.type || normalizeBracketType(format),
     stages: Array.isArray(bracket.stages) ? bracket.stages : [],
     slots: isObject(bracket.slots) ? bracket.slots : {}

@@ -650,7 +650,8 @@ export async function generateBracket({
   pro.bracket = buildBracket(
     participants,
     capacity,
-    pro.format || event.format
+    pro.format || event.format,
+    pro.matchSystem || event.matchSystem || null
   );
 
   Object.values(pro.participants).forEach((participant) => {

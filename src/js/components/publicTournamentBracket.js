@@ -67,31 +67,63 @@ function renderMatch(pro, match) {
   const a = match?.participantAId || null;
   const b = match?.participantBId || null;
   const winner = match?.winnerId || null;
+  const matchSystem = match?.matchSystem || pro?.matchSystem || null;
+  const score = match?.score;
+  const formattedScore = score && typeof score === "object" && ("a" in score || "b" in score)
+    ? `${score.a ?? 0} — ${score.b ?? 0}`
+    : score != null
+      ? String(score)
+      : "";
 
   return `
     <article class="public-bracket__match public-bracket__match--${escapeHtml(match?.status || "pending")}">
       <div class="public-bracket__match-code">
-        ${escapeHtml(match?.id || "MATCH")}
+        <span>${escapeHtml(match?.id || "MATCH")}</span>
+        ${matchSystem ? `<span class="public-bracket__match-system">${escapeHtml(matchSystem)}</span>` : ""}
       </div>
       ${renderSlot(pro, a, "A", winner)}
       ${renderSlot(pro, b, "B", winner)}
+      ${formattedScore ? `<div class="public-bracket__score">RESULTADO · ${escapeHtml(formattedScore)}</div>` : ""}
     </article>
   `;
 }
 
 function renderStage(pro, stage, index) {
   const matches = Array.isArray(stage?.matches) ? stage.matches : [];
+  const roundLabel = stage?.bracket === "grand_final"
+    ? "GRAND FINAL"
+    : stage?.bracket === "losers"
+      ? `RONDA ${stage?.number || index + 1}`
+      : stage?.number === 1
+        ? "PRIMERA RONDA"
+        : `RONDA ${stage?.number || index + 1}`;
 
   return `
     <div class="public-bracket__stage">
       <div class="public-bracket__stage-header">
-        <span>R${index + 1}</span>
-        <strong>${escapeHtml(stage?.bracket === "losers" ? "LOSERS" : stage?.bracket === "grand_final" ? "GRAND FINAL" : stage?.number === 1 ? "PRIMERA RONDA" : `RONDA ${stage?.number || index + 1}`)}</strong>
+        <span>${stage?.bracket === "grand_final" ? "GF" : `R${stage?.number || index + 1}`}</span>
+        <strong>${escapeHtml(roundLabel)}</strong>
       </div>
       <div class="public-bracket__stage-matches">
         ${matches.map((match) => renderMatch(pro, match)).join("")}
       </div>
     </div>
+  `;
+}
+
+function renderBracketGroup(pro, stages, bracket, label) {
+  if (!stages.length) return "";
+
+  return `
+    <section class="public-bracket__group public-bracket__group--${escapeHtml(bracket)}">
+      <header class="public-bracket__group-header">
+        <span>${escapeHtml(bracket === "winners" ? "CUADRO PRINCIPAL" : bracket === "losers" ? "SEGUNDA OPORTUNIDAD" : "CIERRE DE LA COMPETENCIA")}</span>
+        <strong>${escapeHtml(label)}</strong>
+      </header>
+      <div class="public-bracket__board">
+        ${stages.map((stage, index) => renderStage(pro, stage, index)).join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -177,8 +209,12 @@ export function getPublicTournamentBracketMarkup(event = {}, registrationState =
           </div>
         </header>
 
-        <div class="public-bracket__board" role="region" aria-label="Bracket del torneo">
-          ${stages.map((stage, index) => renderStage(pro, stage, index)).join("")}
+        <div class="public-bracket__groups" role="region" aria-label="Bracket del torneo">
+          ${bracket.type === "double_elimination"
+            ? `${renderBracketGroup(pro, stages.filter((stage) => stage.bracket === "winners"), "winners", "WINNERS BRACKET")}
+               ${renderBracketGroup(pro, stages.filter((stage) => stage.bracket === "losers"), "losers", "LOSERS BRACKET")}
+               ${renderBracketGroup(pro, stages.filter((stage) => stage.bracket === "grand_final"), "grand_final", "GRAND FINAL")}`
+            : renderBracketGroup(pro, stages.filter((stage) => stage.bracket === "winners"), "winners", "SINGLE ELIMINATION")}
         </div>
       </div>
     </section>

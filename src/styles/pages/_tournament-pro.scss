@@ -1209,3 +1209,71 @@
     width: 100%;
   }
 }
+
+// ========================================
+// BRACKET GROUPS
+// ========================================
+
+.tournament-pro-page__bracket-groups {
+  display: grid;
+  gap: $space-6;
+  margin-top: $space-6;
+}
+
+.tournament-pro-page__bracket-group {
+  min-width: 0;
+  padding: $space-4;
+  border: 1px solid $color-800;
+  border-radius: $radius-lg;
+  background: rgba(13, 13, 15, 0.45);
+}
+
+.tournament-pro-page__bracket-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $space-3;
+  margin-bottom: $space-2;
+
+  span {
+    display: block;
+    margin-bottom: $space-1;
+    color: $color-red;
+    font-size: $font-size-xs;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    color: $color-100;
+    font-size: $font-size-sm;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+.tournament-pro-page__bracket-group .tournament-pro-page__bracket-shell {
+  margin-top: $space-3;
+}
+
+.tournament-pro-page__match-system {
+  padding: 0.35rem 0.55rem;
+  border-bottom: 1px solid $color-800;
+  color: $color-red;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 700px) {
+  .tournament-pro-page__bracket-group {
+    padding: $space-3;
+  }
+
+  .tournament-pro-page__bracket-group-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

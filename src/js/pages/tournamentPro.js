@@ -199,6 +199,7 @@ export function TournamentPro() {
         const participantAId = match.participantAId || slotA?.participantId || null;
         const participantBId = match.participantBId || slotB?.participantId || null;
         const hasBoth = Boolean(participantAId && participantBId);
+        const matchSystemValue = match.matchSystem || pro.matchSystem || null;
         const canStartMatch = eventLive && match.status === "pending" && hasBoth;
         const canCompleteMatch = eventLive && match.status === "live" && hasBoth;
 
@@ -208,6 +209,7 @@ export function TournamentPro() {
               <span class="tournament-pro-page__match-id">${escapeHtml(match.id)}</span>
               <span class="tournament-pro-page__match-status">${escapeHtml(matchStatusLabel(match.status))}</span>
             </div>
+            ${matchSystemValue ? `<div class="tournament-pro-page__match-system">${escapeHtml(matchSystemValue)}</div>` : ""}
             <div class="tournament-pro-page__match-player ${match.winnerId === participantAId ? "is-winner" : ""}">
               <span>${escapeHtml(getParticipantName(participantAId))}</span>
               ${canCompleteMatch ? `<button type="button" data-winner="${escapeAttr(participantAId)}" data-match="${escapeAttr(match.id)}">GANÓ</button>` : ""}
@@ -231,9 +233,43 @@ export function TournamentPro() {
         `;
       };
 
+      const renderAdminBracketGroup = (groupStages, bracketType, currentPro, eventLive) => {
+        if (!groupStages.length) return "";
+        const labels = {
+          winners: "WINNERS BRACKET",
+          losers: "LOSERS BRACKET",
+          grand_final: "GRAND FINAL"
+        };
+
+        return `
+          <section class="tournament-pro-page__bracket-group tournament-pro-page__bracket-group--${escapeAttr(bracketType)}">
+            <header class="tournament-pro-page__bracket-group-header">
+              <div>
+                <span>${escapeHtml(bracketType === "winners" ? "CUADRO PRINCIPAL" : bracketType === "losers" ? "RUTA DE ELIMINADOS" : "CIERRE")}</span>
+                <strong>${labels[bracketType]}</strong>
+              </div>
+            </header>
+            <div class="tournament-pro-page__bracket-shell">
+              <div class="tournament-pro-page__bracket">
+                ${groupStages.map((stage, index) => `
+                  <div class="tournament-pro-page__stage ${index === 0 ? "tournament-pro-page__stage--active" : "tournament-pro-page__stage--future"}" data-stage-index="${index + 1}" data-match-count="${stage.matches.length}">
+                    <div class="tournament-pro-page__stage-heading">
+                      <span class="tournament-pro-page__stage-index">${stage.bracket === "grand_final" ? "GF" : `R${stage.number || index + 1}`}</span>
+                      <div><strong>${escapeHtml(stage.bracket === "grand_final" ? "GRAND FINAL" : stage.bracket === "losers" ? `RONDA ${stage.number}` : stage.number === 1 ? "PRIMERA RONDA" : `RONDA ${stage.number}`)}</strong></div>
+                    </div>
+                    <div class="tournament-pro-page__matches">
+                      ${stage.matches.map((match) => renderMatchCard(match, { eventLive })).join("")}
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          </section>
+        `;
+      };
+
       const render = () => {
         const stages = pro.bracket?.stages || [];
-        const firstStage = stages.find((stage) => stage.bracket === "winners" && stage.number === 1);
         const slots = Object.values(pro.bracket?.slots || {}).sort((a, b) => a.seed - b.seed);
         const participants = Object.values(pro.participants || {});
         const assigned = slots.filter((slot) => slot.participantId).length;
@@ -482,36 +518,10 @@ export function TournamentPro() {
             </div>
             <p class="tournament-pro-page__helper">Este es el mismo bracket operativo que alimenta la vista pública. Antes del check-in puedes preparar posiciones; después, los cambios estructurales quedan limitados para proteger los resultados.</p>
 
-            <div class="tournament-pro-page__bracket-shell">
-              <div class="tournament-pro-page__bracket">
-                ${firstStage ? `
-                  <div class="tournament-pro-page__stage tournament-pro-page__stage--active" data-match-count="${firstStage.matches.length}">
-                    <div class="tournament-pro-page__stage-heading">
-                      <span class="tournament-pro-page__stage-index">R1</span>
-                      <div><strong>${escapeHtml(firstStage.bracket === "winners" ? "PRIMERA RONDA" : "RONDA 1")}</strong></div>
-                    </div>
-                    <div class="tournament-pro-page__matches">
-                      ${firstStage.matches.map((match) => {
-                        const a = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 1}`];
-                        const b = pro.bracket.slots?.[`seed-${((match.position - 1) * 2) + 2}`];
-                        return renderMatchCard(match, { slotA: a, slotB: b, eventLive });
-                      }).join("")}
-                    </div>
-                  </div>
-                ` : `<div class="tournament-pro-page__empty">No hay bracket disponible.</div>`}
-
-                ${stages.slice(1).map((stage, index) => `
-                  <div class="tournament-pro-page__stage tournament-pro-page__stage--future" data-stage-index="${index + 2}" data-match-count="${stage.matches.length}">
-                    <div class="tournament-pro-page__stage-heading">
-                      <span class="tournament-pro-page__stage-index">R${index + 2}</span>
-                      <div><strong>${escapeHtml(stage.bracket === "grand_final" ? "GRAND FINAL" : `${stage.bracket === "losers" ? "LOSERS" : `RONDA ${stage.number}`}`)}</strong></div>
-                    </div>
-                    <div class="tournament-pro-page__matches">
-                      ${stage.matches.map((match) => renderMatchCard(match, { eventLive })).join("")}
-                    </div>
-                  </div>
-                `).join("")}
-              </div>
+            <div class="tournament-pro-page__bracket-groups">
+              ${renderAdminBracketGroup(stages.filter((stage) => stage.bracket === "winners"), "winners", pro, eventLive)}
+              ${pro.bracket?.type === "double_elimination" ? renderAdminBracketGroup(stages.filter((stage) => stage.bracket === "losers"), "losers", pro, eventLive) : ""}
+              ${pro.bracket?.type === "double_elimination" ? renderAdminBracketGroup(stages.filter((stage) => stage.bracket === "grand_final"), "grand_final", pro, eventLive) : ""}
             </div>
           </section>
           `}
