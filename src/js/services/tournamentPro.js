@@ -30,12 +30,17 @@ export const PARTICIPANT_STATUS = {
   FINISHED: "finished"
 };
 
-import {
-  MATCH_STATUS,
-  BRACKET_TYPES
-} from "./competitionCore.js";
+export const MATCH_STATUS = {
+  PENDING: "pending",
+  LIVE: "live",
+  COMPLETED: "completed",
+  BYE: "bye"
+};
 
-export { MATCH_STATUS, BRACKET_TYPES };
+export const BRACKET_TYPES = {
+  SINGLE_ELIMINATION: "single_elimination",
+  DOUBLE_ELIMINATION: "double_elimination"
+};
 
 export const RECOGNITION_STATUS = {
   NOT_REQUESTED: "not_requested",
@@ -360,6 +365,93 @@ export function generateDoubleEliminationBracket(participants = [], capacity = n
   };
 }
 
+export function startMatch(bracket, matchId, now = new Date().toISOString()) {
+  const nextBracket = clone(bracket);
+  const match = findMatch(nextBracket, matchId);
+  if (!match) throw new Error("Match no encontrado.");
+  if (match.status === MATCH_STATUS.COMPLETED) throw new Error("El match ya fue completado.");
+  if (match.status === MATCH_STATUS.BYE) throw new Error("Un BYE no puede iniciarse como match.");
+  if (!match.participantAId || !match.participantBId) {
+    throw new Error("El match todavía no tiene dos participantes.");
+  }
+
+  match.status = MATCH_STATUS.LIVE;
+  match.startedAt = match.startedAt || now;
+  return nextBracket;
+}
+
+export function applyMatchResult(bracket, matchId, winnerId, score = null, now = new Date().toISOString()) {
+  const nextBracket = clone(bracket);
+  const match = findMatch(nextBracket, matchId);
+  if (!match) throw new Error("Match no encontrado.");
+  if (match.status === MATCH_STATUS.COMPLETED) throw new Error("El match ya fue completado.");
+  if (match.status !== MATCH_STATUS.LIVE) throw new Error("El match debe estar en vivo antes de registrar el resultado.");
+  if (![match.participantAId, match.participantBId].includes(winnerId)) {
+    throw new Error("El ganador no pertenece al match.");
+  }
+
+  match.winnerId = winnerId;
+  match.loserId = match.participantAId === winnerId
+    ? match.participantBId
+    : match.participantAId;
+  match.score = normalizeScore(score);
+  match.status = MATCH_STATUS.COMPLETED;
+  match.completedAt = now;
+
+  routeWinner(nextBracket, match);
+
+  if (nextBracket.type === BRACKET_TYPES.DOUBLE_ELIMINATION && match.bracket === "winners" && match.loserId) {
+    routeLoser(nextBracket, match);
+  }
+
+  const final = findMatch(nextBracket, "GF-M1");
+  if (final && final.status !== MATCH_STATUS.COMPLETED && final.participantAId && final.participantBId) {
+    final.status = MATCH_STATUS.PENDING;
+  }
+
+  if (match.bracket === "grand_final") {
+    nextBracket.championId = winnerId;
+    nextBracket.completedAt = now;
+  } else if (nextBracket.type === BRACKET_TYPES.SINGLE_ELIMINATION && !hasOpenMatches(nextBracket)) {
+    nextBracket.championId = winnerId;
+    nextBracket.completedAt = now;
+  }
+
+  return nextBracket;
+}
+
+function createMatch({
+  id,
+  bracket,
+  round,
+  position,
+  status = MATCH_STATUS.PENDING,
+  participantAId = null,
+  participantBId = null,
+  winnerId = null,
+  matchSystem = null,
+  phaseId = null
+}) {
+  return {
+    id,
+    bracket,
+    round,
+    position,
+    status,
+    participantAId,
+    participantBId,
+    winnerId,
+    loserId: null,
+    score: null,
+    nextMatchId: null,
+    nextSlot: null,
+    matchSystem,
+    phaseId,
+    startedAt: null,
+    completedAt: null
+  };
+}
+
 function linkDoubleEliminationLoserRoutes(winnersRounds, losersRounds) {
   winnersRounds.forEach((round, roundIndex) => {
     const winnerRound = round.number || roundIndex + 1;
@@ -412,6 +504,41 @@ function linkLosersProgression(rounds) {
       }
     });
   }
+}
+
+function routeLoser(bracket, match) {
+  const route = match.loserRoute;
+  if (!route) return;
+  const target = findMatch(bracket, route.matchId);
+  if (!target || target.status === MATCH_STATUS.COMPLETED) return;
+
+  if (route.slot === "A") target.participantAId = match.loserId;
+  else target.participantBId = match.loserId;
+  refreshPendingStatus(target);
+}
+
+function routeWinner(bracket, match) {
+  if (!match.nextMatchId || !match.winnerId) return;
+  const next = findMatch(bracket, match.nextMatchId);
+  if (!next || next.status === MATCH_STATUS.COMPLETED) return;
+
+  if (match.nextSlot === "A") next.participantAId = match.winnerId;
+  else if (match.nextSlot === "B") next.participantBId = match.winnerId;
+  else if (!next.participantAId) next.participantAId = match.winnerId;
+  else if (!next.participantBId) next.participantBId = match.winnerId;
+  refreshPendingStatus(next);
+}
+
+function refreshPendingStatus(match) {
+  if (match.status === MATCH_STATUS.COMPLETED || match.status === MATCH_STATUS.LIVE) return;
+
+  // Tener un solo participante no significa BYE por sí mismo.
+  // En rondas futuras, el segundo participante puede llegar desde un
+  // match predecesor todavía pendiente. Los BYE se resuelven únicamente
+  // cuando la estructura del bracket confirma que el otro lado no llegará.
+  match.status = match.participantAId && match.participantBId
+    ? MATCH_STATUS.PENDING
+    : MATCH_STATUS.PENDING;
 }
 
 function linkRoundProgression(rounds) {

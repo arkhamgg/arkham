@@ -14,16 +14,13 @@ import {
   ensureTournamentProState,
   createParticipant,
   generateBracket as buildBracket,
+  startMatch as beginMatch,
+  applyMatchResult,
   PARTICIPANT_STATUS,
   MATCH_STATUS,
   RECOGNITION_STATUS,
   TOURNAMENT_EVENT_STATUS
 } from "./tournamentPro.js";
-
-import {
-  startMatch as beginMatch,
-  applyMatchResult
-} from "./competitionCore.js";
 import {
   validateCompetitionConfiguration,
   COMPETITION_CONFIGURATION_STATUS
@@ -864,9 +861,8 @@ export async function completeMatch({
     pro.participants[updatedMatch.loserId]
   ) {
     // A loser from a Winners Bracket match in Double Elimination
-    // remains in competition when the match has a deterministic
-    // loser route into the Losers Bracket. Only eliminate the
-    // participant when there is no route onward.
+    // remains in competition when a deterministic loser route exists.
+    // Only eliminate the participant when there is no route onward.
     pro.participants[
       updatedMatch.loserId
     ].status = updatedMatch.loserRoute
