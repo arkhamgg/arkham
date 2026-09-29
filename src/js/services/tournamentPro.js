@@ -414,6 +414,94 @@ function linkLosersProgression(rounds) {
   }
 }
 
+function linkRoundProgression(rounds) {
+  for (let index = 0; index < rounds.length - 1; index += 1) {
+    const current = rounds[index];
+    const next = rounds[index + 1];
+    current.matches.forEach((match, matchIndex) => {
+      const nextMatch = next.matches[Math.floor(matchIndex / 2)];
+      if (nextMatch) {
+        match.nextMatchId = nextMatch.id;
+        match.nextSlot = matchIndex % 2 === 0 ? "A" : "B";
+      }
+    });
+  }
+}
+
+function applyAutomaticByes(rounds) {
+  if (!rounds[0]) return;
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    rounds.forEach((round) => {
+      round.matches.forEach((match) => {
+        if (match.status !== MATCH_STATUS.BYE || !match.winnerId || !match.nextMatchId) return;
+        const next = findMatch({ stages: rounds }, match.nextMatchId);
+        if (!next) return;
+
+        const beforeA = next.participantAId;
+        const beforeB = next.participantBId;
+        routeWinner({ stages: rounds }, match);
+        if (beforeA !== next.participantAId || beforeB !== next.participantBId) changed = true;
+      });
+    });
+  }
+}
+
+function normalizeBracket(bracket, format) {
+  if (!isObject(bracket)) return createEmptyBracket(format);
+  return {
+    ...createEmptyBracket(format),
+    ...bracket,
+    version: Math.max(Number(bracket.version) || 0, 4),
+    type: bracket.type || normalizeBracketType(format),
+    stages: Array.isArray(bracket.stages) ? bracket.stages : [],
+    slots: isObject(bracket.slots) ? bracket.slots : {}
+  };
+}
+
+function normalizeBracketType(format) {
+  const capability = getCompetitionFormatCapability(format);
+
+  if (capability.status !== COMPETITION_CONFIGURATION_STATUS.SUPPORTED) {
+    return null;
+  }
+
+  return capability.engineFormat === BRACKET_TYPES.DOUBLE_ELIMINATION
+    ? BRACKET_TYPES.DOUBLE_ELIMINATION
+    : BRACKET_TYPES.SINGLE_ELIMINATION;
+}
+
+function normalizeParticipants(participants) {
+  return (Array.isArray(participants) ? participants : [])
+    .filter(Boolean)
+    .map((participant) => ({ ...participant }));
+}
+
+function normalizeCapacity(capacity, fallback) {
+  const value = Number(capacity);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : Math.max(2, fallback);
+}
+
+function normalizeScore(score) {
+  if (score == null) return null;
+  if (typeof score === "object") return clone(score);
+  return String(score);
+}
+
+function findMatch(bracket, matchId) {
+  return (bracket.stages || [])
+    .flatMap((stage) => stage.matches || [])
+    .find((match) => match.id === matchId) || null;
+}
+
+function hasOpenMatches(bracket) {
+  return (bracket.stages || [])
+    .flatMap((stage) => stage.matches || [])
+    .some((match) => [MATCH_STATUS.PENDING, MATCH_STATUS.LIVE].includes(match.status));
+}
+
 function nextPowerOfTwo(value) {
   let result = 1;
   while (result < value) result *= 2;
