@@ -363,6 +363,285 @@ export function getMatchRound(match = {}) {
 
 
 /**
+ * Normalizes the Match Format contract without changing the legacy
+ * `matchSystem` field. The current engine commonly stores values such as
+ * `bo1`, `bo3`, `bo5`, etc.; the Core exposes those values as a stable
+ * `{ type, value }` shape for future Match/Game consumers.
+ */
+export function normalizeMatchFormat(match = {}, event = {}) {
+  if (!match || typeof match !== "object") return null;
+
+  const source = match.matchFormat;
+  if (source && typeof source === "object") {
+    const type = typeof source.type === "string" && source.type.trim()
+      ? source.type.trim().toUpperCase()
+      : null;
+    const value = Number(source.value);
+
+    if (type && Number.isFinite(value) && value > 0) {
+      return {
+        type,
+        value
+      };
+    }
+
+    if (type) {
+      return {
+        type,
+        value: null
+      };
+    }
+  }
+
+  const rawSystem =
+    typeof match.matchSystem === "string" && match.matchSystem.trim()
+      ? match.matchSystem.trim()
+      : getEffectiveMatchSystem(event, match);
+
+  if (!rawSystem) return null;
+
+  const normalized = rawSystem.toLowerCase().replace(/[\s_-]/g, "");
+  const bestOfMatch = normalized.match(/^bo(\d+)$/) ||
+    normalized.match(/^bestof(\d+)$/);
+
+  if (bestOfMatch) {
+    const value = Number(bestOfMatch[1]);
+    if (Number.isFinite(value) && value > 0) {
+      return {
+        type: "BEST_OF",
+        value
+      };
+    }
+  }
+
+  return {
+    type: rawSystem.toUpperCase(),
+    value: null
+  };
+}
+
+function getMatchRoundFromCompetition(event, match, {
+  phaseId = null,
+  structureId = null
+} = {}) {
+  const explicitRound = getMatchRound(match);
+  if (match?.roundId) return explicitRound;
+
+  const rounds = getCompetitionRounds(event, {
+    phaseId,
+    structureId
+  });
+
+  const containingRound = rounds.find((round) =>
+    Array.isArray(round?.matches) &&
+    round.matches.some((candidate) => candidate?.id === match?.id)
+  );
+
+  if (containingRound) {
+    return {
+      ...explicitRound,
+      id: containingRound.id || null,
+      structureId: explicitRound?.structureId ?? containingRound.structureId ?? null,
+      phaseId: explicitRound?.phaseId ?? containingRound.phaseId ?? null,
+      source: containingRound.id ? "stage" : explicitRound?.source
+    };
+  }
+
+  return explicitRound;
+}
+
+function getMatchPhaseGroup(event, match, phase = null) {
+  const explicitPhaseGroupId = match?.phaseGroupId || null;
+  if (!phase || !Array.isArray(phase.phaseGroups)) {
+    return {
+      id: explicitPhaseGroupId,
+      phaseGroup: null
+    };
+  }
+
+  if (explicitPhaseGroupId) {
+    return {
+      id: explicitPhaseGroupId,
+      phaseGroup:
+        phase.phaseGroups.find((group) => group?.id === explicitPhaseGroupId) || null
+    };
+  }
+
+  const phaseGroup = phase.phaseGroups.find((group) =>
+    group?.structureId &&
+    match?.structureId &&
+    group.structureId === match.structureId
+  ) || null;
+
+  return {
+    id: phaseGroup?.id || null,
+    phaseGroup
+  };
+}
+
+function normalizeMatchParticipant(event, match, side) {
+  const isA = side === "A";
+  const entryId = isA ? match?.entryAId || null : match?.entryBId || null;
+  const participantId = isA
+    ? match?.participantAId || null
+    : match?.participantBId || null;
+
+  const entry = entryId
+    ? getCompetitionEntry(event, entryId)
+    : participantId
+      ? getCompetitionEntries(event).find(
+          (candidate) => candidate?.legacyParticipantId === participantId
+        ) || null
+      : null;
+
+  return {
+    side,
+    entryId: entryId || entry?.id || null,
+    participantId: participantId || entry?.legacyParticipantId || null,
+    displayName: entry?.displayName || null
+  };
+}
+
+function normalizeMatchResult(match = {}) {
+  if (!match || typeof match !== "object") return null;
+
+  const storedResult = match.result && typeof match.result === "object"
+    ? match.result
+    : {};
+
+  const winnerId = storedResult.winnerId ?? match.winnerId ?? null;
+  const winnerEntryId = storedResult.winnerEntryId ?? match.winnerEntryId ?? null;
+  const loserId = storedResult.loserId ?? match.loserId ?? null;
+  const loserEntryId = storedResult.loserEntryId ?? match.loserEntryId ?? null;
+
+  const hasResult =
+    Boolean(winnerId || winnerEntryId || loserId || loserEntryId) ||
+    match.status === MATCH_STATUS.COMPLETED ||
+    storedResult.status != null ||
+    match.score != null;
+
+  if (!hasResult) return null;
+
+  return {
+    matchId: storedResult.matchId || match.id || null,
+    status: storedResult.status || (
+      match.status === MATCH_STATUS.COMPLETED
+        ? "completed"
+        : null
+    ),
+    winnerId,
+    winnerEntryId,
+    loserId,
+    loserEntryId,
+    score: storedResult.score ?? match.score ?? null,
+    games: Array.isArray(storedResult.games)
+      ? storedResult.games
+      : Array.isArray(match.games)
+        ? match.games
+        : [],
+    reason: storedResult.reason || match.resultReason || null,
+    reportedBy: storedResult.reportedBy || match.reportedBy || null,
+    confirmedBy: storedResult.confirmedBy || match.confirmedBy || null,
+    timestamp: storedResult.timestamp || match.completedAt || null
+  };
+}
+
+/**
+ * Normalizes one legacy Match into the Competition Core Match contract.
+ *
+ * This is a read-only adapter. It does not rewrite bracket records, introduce
+ * Games, or change Tournament Pro operations. Legacy participant IDs and
+ * `matchSystem` values remain available alongside the new domain fields.
+ */
+export function normalizeMatch(event = {}, match = {}) {
+  if (!match || typeof match !== "object") return null;
+
+  const competitionId =
+    event?.competitionId ??
+    event?.pro?.competitionId ??
+    event?.id ??
+    event?.eventId ??
+    null;
+
+  const phase = getMatchPhase(event, match);
+  const structure = getMatchStructure(event, match);
+  const phaseGroupContext = getMatchPhaseGroup(event, match, phase);
+  const phaseGroup = phaseGroupContext.phaseGroup;
+  const round = getMatchRoundFromCompetition(event, match, {
+    phaseId: match.phaseId ?? phase?.id ?? null,
+    structureId: match.structureId ?? structure?.id ?? null
+  });
+  const bracket = getMatchBracketSegment(match);
+  const bracketData = event?.pro?.bracket || {};
+  const advancement = getMatchAdvancement(match, bracketData);
+  const lifecycle = match.status ? getMatchLifecycle(match) : null;
+  const result = normalizeMatchResult(match);
+
+  return {
+    id: match.id || null,
+    competitionId,
+    phaseId: match.phaseId ?? phase?.id ?? null,
+    phaseGroupId: match.phaseGroupId ?? phaseGroup?.id ?? null,
+    structureId: match.structureId ?? structure?.id ?? null,
+    roundId: match.roundId ?? round?.id ?? null,
+
+    phase,
+    phaseGroup,
+    structure,
+    round,
+    bracket,
+
+    participants: {
+      A: normalizeMatchParticipant(event, match, "A"),
+      B: normalizeMatchParticipant(event, match, "B")
+    },
+
+    matchFormat: normalizeMatchFormat(match, event),
+    matchSystem: match.matchSystem || null,
+
+    status: match.status || null,
+    lifecycle,
+    result,
+    advancement,
+
+    legacy: {
+      participantAId: match.participantAId || null,
+      participantBId: match.participantBId || null,
+      winnerId: match.winnerId || null,
+      loserId: match.loserId || null,
+      score: match.score ?? null,
+      nextMatchId: match.nextMatchId || null,
+      nextSlot: match.nextSlot || null
+    }
+  };
+}
+
+/**
+ * Returns all Matches from the current bracket through the Competition Core
+ * contract. The underlying Tournament Pro bracket remains the source of truth.
+ */
+export function getCompetitionMatches(event = {}) {
+  const stages = Array.isArray(event?.pro?.bracket?.stages)
+    ? event.pro.bracket.stages
+    : [];
+
+  return stages
+    .flatMap((stage) => Array.isArray(stage?.matches) ? stage.matches : [])
+    .map((match) => normalizeMatch(event, match))
+    .filter(Boolean);
+}
+
+/**
+ * Returns one normalized Match by ID without mutating the competition.
+ */
+export function getCompetitionMatch(event = {}, matchId = null) {
+  if (!matchId) return null;
+
+  return getCompetitionMatches(event)
+    .find((match) => match.id === matchId) || null;
+}
+
+/**
  * Formal bracket segments used by the Competition Core.
  *
  * These values describe the competitive lane a Match/Round belongs to.
@@ -805,7 +1084,7 @@ export function getMatchQueue(bracket, {
     const matches = Array.isArray(stage?.matches) ? stage.matches : [];
 
     matches.forEach((match, matchIndex) => {
-      const lifecycle = getMatchLifecycle(match);
+      const lifecycle = match.status ? getMatchLifecycle(match) : null;
       const queueStatus = lifecycle === MATCH_LIFECYCLE.SCHEDULED
         ? MATCH_QUEUE_STATUS.WAITING
         : lifecycle;
@@ -1076,7 +1355,7 @@ export function validateMatchState(match, operation = "result") {
   }
 
   if (operation === "start") {
-    const lifecycle = getMatchLifecycle(match);
+    const lifecycle = match.status ? getMatchLifecycle(match) : null;
 
     if (
       lifecycle !== MATCH_LIFECYCLE.READY &&
