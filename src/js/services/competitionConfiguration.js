@@ -164,7 +164,7 @@ export function getCompetitionFormatCapability(format = "") {
 export function normalizeCompetitionMatchFormat(matchSystem = "") {
   const value = normalizeToken(matchSystem);
 
-  const boMatch = value.match(/^bo\s+(\d+)$/);
+  const boMatch = value.match(/^bo\s*(\d+)$/);
   const bestOfMatch = value.match(/^best of\s+(\d+)$/);
   const games = Number((boMatch || bestOfMatch)?.[1]);
 
