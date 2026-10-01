@@ -1118,9 +1118,16 @@ export async function completeMatch({
     match
   );
 
+  const winnerEntryId = winnerId === match.participantAId
+    ? match.entryAId || null
+    : winnerId === match.participantBId
+      ? match.entryBId || null
+      : null;
+
   const resultCommand = {
     matchId,
     winnerId,
+    winnerEntryId,
     score,
     source: "TOURNAMENT_PRO"
   };

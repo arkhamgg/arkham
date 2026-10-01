@@ -966,23 +966,22 @@ export {
  */
 export function createMatchResultCommand({
   matchId,
-  winnerId,
+  winnerId = null,
+  winnerEntryId = null,
   score = null
 }) {
   return normalizeMatchResultCommand({
     matchId,
     winnerId,
+    winnerEntryId,
     score
   });
 }
 
 /**
- * Normalizes and validates the minimal Match Result contract.
- *
- * This layer deliberately validates only the shape of the command.
- * Competition-state validation (match existence, LIVE status, winner
- * membership, advancement, etc.) remains in the existing engine so we do
- * not duplicate bracket rules in the Core.
+ * Normalizes the Match Result command without deciding the winner identity
+ * against a specific Match yet. The command may arrive with the legacy
+ * participant identity, the competitive Entry identity, or both.
  */
 export function normalizeMatchResultCommand(command) {
   if (!command || typeof command !== "object") {
@@ -995,19 +994,73 @@ export function normalizeMatchResultCommand(command) {
   const winnerId = typeof command.winnerId === "string"
     ? command.winnerId.trim()
     : "";
+  const winnerEntryId = typeof command.winnerEntryId === "string"
+    ? command.winnerEntryId.trim()
+    : "";
 
   if (!matchId) {
     throw new Error("El resultado del match requiere matchId.");
   }
 
-  if (!winnerId) {
-    throw new Error("El resultado del match requiere winnerId.");
+  if (!winnerId && !winnerEntryId) {
+    throw new Error("El resultado del match requiere winnerId o winnerEntryId.");
   }
 
   return {
     matchId,
-    winnerId,
-    score: command.score ?? null
+    winnerId: winnerId || null,
+    winnerEntryId: winnerEntryId || null,
+    score: command.score ?? null,
+    source: command.source || "TOURNAMENT_PRO"
+  };
+}
+
+/**
+ * Resolves the competitive Entry identity and the legacy Participant identity
+ * for the winner from the Match itself.
+ *
+ * Entry is the domain identity; participantId remains the operational mirror.
+ * Supplying both identities is allowed only when they point to the same side.
+ */
+function resolveMatchWinnerIdentity(match, command) {
+  const winnerEntryId = command.winnerEntryId || null;
+  const winnerId = command.winnerId || null;
+
+  const matchesAByEntry = Boolean(winnerEntryId && winnerEntryId === match.entryAId);
+  const matchesBByEntry = Boolean(winnerEntryId && winnerEntryId === match.entryBId);
+  const matchesAByParticipant = Boolean(winnerId && winnerId === match.participantAId);
+  const matchesBByParticipant = Boolean(winnerId && winnerId === match.participantBId);
+
+  if (winnerEntryId && !matchesAByEntry && !matchesBByEntry) {
+    throw new Error("El Entry ganador no pertenece al match.");
+  }
+
+  if (winnerId && !matchesAByParticipant && !matchesBByParticipant) {
+    throw new Error("El ganador indicado no pertenece al match.");
+  }
+
+  const sideByEntry = matchesAByEntry ? "A" : matchesBByEntry ? "B" : null;
+  const sideByParticipant = matchesAByParticipant
+    ? "A"
+    : matchesBByParticipant
+      ? "B"
+      : null;
+
+  if (sideByEntry && sideByParticipant && sideByEntry !== sideByParticipant) {
+    throw new Error("La identidad Entry y Participant del ganador no coinciden.");
+  }
+
+  const side = sideByEntry || sideByParticipant;
+  if (!side) {
+    throw new Error("No se pudo resolver la identidad del ganador.");
+  }
+
+  return {
+    side,
+    entryId: side === "A" ? match.entryAId || null : match.entryBId || null,
+    participantId: side === "A"
+      ? match.participantAId || null
+      : match.participantBId || null
   };
 }
 
@@ -1126,11 +1179,18 @@ export function createAdvancementPlan(bracket, command) {
     "result"
   );
 
-  validateMatchWinner(match, normalizedCommand.winnerId);
+  const winnerIdentity = resolveMatchWinnerIdentity(match, normalizedCommand);
+  const resolvedWinnerId = winnerIdentity.participantId;
+  const winnerEntryId = winnerIdentity.entryId;
 
-  const loserId = match.participantAId === normalizedCommand.winnerId
+  validateMatchWinner(match, resolvedWinnerId);
+
+  const loserId = winnerIdentity.side === "A"
     ? match.participantBId
     : match.participantAId;
+  const loserEntryId = winnerIdentity.side === "A"
+    ? match.entryBId || null
+    : match.entryAId || null;
 
   const winnerDestination = match.nextMatchId
     ? {
@@ -1158,11 +1218,13 @@ export function createAdvancementPlan(bracket, command) {
   return {
     matchId: normalizedCommand.matchId,
     winner: {
-      entryId: normalizedCommand.winnerId,
+      entryId: winnerEntryId,
+      participantId: resolvedWinnerId,
       destination: winnerDestination
     },
     loser: {
-      entryId: loserId || null,
+      entryId: loserEntryId,
+      participantId: loserId || null,
       destination: loserDestination
     },
     completion: {
@@ -1194,8 +1256,8 @@ export function applyAdvancementPlan(bracket, advancementPlan, { score = null } 
   const matchId = typeof advancementPlan.matchId === "string"
     ? advancementPlan.matchId.trim()
     : "";
-  const winnerId = typeof advancementPlan.winner?.entryId === "string"
-    ? advancementPlan.winner.entryId.trim()
+  const winnerId = typeof advancementPlan.winner?.participantId === "string"
+    ? advancementPlan.winner.participantId.trim()
     : "";
 
   if (!matchId) {
@@ -1218,7 +1280,11 @@ export function applyAdvancementPlan(bracket, advancementPlan, { score = null } 
     bracket,
     matchId,
     winnerId,
-    score
+    score,
+    new Date().toISOString(),
+    typeof advancementPlan.winner?.entryId === "string"
+      ? advancementPlan.winner.entryId.trim()
+      : null
   );
 }
 
@@ -1248,13 +1314,22 @@ export function applyMatchResultCommand(bracket, command) {
     normalizedCommand.matchId
   );
 
+  const acceptedWinnerId = completedMatch?.winnerId || normalizedCommand.winnerId || null;
+  const acceptedWinnerEntryId = completedMatch?.winnerEntryId || normalizedCommand.winnerEntryId || null;
+  const acceptedLoserId = completedMatch?.loserId || null;
+  const acceptedLoserEntryId = completedMatch?.loserEntryId || null;
+
   const acceptedResult = {
     matchId: normalizedCommand.matchId,
-    winnerId: completedMatch?.winnerId || normalizedCommand.winnerId,
-    loserId: completedMatch?.loserId || null,
+    winnerId: acceptedWinnerId,
+    winnerEntryId: acceptedWinnerEntryId,
+    loserId: acceptedLoserId,
+    loserEntryId: acceptedLoserEntryId,
     result: {
-      winnerId: completedMatch?.winnerId || normalizedCommand.winnerId,
-      loserId: completedMatch?.loserId || null,
+      winnerId: acceptedWinnerId,
+      winnerEntryId: acceptedWinnerEntryId,
+      loserId: acceptedLoserId,
+      loserEntryId: acceptedLoserEntryId,
       score: normalizedCommand.score ?? null
     },
     lifecycle: completedMatch

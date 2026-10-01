@@ -463,20 +463,67 @@ export function startMatch(bracket, matchId, now = new Date().toISOString()) {
   return nextBracket;
 }
 
-export function applyMatchResult(bracket, matchId, winnerId, score = null, now = new Date().toISOString()) {
+export function applyMatchResult(
+  bracket,
+  matchId,
+  winnerId = null,
+  score = null,
+  now = new Date().toISOString(),
+  winnerEntryId = null
+) {
   const nextBracket = clone(bracket);
   const match = findMatch(nextBracket, matchId);
   if (!match) throw new Error("Match no encontrado.");
   if (match.status === MATCH_STATUS.COMPLETED) throw new Error("El match ya fue completado.");
   if (match.status !== MATCH_STATUS.LIVE) throw new Error("El match debe estar en vivo antes de registrar el resultado.");
-  if (![match.participantAId, match.participantBId].includes(winnerId)) {
+
+  const entrySide = winnerEntryId === match.entryAId
+    ? "A"
+    : winnerEntryId === match.entryBId
+      ? "B"
+      : null;
+  const participantSide = winnerId === match.participantAId
+    ? "A"
+    : winnerId === match.participantBId
+      ? "B"
+      : null;
+
+  if (winnerEntryId && !entrySide) {
+    throw new Error("El Entry ganador no pertenece al match.");
+  }
+
+  if (winnerId && !participantSide) {
     throw new Error("El ganador no pertenece al match.");
   }
 
-  match.winnerId = winnerId;
+  if (entrySide && participantSide && entrySide !== participantSide) {
+    throw new Error("La identidad Entry y Participant del ganador no coinciden.");
+  }
+
+  const winnerSide = entrySide || participantSide;
+  if (!winnerSide) {
+    throw new Error("El resultado del match requiere winnerId o winnerEntryId.");
+  }
+
+  const resolvedWinnerId = winnerSide === "A"
+    ? match.participantAId
+    : match.participantBId;
+  const resolvedWinnerEntryId = winnerSide === "A"
+    ? match.entryAId || null
+    : match.entryBId || null;
+
+  if (!resolvedWinnerId) {
+    throw new Error("El ganador no tiene Participant asociado en el match.");
+  }
+
+  match.winnerId = resolvedWinnerId;
+  match.winnerEntryId = resolvedWinnerEntryId;
   match.loserId = match.participantAId === winnerId
     ? match.participantBId
     : match.participantAId;
+  match.loserEntryId = match.participantAId === winnerId
+    ? match.entryBId || null
+    : match.entryAId || null;
   match.score = normalizeScore(score);
   match.status = MATCH_STATUS.COMPLETED;
   match.completedAt = now;
@@ -511,7 +558,11 @@ function createMatch({
   status = MATCH_STATUS.PENDING,
   participantAId = null,
   participantBId = null,
+  entryAId = null,
+  entryBId = null,
   winnerId = null,
+  winnerEntryId = null,
+  loserEntryId = null,
   matchSystem = null,
   phaseId = null
 }) {
@@ -523,8 +574,12 @@ function createMatch({
     status,
     participantAId,
     participantBId,
+    entryAId,
+    entryBId,
     winnerId,
+    winnerEntryId,
     loserId: null,
+    loserEntryId,
     score: null,
     nextMatchId: null,
     nextSlot: null,
@@ -595,8 +650,13 @@ function routeLoser(bracket, match) {
   const target = findMatch(bracket, route.matchId);
   if (!target || target.status === MATCH_STATUS.COMPLETED) return;
 
-  if (route.slot === "A") target.participantAId = match.loserId;
-  else target.participantBId = match.loserId;
+  if (route.slot === "A") {
+    target.participantAId = match.loserId;
+    target.entryAId = match.loserEntryId || null;
+  } else {
+    target.participantBId = match.loserId;
+    target.entryBId = match.loserEntryId || null;
+  }
   refreshPendingStatus(target);
 }
 
@@ -605,10 +665,19 @@ function routeWinner(bracket, match) {
   const next = findMatch(bracket, match.nextMatchId);
   if (!next || next.status === MATCH_STATUS.COMPLETED) return;
 
-  if (match.nextSlot === "A") next.participantAId = match.winnerId;
-  else if (match.nextSlot === "B") next.participantBId = match.winnerId;
-  else if (!next.participantAId) next.participantAId = match.winnerId;
-  else if (!next.participantBId) next.participantBId = match.winnerId;
+  if (match.nextSlot === "A") {
+    next.participantAId = match.winnerId;
+    next.entryAId = match.winnerEntryId || null;
+  } else if (match.nextSlot === "B") {
+    next.participantBId = match.winnerId;
+    next.entryBId = match.winnerEntryId || null;
+  } else if (!next.participantAId) {
+    next.participantAId = match.winnerId;
+    next.entryAId = match.winnerEntryId || null;
+  } else if (!next.participantBId) {
+    next.participantBId = match.winnerId;
+    next.entryBId = match.winnerEntryId || null;
+  }
   refreshPendingStatus(next);
 }
 
@@ -693,6 +762,53 @@ function normalizeBracketSlots(slots = {}, entries = {}) {
   );
 }
 
+function syncBracketMatchesWithEntries(pro) {
+  if (!pro?.bracket?.stages || !isObject(pro.entries)) return pro;
+
+  const entryByParticipantId = new Map(
+    Object.values(pro.entries)
+      .filter((entry) => entry?.id && entry?.legacyParticipantId)
+      .map((entry) => [entry.legacyParticipantId, entry.id])
+  );
+
+  const matches = pro.bracket.stages.flatMap((stage) => stage.matches || []);
+  matches.forEach((match) => {
+    if (!match || typeof match !== "object") return;
+
+    if (match.participantAId) {
+      match.entryAId = entryByParticipantId.get(match.participantAId) || match.entryAId || null;
+    } else if (match.entryAId) {
+      const entryA = pro.entries[match.entryAId];
+      match.participantAId = entryA?.legacyParticipantId || null;
+    }
+
+    if (match.participantBId) {
+      match.entryBId = entryByParticipantId.get(match.participantBId) || match.entryBId || null;
+    } else if (match.entryBId) {
+      const entryB = pro.entries[match.entryBId];
+      match.participantBId = entryB?.legacyParticipantId || null;
+    }
+
+    if (match.winnerId) {
+      match.winnerEntryId = match.winnerId === match.participantAId
+        ? match.entryAId || null
+        : match.winnerId === match.participantBId
+          ? match.entryBId || null
+          : match.winnerEntryId || null;
+    }
+
+    if (match.loserId) {
+      match.loserEntryId = match.loserId === match.participantAId
+        ? match.entryAId || null
+        : match.loserId === match.participantBId
+          ? match.entryBId || null
+          : match.loserEntryId || null;
+    }
+  });
+
+  return pro;
+}
+
 export function syncBracketSlotsWithEntries(pro) {
   if (!pro?.bracket?.slots || !isObject(pro.entries)) return pro;
 
@@ -720,6 +836,7 @@ export function syncBracketSlotsWithEntries(pro) {
     }
   });
 
+  syncBracketMatchesWithEntries(pro);
   return pro;
 }
 
