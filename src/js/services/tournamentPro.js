@@ -44,6 +44,7 @@ export function createTournamentProState({
       requests: {}
     },
     participants: {},
+    entries: {},
     bracket: createEmptyBracket(format),
     checkIn: {
       status: "unopened",
@@ -104,6 +105,10 @@ export function ensureTournamentProState(event = {}) {
         : []
     },
     participants: isObject(current.participants) ? current.participants : {},
+    entries: normalizePersistentEntries(
+      current.entries,
+      isObject(current.participants) ? current.participants : {}
+    ),
     stations: Array.isArray(current.stations)
       ? current.stations
       : [],
@@ -135,6 +140,8 @@ export function ensureTournamentProState(event = {}) {
     }
   };
 
+  normalized.bracket.slots = normalizeBracketSlots(normalized.bracket.slots, normalized.entries);
+
   if (Object.prototype.hasOwnProperty.call(current, "phases")) {
     normalized.phases = Array.isArray(current.phases) ? current.phases : [];
   } else {
@@ -162,6 +169,105 @@ export function createParticipant({
     checkIn: false,
     slotIds: [],
     seed: null,
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+function normalizePersistentEntries(currentEntries, participants = {}) {
+  const source = isObject(currentEntries) ? currentEntries : {};
+  const entries = {};
+
+  Object.values(participants).forEach((participant) => {
+    if (!participant?.id) return;
+
+    const existingEntry = Object.values(source).find(
+      (entry) => entry?.legacyParticipantId === participant.id
+    ) || source[`entry_${participant.id}`];
+
+    const entryId = existingEntry?.id || `entry_${participant.id}`;
+
+    entries[entryId] = {
+      id: entryId,
+      competitionId: existingEntry?.competitionId || null,
+      entityType: participant.entityType || "manual",
+      entityId: participant.entityId ?? null,
+      displayName: participant.displayName || "Participante",
+      status: mapParticipantStatusToEntryStatus(participant.status),
+      seed: participant.seed ?? null,
+      registrationData: participant.registrationData ?? null,
+      competitiveState: {
+        participantStatus: participant.status ?? null,
+        checkIn: participant.checkIn === true,
+        slotIds: Array.isArray(participant.slotIds) ? [...participant.slotIds] : [],
+        replacedByEntryId: participant.replacedByParticipantId
+          ? `entry_${participant.replacedByParticipantId}`
+          : null
+      },
+      legacyParticipantId: participant.id,
+      createdAt: existingEntry?.createdAt || participant.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  });
+
+  Object.values(source).forEach((entry) => {
+    if (!entry?.id || !entry.legacyParticipantId) return;
+    if (!entries[entry.id]) {
+      entries[entry.id] = { ...entry };
+    }
+  });
+
+  return entries;
+}
+
+function mapParticipantStatusToEntryStatus(status) {
+  switch (status) {
+    case PARTICIPANT_STATUS.CHECKED_IN:
+      return "checked_in";
+    case PARTICIPANT_STATUS.COMPETING:
+    case PARTICIPANT_STATUS.ADVANCED:
+      return "active";
+    case PARTICIPANT_STATUS.ELIMINATED:
+      return "eliminated";
+    case PARTICIPANT_STATUS.WITHDRAWN:
+    case PARTICIPANT_STATUS.NO_SHOW:
+      return "withdrawn";
+    case PARTICIPANT_STATUS.DQ:
+      return "dq";
+    default:
+      return "registered";
+  }
+}
+
+export function createCompetitionEntry({
+  entryId,
+  competitionId = null,
+  participant
+} = {}) {
+  if (!participant?.id) {
+    throw new Error("No se puede crear una Entry sin participante.");
+  }
+
+  const now = new Date().toISOString();
+
+  return {
+    id: entryId || `entry_${crypto.randomUUID()}`,
+    competitionId,
+    entityType: participant.entityType || "manual",
+    entityId: participant.entityId ?? null,
+    displayName: participant.displayName || "Participante",
+    status: mapParticipantStatusToEntryStatus(participant.status),
+    seed: participant.seed ?? null,
+    registrationData: participant.registrationData ?? null,
+    competitiveState: {
+      participantStatus: participant.status ?? null,
+      checkIn: participant.checkIn === true,
+      slotIds: Array.isArray(participant.slotIds) ? [...participant.slotIds] : [],
+      replacedByEntryId: participant.replacedByParticipantId
+        ? `entry_${participant.replacedByParticipantId}`
+        : null
+    },
+    legacyParticipantId: participant.id,
     createdAt: now,
     updatedAt: now
   };
@@ -551,6 +657,70 @@ function applyAutomaticByes(rounds) {
       });
     });
   }
+}
+
+function normalizeBracketSlots(slots = {}, entries = {}) {
+  if (!isObject(slots)) return {};
+
+  const entryByParticipantId = new Map(
+    Object.values(entries || {})
+      .filter((entry) => entry?.id && entry?.legacyParticipantId)
+      .map((entry) => [entry.legacyParticipantId, entry])
+  );
+
+  return Object.fromEntries(
+    Object.entries(slots).map(([slotId, slot]) => {
+      const normalizedSlot = { ...(slot || {}) };
+      let entry = normalizedSlot.entryId
+        ? entries?.[normalizedSlot.entryId] || null
+        : null;
+
+      if (!entry && normalizedSlot.participantId) {
+        entry = entryByParticipantId.get(normalizedSlot.participantId) || null;
+      }
+
+      if (entry) {
+        normalizedSlot.entryId = entry.id;
+        normalizedSlot.participantId = normalizedSlot.participantId || entry.legacyParticipantId;
+      } else if (normalizedSlot.participantId) {
+        normalizedSlot.entryId = `entry_${normalizedSlot.participantId}`;
+      } else if (!normalizedSlot.entryId) {
+        normalizedSlot.entryId = null;
+      }
+
+      return [slotId, normalizedSlot];
+    })
+  );
+}
+
+export function syncBracketSlotsWithEntries(pro) {
+  if (!pro?.bracket?.slots || !isObject(pro.entries)) return pro;
+
+  const entryByParticipantId = new Map(
+    Object.values(pro.entries)
+      .filter((entry) => entry?.id && entry?.legacyParticipantId)
+      .map((entry) => [entry.legacyParticipantId, entry])
+  );
+
+  Object.values(pro.bracket.slots).forEach((slot) => {
+    if (!slot || typeof slot !== "object") return;
+
+    const entry = slot.entryId
+      ? pro.entries[slot.entryId] || null
+      : entryByParticipantId.get(slot.participantId) || null;
+
+    if (entry) {
+      slot.entryId = entry.id;
+      slot.participantId = slot.participantId || entry.legacyParticipantId;
+      return;
+    }
+
+    if (slot.participantId) {
+      slot.entryId = `entry_${slot.participantId}`;
+    }
+  });
+
+  return pro;
 }
 
 function normalizeBracket(bracket, format) {

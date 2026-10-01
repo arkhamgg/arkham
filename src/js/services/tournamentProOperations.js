@@ -13,6 +13,8 @@ import { auth } from "./firebase.js";
 import {
   ensureTournamentProState,
   createParticipant,
+  syncBracketSlotsWithEntries,
+  createCompetitionEntry,
   generateBracket as buildBracket,
   PARTICIPANT_STATUS,
   MATCH_STATUS,
@@ -31,6 +33,85 @@ import {
   validateCompetitionConfiguration,
   COMPETITION_CONFIGURATION_STATUS
 } from "./competitionConfiguration.js";
+
+function mapParticipantStatusToEntryStatus(status) {
+  switch (status) {
+    case PARTICIPANT_STATUS.CHECKED_IN:
+      return "checked_in";
+    case PARTICIPANT_STATUS.COMPETING:
+    case PARTICIPANT_STATUS.ADVANCED:
+      return "active";
+    case PARTICIPANT_STATUS.ELIMINATED:
+      return "eliminated";
+    case PARTICIPANT_STATUS.WITHDRAWN:
+    case PARTICIPANT_STATUS.NO_SHOW:
+      return "withdrawn";
+    case PARTICIPANT_STATUS.DQ:
+      return "dq";
+    default:
+      return "registered";
+  }
+}
+
+function ensurePersistentEntry(pro, participant, { competitionId = null } = {}) {
+  if (!participant?.id) return null;
+
+  pro.entries = pro.entries || {};
+
+  const existing = Object.values(pro.entries).find(
+    (entry) => entry?.legacyParticipantId === participant.id
+  );
+
+  const entry = existing || createCompetitionEntry({
+    competitionId,
+    participant
+  });
+
+  entry.competitionId = entry.competitionId || competitionId;
+  entry.entityType = participant.entityType || entry.entityType || "manual";
+  entry.entityId = participant.entityId ?? entry.entityId ?? null;
+  entry.displayName = participant.displayName || entry.displayName || "Participante";
+  entry.status = mapParticipantStatusToEntryStatus(participant.status);
+  entry.seed = participant.seed ?? null;
+  entry.registrationData = participant.registrationData ?? null;
+  entry.competitiveState = {
+    ...(entry.competitiveState || {}),
+    participantStatus: participant.status ?? null,
+    checkIn: participant.checkIn === true,
+    slotIds: Array.isArray(participant.slotIds) ? [...participant.slotIds] : [],
+    replacedByEntryId: participant.replacedByParticipantId
+      ? (
+        Object.values(pro.entries).find(
+          (candidate) => candidate?.legacyParticipantId === participant.replacedByParticipantId
+        )?.id || `entry_${participant.replacedByParticipantId}`
+      )
+      : null
+  };
+  entry.legacyParticipantId = participant.id;
+  entry.updatedAt = new Date().toISOString();
+
+  pro.entries[entry.id] = entry;
+  return entry;
+}
+
+function resolveParticipantId(pro, identifier) {
+  if (!identifier) return identifier;
+
+  if (pro?.participants?.[identifier]) {
+    return identifier;
+  }
+
+  const entry = pro?.entries?.[identifier];
+  if (entry?.legacyParticipantId && pro?.participants?.[entry.legacyParticipantId]) {
+    return entry.legacyParticipantId;
+  }
+
+  const entryByParticipant = Object.values(pro?.entries || {}).find(
+    (candidate) => candidate?.legacyParticipantId === identifier
+  );
+
+  return entryByParticipant?.legacyParticipantId || identifier;
+}
 
 export async function getTournamentProEvent(tournamentId, eventId) {
   return getMapEntity("tournaments", tournamentId, "events", eventId);
@@ -336,6 +417,8 @@ export async function addParticipantToSlot({
 
   pro.participants[participantId] = participant;
   slot.participantId = participantId;
+  const entry = ensurePersistentEntry(pro, participant, { competitionId: eventId });
+  slot.entryId = entry?.id || `entry_${participantId}`;
   pro.registration.status = "open";
 
   syncFirstRoundFromSlots(pro);
@@ -355,6 +438,7 @@ export async function replaceParticipantInSlot({
   manual = false
 }) {
   const pro = ensureTournamentProState(event);
+  participantId = resolveParticipantId(pro, participantId);
 
   if (!pro.checkIn?.opened || pro.checkIn?.completed) {
     throw new Error("El reemplazo solo puede hacerse mientras el check-in está abierto.");
@@ -407,10 +491,12 @@ export async function replaceParticipantInSlot({
 
   pro.participants[newParticipantId] = replacement;
   slot.participantId = newParticipantId;
-
+  const replacementEntry = ensurePersistentEntry(pro, replacement, { competitionId: eventId });
+  slot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
   syncFirstRoundFromSlots(pro);
   applyBracketByes(pro.bracket);
 
+  ensurePersistentEntry(pro, currentParticipant, { competitionId: eventId });
   return savePro(tournamentId, eventId, event, pro);
 }
 
@@ -454,7 +540,7 @@ export async function addParticipant({
     throw new Error("La capacidad del torneo ya está completa.");
   }
 
-  pro.participants[participantId] = createParticipant({
+  const participant = createParticipant({
     participantId,
     entityType,
     entityId,
@@ -462,6 +548,8 @@ export async function addParticipant({
     manual
   });
 
+  pro.participants[participantId] = participant;
+  ensurePersistentEntry(pro, participant, { competitionId: eventId });
   pro.registration.status = "open";
 
   return savePro(tournamentId, eventId, event, pro);
@@ -475,6 +563,7 @@ export async function updateParticipantStatus({
   status
 }) {
   const pro = ensureTournamentProState(event);
+  participantId = resolveParticipantId(pro, participantId);
   const participant = pro.participants[participantId];
 
   if (!participant) {
@@ -512,6 +601,7 @@ export async function updateParticipantStatus({
     releaseNoShowFromBracket(pro.bracket, participantId);
   }
 
+  ensurePersistentEntry(pro, participant, { competitionId: eventId });
   return savePro(tournamentId, eventId, event, pro);
 }
 
@@ -523,6 +613,7 @@ export async function setParticipantCheckIn({
   present = true
 }) {
   const pro = ensureTournamentProState(event);
+  participantId = resolveParticipantId(pro, participantId);
 
   if (!pro.checkIn.opened) {
     throw new Error("El check-in todavía no está abierto.");
@@ -557,6 +648,7 @@ export async function setParticipantCheckIn({
     applyBracketByes(pro.bracket);
   }
 
+  ensurePersistentEntry(pro, participant, { competitionId: eventId });
   return savePro(tournamentId, eventId, event, pro);
 }
 
@@ -615,6 +707,8 @@ export async function approveParticipationRequest({
     pro.participants[participantId] = participant;
   }
 
+  ensurePersistentEntry(pro, participant, { competitionId: eventId });
+
   // ========================================
   // ASIENTO AUTOMÁTICO EN BRACKET
   // ========================================
@@ -672,12 +766,16 @@ export async function approveParticipationRequest({
       const [slotId, slot] = availableSlot;
 
       slot.participantId = participantId;
+      const entry = ensurePersistentEntry(pro, participant, { competitionId: eventId });
+      slot.entryId = entry?.id || `entry_${participantId}`;
 
       participant.seed = slot.seed;
       participant.slotIds = [slotId];
     } else {
       const [slotId, slot] = alreadyAssigned;
 
+      const entry = ensurePersistentEntry(pro, participant, { competitionId: eventId });
+      slot.entryId = entry?.id || `entry_${participantId}`;
       participant.seed = slot.seed;
       participant.slotIds = [slotId];
     }
@@ -685,6 +783,7 @@ export async function approveParticipationRequest({
     // Actualizar primera ronda del bracket.
     // La aprobación NO resuelve BYEs.
     // Los BYEs se determinan al cerrar el check-in.
+    ensurePersistentEntry(pro, participant, { competitionId: eventId });
     syncFirstRoundFromSlots(pro);
   } else {
     // El bracket todavía no existe.
@@ -694,6 +793,7 @@ export async function approveParticipationRequest({
 
     participant.seed = null;
     participant.slotIds = [];
+    ensurePersistentEntry(pro, participant, { competitionId: eventId });
   }
 
   // ========================================
@@ -815,6 +915,11 @@ export async function generateBracket({
     pro.format || event.format,
     pro.matchSystem || event.matchSystem || null
   );
+
+  Object.values(pro.participants).forEach((participant) => {
+    ensurePersistentEntry(pro, participant, { competitionId: eventId });
+  });
+  syncBracketSlotsWithEntries(pro);
 
   Object.values(pro.participants).forEach((participant) => {
     const slot = Object.values(
@@ -993,6 +1098,7 @@ export async function completeMatch({
   score = null
 }) {
   const pro = ensureTournamentProState(event);
+  winnerId = resolveParticipantId(pro, winnerId);
 
   if (pro.status !== TOURNAMENT_EVENT_STATUS.LIVE) {
     throw new Error("El evento debe estar en vivo.");
@@ -1253,6 +1359,7 @@ export async function requestRecognition({
   participantId
 }) {
   const pro = ensureTournamentProState(event);
+  participantId = resolveParticipantId(pro, participantId);
 
   if (!pro.recognition.enabled) {
     throw new Error(
@@ -1287,6 +1394,7 @@ export async function reviewRecognition({
   approve = true
 }) {
   const pro = ensureTournamentProState(event);
+  participantId = resolveParticipantId(pro, participantId);
 
   const request =
     pro.recognition.requests?.[participantId];
@@ -1312,6 +1420,16 @@ export async function reviewRecognition({
   );
 }
 
+function resolveSlotParticipantId(pro, slot) {
+  if (!slot) return null;
+
+  if (slot.entryId && pro.entries?.[slot.entryId]?.legacyParticipantId) {
+    return pro.entries[slot.entryId].legacyParticipantId;
+  }
+
+  return slot.participantId || null;
+}
+
 function syncFirstRoundFromSlots(pro, resolveByes = false) {
   const firstRound =
     pro.bracket?.stages?.find(
@@ -1329,14 +1447,16 @@ function syncFirstRoundFromSlots(pro, resolveByes = false) {
     const seedB = seedA + 1;
 
     const participantAId =
-      pro.bracket.slots?.[
-        `seed-${seedA}`
-      ]?.participantId || null;
+      resolveSlotParticipantId(
+        pro,
+        pro.bracket.slots?.[`seed-${seedA}`]
+      );
 
     const participantBId =
-      pro.bracket.slots?.[
-        `seed-${seedB}`
-      ]?.participantId || null;
+      resolveSlotParticipantId(
+        pro,
+        pro.bracket.slots?.[`seed-${seedB}`]
+      );
 
     match.participantAId =
       participantAId;
@@ -1634,6 +1754,7 @@ function releaseNoShowFromBracket(
       participantId
     ) {
       slot.participantId = null;
+      slot.entryId = null;
     }
   });
 }

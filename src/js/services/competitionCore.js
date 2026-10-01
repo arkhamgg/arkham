@@ -38,6 +38,121 @@ export function getCompetitionPhases(event = {}) {
   return Array.isArray(event?.pro?.phases) ? event.pro.phases : [];
 }
 
+export const ENTRY_STATUS = {
+  REGISTERED: "registered",
+  CHECKED_IN: "checked_in",
+  ACTIVE: "active",
+  ELIMINATED: "eliminated",
+  WITHDRAWN: "withdrawn",
+  DQ: "dq"
+};
+
+/**
+ * Normalizes a Competition Entry without changing the persisted legacy
+ * participant model. In V1, Participant remains the storage source while
+ * Entry becomes the competition-facing domain representation.
+ */
+export function normalizeEntry(entry = {}, { competitionId = null } = {}) {
+  if (!entry || typeof entry !== "object") return null;
+
+  const id = typeof entry.id === "string" && entry.id.trim()
+    ? entry.id.trim()
+    : null;
+
+  if (!id) return null;
+
+  return {
+    id,
+    competitionId: entry.competitionId ?? competitionId ?? null,
+    entityType: entry.entityType || "manual",
+    entityId: entry.entityId ?? null,
+    displayName: entry.displayName || "Participante",
+    status: normalizeEntryStatus(entry.status),
+    seed: entry.seed ?? null,
+    registrationData: entry.registrationData ?? null,
+    competitiveState: {
+      participantStatus: entry.competitiveState?.participantStatus ?? entry.status ?? null,
+      checkIn: entry.competitiveState?.checkIn === true || entry.checkIn === true,
+      slotIds: Array.isArray(entry.competitiveState?.slotIds)
+        ? [...entry.competitiveState.slotIds]
+        : Array.isArray(entry.slotIds)
+          ? [...entry.slotIds]
+          : [],
+      replacedByEntryId:
+        entry.competitiveState?.replacedByEntryId ??
+        entry.replacedByEntryId ??
+        entry.replacedByParticipantId ??
+        null
+    },
+    legacyParticipantId: entry.legacyParticipantId ?? entry.id
+  };
+}
+
+/**
+ * Adapts the existing pro.participants collection into Competition Entries.
+ * This is read-only and intentionally preserves the existing participant IDs
+ * so legacy bracket slots and matches continue to work unchanged.
+ */
+export function getCompetitionEntries(event = {}, { includeInactive = true } = {}) {
+  const competitionId = event?.id || event?.eventId || null;
+  const persistentEntries = event?.pro?.entries;
+
+  const source = persistentEntries && typeof persistentEntries === "object" && !Array.isArray(persistentEntries)
+    ? Object.values(persistentEntries)
+    : Object.values(event?.pro?.participants || {});
+
+  return source
+    .map((entry) => normalizeEntry(entry, { competitionId }))
+    .filter(Boolean)
+    .filter((entry) => (
+      includeInactive ||
+      ![ENTRY_STATUS.ELIMINATED, ENTRY_STATUS.WITHDRAWN, ENTRY_STATUS.DQ].includes(entry.status)
+    ));
+}
+
+export function getCompetitionEntry(event = {}, entryId = null) {
+  if (!entryId) return null;
+  return getCompetitionEntries(event).find((entry) => entry.id === entryId) || null;
+}
+
+export function getCompetitionEntryForSlot(event = {}, slot = null) {
+  if (!slot) return null;
+
+  const entryId = typeof slot.entryId === "string" && slot.entryId.trim()
+    ? slot.entryId.trim()
+    : null;
+
+  if (entryId) {
+    const byId = getCompetitionEntry(event, entryId);
+    if (byId) return byId;
+  }
+
+  const participantId = slot.participantId || null;
+  return participantId
+    ? getCompetitionEntries(event).find((entry) => entry.legacyParticipantId === participantId) || null
+    : null;
+}
+
+function normalizeEntryStatus(status) {
+  switch (status) {
+    case PARTICIPANT_STATUS.CHECKED_IN:
+      return ENTRY_STATUS.CHECKED_IN;
+    case PARTICIPANT_STATUS.COMPETING:
+    case PARTICIPANT_STATUS.ADVANCED:
+      return ENTRY_STATUS.ACTIVE;
+    case PARTICIPANT_STATUS.ELIMINATED:
+      return ENTRY_STATUS.ELIMINATED;
+    case PARTICIPANT_STATUS.WITHDRAWN:
+    case PARTICIPANT_STATUS.NO_SHOW:
+      return ENTRY_STATUS.WITHDRAWN;
+    case PARTICIPANT_STATUS.APPROVED:
+    case PARTICIPANT_STATUS.REQUESTED:
+    case PARTICIPANT_STATUS.PENDING:
+    default:
+      return ENTRY_STATUS.REGISTERED;
+  }
+}
+
 /**
  * Resolves the Phase context of a Match. Legacy matches without phaseId
  * continue to resolve to null.
