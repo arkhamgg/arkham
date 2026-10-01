@@ -4,6 +4,7 @@
 
 import {
   getCompetitionFormatCapability,
+  normalizeCompetitionMatchFormat,
   COMPETITION_CONFIGURATION_STATUS
 } from "./competitionConfiguration.js";
 
@@ -566,6 +567,19 @@ function createMatch({
   matchSystem = null,
   phaseId = null
 }) {
+  const normalizedMatchFormat =
+    normalizeCompetitionMatchFormat(matchSystem);
+
+  const matchFormat =
+    normalizedMatchFormat.status ===
+    COMPETITION_CONFIGURATION_STATUS.SUPPORTED
+      ? {
+          type: normalizedMatchFormat.type,
+          value: normalizedMatchFormat.value,
+          winsNeeded: normalizedMatchFormat.winsNeeded
+        }
+      : null;
+
   return {
     id,
     bracket,
@@ -584,6 +598,8 @@ function createMatch({
     nextMatchId: null,
     nextSlot: null,
     matchSystem,
+    matchFormat,
+    games: [],
     phaseId,
     startedAt: null,
     completedAt: null
