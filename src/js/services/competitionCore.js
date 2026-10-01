@@ -547,6 +547,121 @@ function normalizeMatchResult(match = {}) {
 }
 
 /**
+ * Normalizes one Game into the Competition Core Game contract.
+ *
+ * This is a read-only adapter. It only exposes Game records that already exist
+ * on the Match. It never creates Games from BO1/BO3/BO5 configuration and it
+ * never mutates the persisted Match.
+ *
+ * The Game domain intentionally remains generic so game-specific configuration
+ * can continue to come from the Game Catalog / competitionOptions layer rather
+ * than being hardcoded into Competition Core.
+ */
+export function normalizeGame(game = {}, { matchId = null, gameId = null } = {}) {
+  if (!game || typeof game !== "object") return null;
+
+  const normalizedNumber = Number(game.number);
+
+  const participants = game.participants && typeof game.participants === "object"
+    ? game.participants
+    : {};
+
+  const normalizeGameParticipant = (participant = null, side = null) => {
+    if (!participant || typeof participant !== "object") {
+      return participant || null;
+    }
+
+    return {
+      ...participant,
+      side: participant.side || side || null,
+      entryId: participant.entryId ?? null,
+      participantId: participant.participantId ?? participant.id ?? null,
+      displayName: participant.displayName || participant.name || null
+    };
+  };
+
+  const normalizedParticipants = {
+    A: normalizeGameParticipant(participants.A, "A"),
+    B: normalizeGameParticipant(participants.B, "B")
+  };
+
+  const winnerSource = game.winner && typeof game.winner === "object"
+    ? game.winner
+    : null;
+
+  const winner = winnerSource
+    ? {
+        ...winnerSource,
+        entryId: winnerSource.entryId ?? null,
+        participantId: winnerSource.participantId ?? winnerSource.id ?? null,
+        displayName: winnerSource.displayName || winnerSource.name || null
+      }
+    : game.winner ?? game.winnerId ?? null;
+
+  return {
+    id: game.id || gameId || null,
+    matchId: game.matchId ?? matchId ?? null,
+    number: Number.isFinite(normalizedNumber) ? normalizedNumber : null,
+    status: game.status || null,
+    participants: normalizedParticipants,
+    winner,
+    score: game.score ?? null,
+    map: game.map ?? null,
+    mode: game.mode ?? null,
+    metadata: game.metadata && typeof game.metadata === "object"
+      ? game.metadata
+      : null
+  };
+}
+
+/**
+ * Returns only Games that are already persisted on a Match.
+ *
+ * Missing `match.games` means there are no Game records yet. The Core does not
+ * infer or synthesize them from Match Format because expected game count and
+ * actual played Game records are different concepts.
+ */
+export function getMatchGames(match = {}) {
+  if (!match || typeof match !== "object") return [];
+
+  const games = Array.isArray(match.games) ? match.games : [];
+
+  return games
+    .map((game) => normalizeGame(game, {
+      matchId: match.id || null,
+      gameId: game?.id || null
+    }))
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.number == null && b.number == null) return 0;
+      if (a.number == null) return 1;
+      if (b.number == null) return -1;
+      return a.number - b.number;
+    });
+}
+
+/**
+ * Returns all persisted Games exposed through the Competition Core.
+ *
+ * This is a composition helper over the existing Match domain. It does not
+ * perform Game configuration lookups and does not change Tournament Pro data.
+ */
+export function getCompetitionGames(event = {}) {
+  return getCompetitionMatches(event)
+    .flatMap((match) => getMatchGames(match));
+}
+
+/**
+ * Returns one persisted Game by ID.
+ */
+export function getCompetitionGame(event = {}, gameId = null) {
+  if (!gameId) return null;
+
+  return getCompetitionGames(event)
+    .find((game) => game.id === gameId) || null;
+}
+
+/**
  * Normalizes one legacy Match into the Competition Core Match contract.
  *
  * This is a read-only adapter. It does not rewrite bracket records, introduce
@@ -597,6 +712,7 @@ export function normalizeMatch(event = {}, match = {}) {
     },
 
     matchFormat: normalizeMatchFormat(match, event),
+    games: getMatchGames(match),
     matchSystem: match.matchSystem || null,
 
     status: match.status || null,
