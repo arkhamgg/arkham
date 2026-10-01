@@ -14,13 +14,19 @@ import {
   ensureTournamentProState,
   createParticipant,
   generateBracket as buildBracket,
-  startMatch as beginMatch,
-  applyMatchResult,
   PARTICIPANT_STATUS,
   MATCH_STATUS,
   RECOGNITION_STATUS,
   TOURNAMENT_EVENT_STATUS
 } from "./tournamentPro.js";
+import {
+  startMatchCommand,
+  applyMatchResultCommand,
+  getCompetitionDeliveryMode,
+  getCompetitionStations,
+  normalizeStation
+} from "./competitionCore.js";
+import { STATION_STATUS, STATION_TYPES } from "./competitionTypes.js";
 import {
   validateCompetitionConfiguration,
   COMPETITION_CONFIGURATION_STATUS
@@ -60,6 +66,157 @@ export async function searchTournamentEntities(type, term = "") {
       return haystack.includes(normalized);
     })
     .slice(0, 20);
+}
+
+function ensureStationState(pro, event) {
+  const stations = getCompetitionStations({ ...event, pro });
+  pro.stations = stations.map((station, index) => normalizeStation(station, {
+    mode: getCompetitionDeliveryMode(event),
+    order: index + 1
+  }));
+  return pro.stations;
+}
+
+function getMatchWithStation(pro, matchId) {
+  const station = (pro.stations || []).find((item) => item.currentMatchId === matchId);
+  return station || null;
+}
+
+function assertStationAssignable(pro, match) {
+  if (!match) throw new Error("Match no encontrado.");
+  if (match.status !== MATCH_STATUS.PENDING) {
+    throw new Error("Solo puedes asignar una estación a un match pendiente.");
+  }
+  validateMatchParticipants(pro, match);
+}
+
+function assignStationInMemory(pro, matchId, stationId) {
+  const stations = pro.stations || [];
+  const match = findMatch(pro.bracket, matchId);
+  assertStationAssignable(pro, match);
+
+  const target = stations.find((station) => station.id === stationId);
+  if (!target) throw new Error("Estación no encontrada.");
+
+  if (target.currentMatchId && target.currentMatchId !== matchId) {
+    throw new Error("La estación ya está asignada a otro match.");
+  }
+
+  stations.forEach((station) => {
+    if (station.currentMatchId === matchId && station.id !== stationId) {
+      station.currentMatchId = null;
+      station.status = STATION_STATUS.AVAILABLE;
+    }
+  });
+
+  target.currentMatchId = matchId;
+  target.status = STATION_STATUS.ASSIGNED;
+  return target;
+}
+
+function releaseStationInMemory(pro, matchId) {
+  const station = getMatchWithStation(pro, matchId);
+  if (!station) return null;
+  station.currentMatchId = null;
+  station.status = STATION_STATUS.AVAILABLE;
+  return station;
+}
+
+function autoAssignInitialRoundStations(pro, event) {
+  ensureStationState(pro, event);
+
+  const availableStations = (pro.stations || [])
+    .filter((station) => !station.currentMatchId && station.status === STATION_STATUS.AVAILABLE)
+    .sort((a, b) => a.number - b.number);
+
+  if (!availableStations.length) return [];
+
+  const initialMatches = (pro.bracket?.stages || [])
+    .filter((stage) => stage?.bracket === "winners" && Number(stage.number) === 1)
+    .flatMap((stage) => stage.matches || [])
+    .filter((match) => (
+      match?.status === MATCH_STATUS.PENDING &&
+      match?.participantAId &&
+      match?.participantBId &&
+      !getMatchWithStation(pro, match.id)
+    ));
+
+  const assignments = [];
+  initialMatches.forEach((match, index) => {
+    const station = availableStations[index];
+    if (!station) return;
+    station.currentMatchId = match.id;
+    station.status = STATION_STATUS.ASSIGNED;
+    assignments.push({ stationId: station.id, matchId: match.id });
+  });
+
+  if (assignments.length) {
+    pro.stationAutoAssignment = {
+      mode: "INITIAL_ROUND",
+      assignedAt: new Date().toISOString(),
+      assignments
+    };
+  }
+
+  return assignments;
+}
+
+export async function createCompetitionStation({
+  tournamentId,
+  eventId,
+  event
+}) {
+  const pro = ensureTournamentProState(event);
+  const stations = ensureStationState(pro, event);
+  const mode = getCompetitionDeliveryMode(event);
+  const nextNumber = stations.reduce((max, station) => Math.max(max, Number(station.number) || 0), 0) + 1;
+  const station = normalizeStation({
+    id: `${mode === STATION_TYPES.PHYSICAL ? "station" : "lobby"}-${nextNumber}`,
+    number: nextNumber,
+    type: mode,
+    name: `${mode === STATION_TYPES.PHYSICAL ? "Station" : "Lobby"} ${nextNumber}`,
+    status: STATION_STATUS.AVAILABLE,
+    currentMatchId: null,
+    assignedStaffIds: []
+  }, { mode, order: nextNumber });
+
+  pro.stations.push(station);
+  return savePro(tournamentId, eventId, event, pro);
+}
+
+export async function assignMatchToStation({
+  tournamentId,
+  eventId,
+  event,
+  matchId,
+  stationId
+}) {
+  const pro = ensureTournamentProState(event);
+  ensureStationState(pro, event);
+  if (pro.status !== TOURNAMENT_EVENT_STATUS.LIVE) {
+    throw new Error("Solo puedes asignar estaciones cuando el evento está en vivo.");
+  }
+
+  if (!stationId) {
+    throw new Error("Selecciona una estación.");
+  }
+
+  assignStationInMemory(pro, matchId, stationId);
+  return savePro(tournamentId, eventId, event, pro);
+}
+
+export async function releaseMatchStation({
+  tournamentId,
+  eventId,
+  event,
+  matchId
+}) {
+  const pro = ensureTournamentProState(event);
+  ensureStationState(pro, event);
+  const match = findMatch(pro.bracket, matchId);
+  assertStationAssignable(pro, match);
+  releaseStationInMemory(pro, matchId);
+  return savePro(tournamentId, eventId, event, pro);
 }
 
 export async function prepareBracket({ tournamentId, eventId, event }) {
@@ -682,6 +839,12 @@ export async function generateBracket({
   });
 
   pro.bracket.generatedAt = new Date().toISOString();
+  ensureStationState(pro, event);
+  pro.stations.forEach((station) => {
+    station.currentMatchId = null;
+    station.status = STATION_STATUS.AVAILABLE;
+  });
+  delete pro.stationAutoAssignment;
 
   pro.checkIn = {
     status: "unopened",
@@ -749,6 +912,10 @@ export async function setEventStatus({
 
   pro.status = status;
 
+  if (status === TOURNAMENT_EVENT_STATUS.LIVE) {
+    autoAssignInitialRoundStations(pro, event);
+  }
+
   if (status === TOURNAMENT_EVENT_STATUS.FINISHED) {
     throw new Error(
       "La finalización oficial requiere seleccionar los puestos reconocidos."
@@ -789,7 +956,13 @@ export async function startMatch({
     match
   );
 
-  pro.bracket = beginMatch(
+  ensureStationState(pro, event);
+  const assignedStation = getMatchWithStation(pro, matchId);
+  if (pro.stations.length > 0 && !assignedStation) {
+    throw new Error("Asigna una estación o lobby antes de iniciar el match.");
+  }
+
+  pro.bracket = startMatchCommand(
     pro.bracket,
     matchId
   );
@@ -798,6 +971,10 @@ export async function startMatch({
     pro,
     match
   );
+
+  ensureStationState(pro, event);
+  const station = getMatchWithStation(pro, matchId);
+  if (station) station.status = STATION_STATUS.IN_PROGRESS;
 
   return savePro(
     tournamentId,
@@ -835,12 +1012,19 @@ export async function completeMatch({
     match
   );
 
-  pro.bracket = applyMatchResult(
-    pro.bracket,
+  const resultCommand = {
     matchId,
     winnerId,
-    score
+    score,
+    source: "TOURNAMENT_PRO"
+  };
+
+  const resultOperation = applyMatchResultCommand(
+    pro.bracket,
+    resultCommand
   );
+
+  pro.bracket = resultOperation.bracket;
 
   const updatedMatch = findMatch(
     pro.bracket,
@@ -860,15 +1044,13 @@ export async function completeMatch({
     updatedMatch?.loserId &&
     pro.participants[updatedMatch.loserId]
   ) {
-    // A loser from a Winners Bracket match in Double Elimination
-    // remains in competition when a deterministic loser route exists.
-    // Only eliminate the participant when there is no route onward.
     pro.participants[
       updatedMatch.loserId
-    ].status = updatedMatch.loserRoute
-      ? PARTICIPANT_STATUS.COMPETING
-      : PARTICIPANT_STATUS.ELIMINATED;
+    ].status = PARTICIPANT_STATUS.ELIMINATED;
   }
+
+  ensureStationState(pro, event);
+  releaseStationInMemory(pro, matchId);
 
   return savePro(
     tournamentId,

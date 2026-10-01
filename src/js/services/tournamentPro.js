@@ -7,46 +7,20 @@ import {
   COMPETITION_CONFIGURATION_STATUS
 } from "./competitionConfiguration.js";
 
-export const TOURNAMENT_EVENT_STATUS = {
-  DRAFT: "draft",
-  PUBLISHED: "published",
-  CHECK_IN: "check_in",
-  LIVE: "live",
-  FINISHED: "finished",
-  ARCHIVED: "archived"
-};
+import {
+  TOURNAMENT_EVENT_STATUS,
+  PARTICIPANT_STATUS,
+  MATCH_STATUS,
+  BRACKET_TYPES,
+  RECOGNITION_STATUS
+} from "./competitionTypes.js";
 
-export const PARTICIPANT_STATUS = {
-  REQUESTED: "requested",
-  PENDING: "pending",
-  APPROVED: "approved",
-  REJECTED: "rejected",
-  CHECKED_IN: "checked_in",
-  COMPETING: "competing",
-  ADVANCED: "advanced",
-  ELIMINATED: "eliminated",
-  NO_SHOW: "no_show",
-  WITHDRAWN: "withdrawn",
-  FINISHED: "finished"
-};
-
-export const MATCH_STATUS = {
-  PENDING: "pending",
-  LIVE: "live",
-  COMPLETED: "completed",
-  BYE: "bye"
-};
-
-export const BRACKET_TYPES = {
-  SINGLE_ELIMINATION: "single_elimination",
-  DOUBLE_ELIMINATION: "double_elimination"
-};
-
-export const RECOGNITION_STATUS = {
-  NOT_REQUESTED: "not_requested",
-  REQUESTED: "requested",
-  APPROVED: "approved",
-  REJECTED: "rejected"
+export {
+  TOURNAMENT_EVENT_STATUS,
+  PARTICIPANT_STATUS,
+  MATCH_STATUS,
+  BRACKET_TYPES,
+  RECOGNITION_STATUS
 };
 
 export function createTournamentProState({
@@ -130,6 +104,9 @@ export function ensureTournamentProState(event = {}) {
         : []
     },
     participants: isObject(current.participants) ? current.participants : {},
+    stations: Array.isArray(current.stations)
+      ? current.stations
+      : [],
     bracket: normalizeBracket(current.bracket, event.format),
     checkIn: {
       ...base.checkIn,
