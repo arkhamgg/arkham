@@ -544,6 +544,7 @@ export function TournamentPro() {
           selectedWorkspaceMatchId = null;
         }
         const selectedWorkspaceMatch = matchSelectionPool.find((match) => match?.id === selectedWorkspaceMatchId) || null;
+        const selectedWorkspaceMatchGameSummary = getMatchGameSummary(selectedWorkspaceMatch);
         const selectedWorkspaceMatchContext = selectedWorkspaceMatch
           ? allCompetitionMatches.find((item) => item.match?.id === selectedWorkspaceMatch.id) || null
           : null;
