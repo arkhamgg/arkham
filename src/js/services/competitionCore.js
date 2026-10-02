@@ -32,6 +32,10 @@ import {
 import {
   getMatchResultBridgePreview
 } from "./competitionMatchResultBridge.js";
+import {
+  MATCH_LIFECYCLE,
+  getMatchLifecycle
+} from "./competitionMatchLifecycle.js";
 
 
 /**
@@ -1129,51 +1133,6 @@ export function getAdvancementGraph(bracket = {}) {
     terminals
   };
 }
-
-export const MATCH_LIFECYCLE = {
-  SCHEDULED: "scheduled",
-  READY: "ready",
-  IN_PROGRESS: "in_progress",
-  COMPLETED: "completed",
-  BYE: "bye"
-};
-
-/**
- * Returns the operational lifecycle state of a Match without changing the
- * persisted Match status used by the existing tournament engine.
- *
- * V1 deliberately derives READY/SCHEDULED from the existing PENDING state:
- * - PENDING + two participants -> READY
- * - PENDING + missing participant(s) -> SCHEDULED
- * This keeps legacy brackets compatible while giving the Core a stable
- * lifecycle vocabulary for future Tournament Operations and Match Queue work.
- */
-export function getMatchLifecycle(match) {
-  if (!match || typeof match !== "object") {
-    throw new Error("Match no encontrado.");
-  }
-
-  if (match.status === MATCH_STATUS.BYE) {
-    return MATCH_LIFECYCLE.BYE;
-  }
-
-  if (match.status === MATCH_STATUS.COMPLETED) {
-    return MATCH_LIFECYCLE.COMPLETED;
-  }
-
-  if (match.status === MATCH_STATUS.LIVE) {
-    return MATCH_LIFECYCLE.IN_PROGRESS;
-  }
-
-  if (match.status === MATCH_STATUS.PENDING) {
-    return match.participantAId && match.participantBId
-      ? MATCH_LIFECYCLE.READY
-      : MATCH_LIFECYCLE.SCHEDULED;
-  }
-
-  throw new Error(`Estado de Match no soportado: ${match.status}.`);
-}
-
 
 export const MATCH_QUEUE_STATUS = {
   WAITING: "waiting",
