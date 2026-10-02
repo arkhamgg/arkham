@@ -12,12 +12,7 @@ export const GAME_STATUS = Object.freeze({
 
 function normalizeGameNumber(value) {
   const number = Number(value);
-
-  if (!Number.isInteger(number) || number < 1) {
-    return null;
-  }
-
-  return number;
+  return Number.isInteger(number) && number >= 1 ? number : null;
 }
 
 function getExistingGames(match = {}) {
@@ -26,7 +21,6 @@ function getExistingGames(match = {}) {
 
 function getMatchParticipant(match = {}, side) {
   const normalizedSide = side === "A" ? "A" : "B";
-
   const normalizedParticipant = match.participants?.[normalizedSide];
 
   if (normalizedParticipant) {
@@ -64,16 +58,15 @@ function getMatchParticipants(match = {}) {
 
 function hasBothMatchParticipants(match = {}) {
   const participants = getMatchParticipants(match);
+  return (
+    (Boolean(participants.A.entryId) || Boolean(participants.A.participantId)) &&
+    (Boolean(participants.B.entryId) || Boolean(participants.B.participantId))
+  );
+}
 
-  const hasA =
-    Boolean(participants.A.entryId) ||
-    Boolean(participants.A.participantId);
-
-  const hasB =
-    Boolean(participants.B.entryId) ||
-    Boolean(participants.B.participantId);
-
-  return hasA && hasB;
+function normalizeTimestamp(value) {
+  const timestamp = value ? new Date(value) : new Date();
+  return Number.isNaN(timestamp.getTime()) ? null : timestamp.toISOString();
 }
 
 export function getMatchGameFormat(match = {}) {
@@ -117,58 +110,33 @@ export function getMatchGameFormat(match = {}) {
 
 export function getMatchMaximumGames(match = {}) {
   const format = getMatchGameFormat(match);
-
-  if (!format) {
-    return null;
-  }
-
-  if (format.type !== "BEST_OF") {
-    return null;
-  }
-
-  return format.value;
+  return format?.type === "BEST_OF" ? format.value : null;
 }
 
 export function getNextGameNumber(match = {}) {
   const games = getExistingGames(match);
-
-  if (games.length === 0) {
-    return 1;
-  }
+  if (games.length === 0) return 1;
 
   const gameNumbers = games
     .map((game) => normalizeGameNumber(game?.number))
     .filter(Boolean);
 
-  if (gameNumbers.length === 0) {
-    return 1;
-  }
-
-  return Math.max(...gameNumbers) + 1;
+  return gameNumbers.length > 0 ? Math.max(...gameNumbers) + 1 : 1;
 }
 
 export function canCreateMatchGame(match = {}, gameNumber = null) {
   if (!match || !match.id) {
-    return {
-      allowed: false,
-      reason: "MATCH_REQUIRED"
-    };
+    return { allowed: false, reason: "MATCH_REQUIRED" };
   }
 
   if (!hasBothMatchParticipants(match)) {
-    return {
-      allowed: false,
-      reason: "MATCH_PARTICIPANTS_REQUIRED"
-    };
+    return { allowed: false, reason: "MATCH_PARTICIPANTS_REQUIRED" };
   }
 
   const format = getMatchGameFormat(match);
 
   if (!format) {
-    return {
-      allowed: false,
-      reason: "MATCH_FORMAT_UNSUPPORTED"
-    };
+    return { allowed: false, reason: "MATCH_FORMAT_UNSUPPORTED" };
   }
 
   const normalizedGameNumber =
@@ -177,10 +145,7 @@ export function canCreateMatchGame(match = {}, gameNumber = null) {
       : normalizeGameNumber(gameNumber);
 
   if (!normalizedGameNumber) {
-    return {
-      allowed: false,
-      reason: "INVALID_GAME_NUMBER"
-    };
+    return { allowed: false, reason: "INVALID_GAME_NUMBER" };
   }
 
   if (normalizedGameNumber > format.value) {
@@ -191,9 +156,7 @@ export function canCreateMatchGame(match = {}, gameNumber = null) {
     };
   }
 
-  const games = getExistingGames(match);
-
-  const alreadyExists = games.some(
+  const alreadyExists = getExistingGames(match).some(
     (game) => normalizeGameNumber(game?.number) === normalizedGameNumber
   );
 
@@ -223,20 +186,23 @@ export function createMatchGame(
   const validation = canCreateMatchGame(match, gameNumber);
 
   if (!validation.allowed) {
-    throw new Error(
-      `Cannot create match game: ${validation.reason}`
-    );
+    throw new Error(`Cannot create match game: ${validation.reason}`);
   }
 
-  const number = validation.gameNumber;
+  const createdAt = normalizeTimestamp(now);
+
+  if (!createdAt) {
+    throw new Error("Cannot create match game: INVALID_TIMESTAMP");
+  }
+
   const participants = getMatchParticipants(match);
+  const number = validation.gameNumber;
 
   return {
     id: `${match.id}-G${number}`,
     matchId: match.id,
     number,
     status: GAME_STATUS.PENDING,
-
     participants: {
       A: {
         side: "A",
@@ -251,17 +217,14 @@ export function createMatchGame(
         displayName: participants.B.displayName
       }
     },
-
     winner: null,
     score: null,
     map: null,
     mode: null,
     metadata: null,
-
     startedAt: null,
     completedAt: null,
-
-    createdAt: now
+    createdAt
   };
 }
 
@@ -272,17 +235,11 @@ export function appendMatchGame(
     now = new Date().toISOString()
   } = {}
 ) {
-  const game = createMatchGame(match, {
-    gameNumber,
-    now
-  });
-
-  const existingGames = getExistingGames(match);
-
+  const game = createMatchGame(match, { gameNumber, now });
   return {
     match: {
       ...match,
-      games: [...existingGames, game]
+      games: [...getExistingGames(match), game]
     },
     game
   };
@@ -290,9 +247,7 @@ export function appendMatchGame(
 
 export function createNextMatchGame(
   match = {},
-  {
-    now = new Date().toISOString()
-  } = {}
+  { now = new Date().toISOString() } = {}
 ) {
   return appendMatchGame(match, {
     gameNumber: getNextGameNumber(match),
@@ -302,18 +257,164 @@ export function createNextMatchGame(
 
 export function createFirstMatchGame(
   match = {},
-  {
-    now = new Date().toISOString()
-  } = {}
+  { now = new Date().toISOString() } = {}
 ) {
-  const existingGames = getExistingGames(match);
-
-  if (existingGames.length > 0) {
+  if (getExistingGames(match).length > 0) {
     throw new Error("Cannot create first match game: GAMES_ALREADY_EXIST");
   }
 
-  return appendMatchGame(match, {
-    gameNumber: 1,
-    now
-  });
+  return appendMatchGame(match, { gameNumber: 1, now });
+}
+
+/**
+ * Game lifecycle: PENDING -> LIVE.
+ * Returns a new Game and never mutates the input.
+ */
+export function canStartMatchGame(game = {}) {
+  if (!game?.id) return { allowed: false, reason: "GAME_REQUIRED" };
+  if (!game.matchId) return { allowed: false, reason: "MATCH_ID_REQUIRED" };
+  if (game.status !== GAME_STATUS.PENDING) {
+    return { allowed: false, reason: "GAME_NOT_PENDING" };
+  }
+
+  if (!game.participants?.A?.entryId && !game.participants?.A?.participantId) {
+    return { allowed: false, reason: "GAME_PARTICIPANT_A_REQUIRED" };
+  }
+
+  if (!game.participants?.B?.entryId && !game.participants?.B?.participantId) {
+    return { allowed: false, reason: "GAME_PARTICIPANT_B_REQUIRED" };
+  }
+
+  return { allowed: true };
+}
+
+export function startMatchGame(
+  game = {},
+  { now = new Date().toISOString() } = {}
+) {
+  const validation = canStartMatchGame(game);
+
+  if (!validation.allowed) {
+    throw new Error(`Cannot start match game: ${validation.reason}`);
+  }
+
+  const startedAt = normalizeTimestamp(now);
+
+  if (!startedAt) {
+    throw new Error("Cannot start match game: INVALID_TIMESTAMP");
+  }
+
+  return {
+    ...game,
+    status: GAME_STATUS.LIVE,
+    startedAt
+  };
+}
+
+/**
+ * Game lifecycle: PENDING/LIVE -> CANCELLED.
+ */
+export function canCancelMatchGame(game = {}) {
+  if (!game?.id) return { allowed: false, reason: "GAME_REQUIRED" };
+
+  if (
+    game.status !== GAME_STATUS.PENDING &&
+    game.status !== GAME_STATUS.LIVE
+  ) {
+    return { allowed: false, reason: "GAME_NOT_CANCELLABLE" };
+  }
+
+  return { allowed: true };
+}
+
+export function cancelMatchGame(
+  game = {},
+  { now = new Date().toISOString() } = {}
+) {
+  const validation = canCancelMatchGame(game);
+
+  if (!validation.allowed) {
+    throw new Error(`Cannot cancel match game: ${validation.reason}`);
+  }
+
+  const cancelledAt = normalizeTimestamp(now);
+
+  if (!cancelledAt) {
+    throw new Error("Cannot cancel match game: INVALID_TIMESTAMP");
+  }
+
+  return {
+    ...game,
+    status: GAME_STATUS.CANCELLED,
+    completedAt: null,
+    cancelledAt
+  };
+}
+
+/**
+ * Game Result remains responsible for deciding winner/score.
+ * This lifecycle boundary only accepts an already completed result.
+ */
+export function canCompleteMatchGame(game = {}, { result = null } = {}) {
+  if (!game?.id) return { allowed: false, reason: "GAME_REQUIRED" };
+
+  if (game.status !== GAME_STATUS.LIVE) {
+    return { allowed: false, reason: "GAME_NOT_LIVE" };
+  }
+
+  if (
+    result?.status !== "completed" ||
+    result?.gameId !== game.id
+  ) {
+    return {
+      allowed: false,
+      reason: "COMPLETED_GAME_RESULT_REQUIRED"
+    };
+  }
+
+  return { allowed: true };
+}
+
+export function completeMatchGame(
+  game = {},
+  {
+    result = null,
+    now = new Date().toISOString()
+  } = {}
+) {
+  const validation = canCompleteMatchGame(game, { result });
+
+  if (!validation.allowed) {
+    throw new Error(`Cannot complete match game: ${validation.reason}`);
+  }
+
+  const completedAt = normalizeTimestamp(result.timestamp || now);
+
+  if (!completedAt) {
+    throw new Error("Cannot complete match game: INVALID_TIMESTAMP");
+  }
+
+  return {
+    ...game,
+    status: GAME_STATUS.COMPLETED,
+    winner: result.winner ?? game.winner ?? null,
+    score: result.score ?? game.score ?? null,
+    completedAt
+  };
+}
+
+export function isGamePending(game = {}) {
+  return game.status === GAME_STATUS.PENDING;
+}
+
+export function isGameLive(game = {}) {
+  return game.status === GAME_STATUS.LIVE;
+}
+
+export function isGameCompleted(game = {}) {
+  return game.status === GAME_STATUS.COMPLETED;
+}
+
+export function isGameCancelled(game = {}) {
+  return game.status === GAME_STATUS.CANCELLED;
 }

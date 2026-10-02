@@ -271,7 +271,11 @@ export function applyGameResult(
     game: {
       ...game,
 
-      status: GAME_RESULT_STATUS.COMPLETED,
+      // El dominio de Game Result registra el resultado,
+      // pero no es dueño del lifecycle del Game.
+      // competitionGames.js es quien proyecta LIVE -> COMPLETED
+      // mediante completeMatchGame().
+      status: game.status,
 
       winner: result.winner,
 

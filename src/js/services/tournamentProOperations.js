@@ -29,7 +29,9 @@ import {
   normalizeStation
 } from "./competitionCore.js";
 import {
-  createNextMatchGame
+  createNextMatchGame,
+  startMatchGame,
+  completeMatchGame
 } from "./competitionGames.js";
 import {
   applyGameResult
@@ -1219,11 +1221,22 @@ export async function completeMatch({
 
   const {
     match: matchWithGame,
-    game
+    game: pendingGame
   } = createNextMatchGame(workingMatch);
 
+  // Game Lifecycle:
+  // 1. createNextMatchGame() crea el Game en PENDING.
+  // 2. startMatchGame() lo lleva a LIVE.
+  // 3. applyGameResult() registra el resultado validado.
+  // 4. completeMatchGame() proyecta ese resultado sobre el Game
+  //    y lo lleva a COMPLETED.
+  //
+  // El Match continúa siendo la autoridad para la serie completa;
+  // el Game Lifecycle únicamente controla la vida de cada Game.
+  const liveGame = startMatchGame(pendingGame);
+
   const gameResultOperation = applyGameResult(
-    game,
+    liveGame,
     {
       winnerSide: workingWinnerSide,
       scoreA,
@@ -1231,10 +1244,17 @@ export async function completeMatch({
     }
   );
 
+  const completedGame = completeMatchGame(
+    gameResultOperation.game,
+    {
+      result: gameResultOperation.result
+    }
+  );
+
   workingMatch.games = matchWithGame.games.map(
     (candidateGame) =>
-      candidateGame.id === game.id
-        ? gameResultOperation.game
+      candidateGame.id === pendingGame.id
+        ? completedGame
         : candidateGame
   );
 
