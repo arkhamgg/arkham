@@ -2,7 +2,7 @@
 // ARKHAM — Competition Match Lifecycle
 // ========================================
 //
-// Match Lifecycle v2.
+// Match Lifecycle v1.
 //
 // This module is intentionally isolated from Tournament Pro and Competition
 // Core. It provides the lifecycle transition contract for Matches without
@@ -12,7 +12,6 @@
 //   - validate Match lifecycle transitions
 //   - project lifecycle state onto a Match
 //   - remain non-mutating
-//   - expose the CALLED operational state without changing legacy status values
 //
 // It does NOT:
 //   - calculate Match Results
@@ -139,10 +138,11 @@ export function canStartMatch(match = {}) {
 }
 
 /**
- * READY -> IN_PROGRESS.
+ * READY -> CALLED.
  *
- * The persisted legacy status becomes LIVE. No Station or Participant state
- * is changed here.
+ * CALLED is an operational lifecycle state. The legacy persisted Match
+ * status remains PENDING so the existing engine continues to interpret the
+ * Match without requiring a new MATCH_STATUS value.
  */
 export function canCallMatch(match = {}) {
   if (!match || typeof match !== "object" || !match.id) {
@@ -182,13 +182,6 @@ export function canCallMatch(match = {}) {
   };
 }
 
-/**
- * READY -> CALLED.
- *
- * CALLED is an operational lifecycle state. The legacy persisted Match
- * status remains PENDING so the existing engine continues to interpret the
- * Match without requiring a new MATCH_STATUS value.
- */
 export function callMatchLifecycle(match = {}) {
   const validation = canCallMatch(match);
 
@@ -202,6 +195,51 @@ export function callMatchLifecycle(match = {}) {
     ...match,
     calledAt: match.calledAt || new Date().toISOString()
   };
+}
+
+export function canUncallMatch(match = {}) {
+  if (!match || typeof match !== "object" || !match.id) {
+    return {
+      allowed: false,
+      reason: "MATCH_REQUIRED"
+    };
+  }
+
+  const lifecycle = getMatchLifecycle(match);
+
+  if (lifecycle !== MATCH_LIFECYCLE.CALLED) {
+    return {
+      allowed: false,
+      reason: "MATCH_NOT_CALLED",
+      lifecycle
+    };
+  }
+
+  return {
+    allowed: true,
+    lifecycle
+  };
+}
+
+/**
+ * CALLED -> READY.
+ *
+ * This is only valid before the Match starts. The legacy persisted status
+ * remains PENDING and the operational marker is cleared.
+ */
+export function uncallMatchLifecycle(match = {}) {
+  const validation = canUncallMatch(match);
+
+  if (!validation.allowed) {
+    throw new Error(
+      `Cannot uncall match lifecycle: ${validation.reason}`
+    );
+  }
+
+  const nextMatch = { ...match };
+  delete nextMatch.calledAt;
+
+  return nextMatch;
 }
 
 export function startMatchLifecycle(match = {}) {

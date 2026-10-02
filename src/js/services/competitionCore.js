@@ -1137,6 +1137,7 @@ export function getAdvancementGraph(bracket = {}) {
 export const MATCH_QUEUE_STATUS = {
   WAITING: "waiting",
   READY: "ready",
+  CALLED: "called",
   IN_PROGRESS: "in_progress",
   COMPLETED: "completed",
   BYE: "bye"
@@ -1191,6 +1192,7 @@ export function getMatchQueue(bracket, {
     all,
     waiting: all.filter((item) => item.queueStatus === MATCH_QUEUE_STATUS.WAITING),
     ready: all.filter((item) => item.queueStatus === MATCH_QUEUE_STATUS.READY),
+    called: all.filter((item) => item.queueStatus === MATCH_QUEUE_STATUS.CALLED),
     inProgress: all.filter((item) => item.queueStatus === MATCH_QUEUE_STATUS.IN_PROGRESS),
     completed: all.filter((item) => item.queueStatus === MATCH_QUEUE_STATUS.COMPLETED),
     bye: all.filter((item) => item.queueStatus === MATCH_QUEUE_STATUS.BYE)
@@ -1215,8 +1217,10 @@ export function getNextReadyMatch(bracket) {
  * Builds the operational view of the competition without mutating persisted state.
  *
  * Competition remains Match-centric in the domain, while Operations is Station-centric
- * for the operator. A Match can therefore be READY, WAITING, IN_PROGRESS or COMPLETED
- * independently from its current station assignment.
+ * for the operator. A Match can therefore be READY, CALLED, WAITING, IN_PROGRESS or COMPLETED
+ * independently from its current station assignment. CALLED is the explicit operational
+ * state produced by assigning a Station/Lobby and remains persisted through calledAt.
+ * Releasing a pre-start assignment returns the Match to READY.
  */
 export function getCompetitionOperationsModel(event = {}) {
   const bracket = event?.pro?.bracket || {};
@@ -1230,6 +1234,11 @@ export function getCompetitionOperationsModel(event = {}) {
   const stationByMatchId = new Map(
     stations.filter((station) => station.currentMatchId).map((station) => [station.currentMatchId, station])
   );
+
+  const called = queue.called.map((item) => ({
+    ...item,
+    station: stationByMatchId.get(item.matchId) || null
+  }));
 
   const describeWaitingReason = (match) => {
     const missing = [match?.participantAId, match?.participantBId].filter((id) => !id).length;
@@ -1284,6 +1293,7 @@ export function getCompetitionOperationsModel(event = {}) {
     freeStations,
     occupiedStations,
     active,
+    called,
     ready,
     readyUnassigned,
     readyAssigned,
@@ -1296,6 +1306,7 @@ export function getCompetitionOperationsModel(event = {}) {
       freeStations: freeStations.length,
       occupiedStations: occupiedStations.length,
       activeMatches: active.length,
+      calledMatches: called.length,
       readyMatches: readyUnassigned.length,
       waitingMatches: waiting.length
     }
@@ -1426,6 +1437,10 @@ function resolveMatchWinnerIdentity(match, command) {
  *
  * The Core owns the operation-level state contract while the existing
  * competition engine remains responsible for bracket mutation.
+ *
+ * Operationally, CALLED means the Match has been assigned to a Station/Lobby
+ * and is therefore eligible to start. The legacy persisted Match status stays
+ * PENDING until the existing engine changes it to LIVE.
  */
 export function validateMatchState(match, operation = "result") {
   if (!match || typeof match !== "object") {
@@ -1437,6 +1452,7 @@ export function validateMatchState(match, operation = "result") {
 
     if (
       lifecycle !== MATCH_LIFECYCLE.READY &&
+      lifecycle !== MATCH_LIFECYCLE.CALLED &&
       lifecycle !== MATCH_LIFECYCLE.IN_PROGRESS
     ) {
       throw new Error("El match no está disponible para iniciar.");

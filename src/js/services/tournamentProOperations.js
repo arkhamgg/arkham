@@ -29,6 +29,12 @@ import {
   normalizeStation
 } from "./competitionCore.js";
 import {
+  MATCH_LIFECYCLE,
+  callMatchLifecycle,
+  getMatchLifecycle,
+  uncallMatchLifecycle
+} from "./competitionMatchLifecycle.js";
+import {
   createNextMatchGame,
   startMatchGame,
   completeMatchGame
@@ -196,6 +202,15 @@ function assertStationAssignable(pro, match) {
   if (match.status !== MATCH_STATUS.PENDING) {
     throw new Error("Solo puedes asignar una estación a un match pendiente.");
   }
+
+  const lifecycle = getMatchLifecycle(match);
+  if (
+    lifecycle !== MATCH_LIFECYCLE.READY &&
+    lifecycle !== MATCH_LIFECYCLE.CALLED
+  ) {
+    throw new Error("Solo puedes asignar una estación a un match listo para operar.");
+  }
+
   validateMatchParticipants(pro, match);
 }
 
@@ -218,14 +233,38 @@ function assignStationInMemory(pro, matchId, stationId) {
     }
   });
 
+  const lifecycle = getMatchLifecycle(match);
+
   target.currentMatchId = matchId;
   target.status = STATION_STATUS.ASSIGNED;
+
+  // Station assignment is the operational moment in which a READY Match
+  // becomes CALLED. If the Match is already CALLED, changing its Station/Lobby
+  // only moves the operational resource; it must not create a new lifecycle
+  // transition or discard the original calledAt timestamp.
+  if (lifecycle === MATCH_LIFECYCLE.READY) {
+    const calledMatch = callMatchLifecycle(match);
+    Object.assign(match, {
+      calledAt: calledMatch.calledAt
+    });
+  }
+
   return target;
 }
 
 function releaseStationInMemory(pro, matchId) {
   const station = getMatchWithStation(pro, matchId);
   if (!station) return null;
+
+  const match = findMatch(pro.bracket, matchId);
+  if (match && getMatchLifecycle(match) === MATCH_LIFECYCLE.CALLED) {
+    const readyMatch = uncallMatchLifecycle(match);
+    Object.keys(match).forEach((key) => {
+      if (!(key in readyMatch)) delete match[key];
+    });
+    Object.assign(match, readyMatch);
+  }
+
   station.currentMatchId = null;
   station.status = STATION_STATUS.AVAILABLE;
   return station;
@@ -256,6 +295,12 @@ function autoAssignInitialRoundStations(pro, event) {
     if (!station) return;
     station.currentMatchId = match.id;
     station.status = STATION_STATUS.ASSIGNED;
+
+    const calledMatch = callMatchLifecycle(match);
+    Object.assign(match, {
+      calledAt: calledMatch.calledAt
+    });
+
     assignments.push({ stationId: station.id, matchId: match.id });
   });
 
