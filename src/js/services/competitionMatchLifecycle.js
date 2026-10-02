@@ -2,7 +2,7 @@
 // ARKHAM — Competition Match Lifecycle
 // ========================================
 //
-// Match Lifecycle v1.
+// Match Lifecycle v2.
 //
 // This module is intentionally isolated from Tournament Pro and Competition
 // Core. It provides the lifecycle transition contract for Matches without
@@ -12,6 +12,7 @@
 //   - validate Match lifecycle transitions
 //   - project lifecycle state onto a Match
 //   - remain non-mutating
+//   - expose the CALLED operational state without changing legacy status values
 //
 // It does NOT:
 //   - calculate Match Results
@@ -28,6 +29,7 @@
 export const MATCH_LIFECYCLE = Object.freeze({
   SCHEDULED: "scheduled",
   READY: "ready",
+  CALLED: "called",
   IN_PROGRESS: "in_progress",
   RESULT_PENDING: "result_pending",
   COMPLETED: "completed",
@@ -83,6 +85,10 @@ export function getMatchLifecycle(match = {}) {
   }
 
   if (status === "pending") {
+    if (match.calledAt) {
+      return MATCH_LIFECYCLE.CALLED;
+    }
+
     return hasBothParticipants(match)
       ? MATCH_LIFECYCLE.READY
       : MATCH_LIFECYCLE.SCHEDULED;
@@ -101,7 +107,10 @@ export function canStartMatch(match = {}) {
 
   const lifecycle = getMatchLifecycle(match);
 
-  if (lifecycle !== MATCH_LIFECYCLE.READY) {
+  if (
+    lifecycle !== MATCH_LIFECYCLE.READY &&
+    lifecycle !== MATCH_LIFECYCLE.CALLED
+  ) {
     return {
       allowed: false,
       reason: "MATCH_NOT_READY",
@@ -135,6 +144,66 @@ export function canStartMatch(match = {}) {
  * The persisted legacy status becomes LIVE. No Station or Participant state
  * is changed here.
  */
+export function canCallMatch(match = {}) {
+  if (!match || typeof match !== "object" || !match.id) {
+    return {
+      allowed: false,
+      reason: "MATCH_REQUIRED"
+    };
+  }
+
+  const lifecycle = getMatchLifecycle(match);
+
+  if (lifecycle !== MATCH_LIFECYCLE.READY) {
+    return {
+      allowed: false,
+      reason: "MATCH_NOT_READY_TO_CALL",
+      lifecycle
+    };
+  }
+
+  if (!hasParticipant(match, "A")) {
+    return {
+      allowed: false,
+      reason: "MATCH_PARTICIPANT_A_REQUIRED"
+    };
+  }
+
+  if (!hasParticipant(match, "B")) {
+    return {
+      allowed: false,
+      reason: "MATCH_PARTICIPANT_B_REQUIRED"
+    };
+  }
+
+  return {
+    allowed: true,
+    lifecycle
+  };
+}
+
+/**
+ * READY -> CALLED.
+ *
+ * CALLED is an operational lifecycle state. The legacy persisted Match
+ * status remains PENDING so the existing engine continues to interpret the
+ * Match without requiring a new MATCH_STATUS value.
+ */
+export function callMatchLifecycle(match = {}) {
+  const validation = canCallMatch(match);
+
+  if (!validation.allowed) {
+    throw new Error(
+      `Cannot call match lifecycle: ${validation.reason}`
+    );
+  }
+
+  return {
+    ...match,
+    calledAt: match.calledAt || new Date().toISOString()
+  };
+}
+
 export function startMatchLifecycle(match = {}) {
   const validation = canStartMatch(match);
 
@@ -302,6 +371,10 @@ export function isMatchScheduled(match = {}) {
 
 export function isMatchReady(match = {}) {
   return getMatchLifecycle(match) === MATCH_LIFECYCLE.READY;
+}
+
+export function isMatchCalled(match = {}) {
+  return getMatchLifecycle(match) === MATCH_LIFECYCLE.CALLED;
 }
 
 export function isMatchInProgress(match = {}) {
