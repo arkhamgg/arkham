@@ -40,9 +40,129 @@ import {
 
 /**
  * Returns the optional Phase configuration without changing legacy events.
+ *
+ * Phase is a read-side domain boundary in this version. The persisted event
+ * remains the source of truth and no synthetic Phase is created for legacy
+ * competitions.
  */
 export function getCompetitionPhases(event = {}) {
   return Array.isArray(event?.pro?.phases) ? event.pro.phases : [];
+}
+
+/**
+ * Normalizes one Competition Phase without mutating or persisting it.
+ *
+ * The Phase owns its declared Phase Groups and Structures. Those nested
+ * objects are normalized through the same read-only domain adapters used by
+ * the rest of Competition Core.
+ */
+export function normalizePhase(phase = {}, { competitionId = null, order = 1 } = {}) {
+  if (!phase || typeof phase !== "object") return null;
+
+  const id = typeof phase.id === "string" && phase.id.trim()
+    ? phase.id.trim()
+    : null;
+
+  if (!id) return null;
+
+  const phaseGroups = Array.isArray(phase.phaseGroups)
+    ? phase.phaseGroups
+        .map((group, index) => normalizePhaseGroup(group, {
+          phaseId: id,
+          order: index + 1
+        }))
+        .filter(Boolean)
+    : [];
+
+  const structures = Array.isArray(phase.structures)
+    ? phase.structures
+        .map((structure, index) => normalizeStructure(structure, {
+          phaseId: id,
+          order: index + 1
+        }))
+        .filter(Boolean)
+    : [];
+
+  return {
+    ...phase,
+    id,
+    competitionId: phase.competitionId ?? competitionId ?? null,
+    name: typeof phase.name === "string" && phase.name.trim()
+      ? phase.name.trim()
+      : "Phase",
+    order: Number.isFinite(Number(phase.order))
+      ? Number(phase.order)
+      : order,
+    status: phase.status || "configured",
+    matchFormat: phase.matchFormat ?? null,
+    rules: phase.rules ?? null,
+    phaseGroups,
+    structures
+  };
+}
+
+/**
+ * Resolves one normalized Phase by ID.
+ */
+export function getCompetitionPhase(event = {}, phaseId = null) {
+  if (!phaseId) return null;
+
+  const competitionId = event?.id || event?.eventId || null;
+  const phase = getCompetitionPhases(event).find((candidate) => candidate?.id === phaseId);
+
+  return phase
+    ? normalizePhase(phase, { competitionId })
+    : null;
+}
+
+/**
+ * Normalizes one Phase Group as a read-only competition domain object.
+ */
+export function normalizePhaseGroup(group = {}, { phaseId = null, order = 1 } = {}) {
+  if (!group || typeof group !== "object") return null;
+
+  const id = typeof group.id === "string" && group.id.trim()
+    ? group.id.trim()
+    : null;
+
+  if (!id) return null;
+
+  return {
+    ...group,
+    id,
+    phaseId: group.phaseId ?? phaseId ?? null,
+    name: typeof group.name === "string" && group.name.trim()
+      ? group.name.trim()
+      : "Phase Group",
+    order: Number.isFinite(Number(group.order))
+      ? Number(group.order)
+      : order,
+    participants: Array.isArray(group.participants)
+      ? [...group.participants]
+      : [],
+    structureId: group.structureId ?? null,
+    rules: group.rules ?? null,
+    status: group.status || "configured"
+  };
+}
+
+/**
+ * Returns the explicitly declared Phase Groups for a Phase.
+ */
+export function getCompetitionPhaseGroups(event = {}, { phaseId = null } = {}) {
+  const phases = getCompetitionPhases(event);
+  const competitionId = event?.id || event?.eventId || null;
+
+  return phases
+    .filter((phase) => !phaseId || phase?.id === phaseId)
+    .flatMap((phase) => {
+      const normalizedPhase = normalizePhase(phase, { competitionId });
+      return normalizedPhase?.phaseGroups || [];
+    })
+    .sort((a, b) => {
+      if (a.phaseId !== b.phaseId) return String(a.phaseId).localeCompare(String(b.phaseId));
+      return a.order - b.order;
+    });
 }
 
 export const ENTRY_STATUS = {
@@ -165,8 +285,23 @@ function normalizeEntryStatus(status) {
  * continue to resolve to null.
  */
 export function getMatchPhase(event = {}, match = {}) {
-  if (!match || typeof match !== "object" || !match.phaseId) return null;
-  return getCompetitionPhases(event).find((phase) => phase?.id === match.phaseId) || null;
+  if (!match || typeof match !== "object") return null;
+
+  const explicitPhaseId = match.phaseId || null;
+  if (explicitPhaseId) {
+    return getCompetitionPhase(event, explicitPhaseId);
+  }
+
+  if (match.structureId) {
+    const structure = getCompetitionStructures(event)
+      .find((candidate) => candidate?.id === match.structureId);
+
+    if (structure?.phaseId) {
+      return getCompetitionPhase(event, structure.phaseId);
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -259,12 +394,26 @@ export function normalizeStructure(structure = {}, { phaseId = null, order = 1 }
 
   const type = normalizeStructureType(structure.type || structure.structureType);
 
+  const id = typeof structure.id === "string" && structure.id.trim()
+    ? structure.id.trim()
+    : null;
+  const resolvedPhaseId = structure.phaseId ?? phaseId ?? null;
+
+  const rounds = Array.isArray(structure.rounds)
+    ? structure.rounds
+        .map((round, index) => normalizeRound(round, {
+          structureId: id,
+          phaseId: resolvedPhaseId,
+          order: index + 1,
+          source: "domain"
+        }))
+        .filter(Boolean)
+    : [];
+
   return {
     ...structure,
-    id: typeof structure.id === "string" && structure.id.trim()
-      ? structure.id.trim()
-      : null,
-    phaseId: structure.phaseId ?? phaseId ?? null,
+    id,
+    phaseId: resolvedPhaseId,
     name: typeof structure.name === "string" && structure.name.trim()
       ? structure.name.trim()
       : "Structure",
@@ -272,7 +421,8 @@ export function normalizeStructure(structure = {}, { phaseId = null, order = 1 }
       ? Number(structure.order)
       : order,
     type,
-    status: structure.status || "configured"
+    status: structure.status || "configured",
+    rounds
   };
 }
 
@@ -811,7 +961,8 @@ export function normalizeBracketSegment(value) {
 export function normalizeRound(round = {}, {
   structureId = null,
   phaseId = null,
-  order = 1
+  order = 1,
+  source = null
 } = {}) {
   if (!round || typeof round !== "object") return null;
 
@@ -846,7 +997,7 @@ export function normalizeRound(round = {}, {
     bracket,
     matches: Array.isArray(round.matches) ? round.matches : [],
     status: round.status || "configured",
-    source: round.id ? "stage" : "legacy-derived"
+    source: source || (round.id ? "stage" : "legacy-derived")
   };
 }
 
@@ -874,6 +1025,23 @@ export function getCompetitionRounds(event = {}, {
   const stages = Array.isArray(event?.pro?.bracket?.stages)
     ? event.pro.bracket.stages
     : [];
+
+  // Legacy stages remain the operational source whenever they exist.
+  // Explicit domain rounds are only used when the legacy bracket does not
+  // provide stages, preventing duplicate representations during migration.
+  if (!stages.length) {
+    const declaredRounds = getCompetitionStructures(event)
+      .flatMap((structure) => Array.isArray(structure?.rounds) ? structure.rounds : []);
+
+    return declaredRounds
+      .filter((round) => {
+        if (!round) return false;
+        if (phaseId && round.phaseId !== phaseId) return false;
+        if (structureId && round.structureId !== structureId) return false;
+        if (bracket && round.bracket !== normalizeBracketSegment(bracket)) return false;
+        return true;
+      });
+  }
 
   return stages
     .map((stage, index) => {
@@ -922,19 +1090,27 @@ export function getMatchCompetitionContext(event = {}, match = {}) {
 
   const phase = getMatchPhase(event, match);
   const structure = getMatchStructure(event, match);
-  const round = getMatchRound(match);
+  const round = getMatchRoundFromCompetition(event, match, {
+    phaseId: match.phaseId ?? phase?.id ?? null,
+    structureId: match.structureId ?? structure?.id ?? null
+  });
+  const phaseGroup = getMatchPhaseGroup(event, match, phase);
   const bracket = getMatchBracketSegment(match);
 
   return {
     phase,
+    phaseGroup: phaseGroup.phaseGroup
+      ? normalizePhaseGroup(phaseGroup.phaseGroup, {
+          phaseId: phase?.id ?? null,
+          order: phaseGroup.phaseGroup.order || 1
+        })
+      : null,
     structure,
     round: round
       ? {
           ...round,
-          structureId: round.id && structure?.id
-            ? structure.id
-            : round.structureId ?? structure?.id ?? null,
-          phaseId: match.phaseId ?? phase?.id ?? null,
+          structureId: round.structureId ?? structure?.id ?? null,
+          phaseId: round.phaseId ?? match.phaseId ?? phase?.id ?? null,
           bracket
         }
       : null,
