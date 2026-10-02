@@ -247,6 +247,26 @@ export function TournamentPro() {
       const getParticipantName = (id) =>
         id ? pro.participants?.[id]?.displayName || id : "Posición disponible";
 
+      const getMatchGameSummary = (match) => {
+        const games = Array.isArray(match?.games) ? match.games : [];
+        const completedGames = games.filter((game) => game?.status === "completed");
+        const winsA = completedGames.filter((game) => game?.winner?.side === "A").length;
+        const winsB = completedGames.filter((game) => game?.winner?.side === "B").length;
+        const lastGame = completedGames[completedGames.length - 1] || null;
+        const lastWinnerSide = lastGame?.winner?.side === "A" || lastGame?.winner?.side === "B"
+          ? lastGame.winner.side
+          : null;
+
+        return {
+          games: completedGames,
+          winsA,
+          winsB,
+          lastGame,
+          lastWinnerSide,
+          nextGameNumber: completedGames.length + 1
+        };
+      };
+
       const getInitials = (value = "") => {
         const parts = String(value).trim().split(/\s+/).filter(Boolean);
         return (parts.slice(0, 2).map((part) => part[0]).join("") || "?").toUpperCase();
@@ -348,7 +368,6 @@ export function TournamentPro() {
         const participantBId = match.participantBId || slotB?.participantId || null;
         const hasBoth = Boolean(participantAId && participantBId);
         const matchSystemValue = match.matchSystem || pro.matchSystem || null;
-        const canCompleteMatch = eventLive && match.status === "live" && hasBoth;
         const deliveryMode = getCompetitionDeliveryMode(event);
         const stations = getCompetitionStations(event);
         const matchStation = stations.find((station) => station.currentMatchId === match.id) || null;
@@ -365,11 +384,9 @@ export function TournamentPro() {
             ${matchSystemValue ? `<div class="tournament-pro-page__match-system">${escapeHtml(matchSystemValue)}</div>` : ""}
             <div class="tournament-pro-page__match-player ${match.winnerId === participantAId ? "is-winner" : ""}">
               <span>${escapeHtml(getParticipantName(participantAId))}</span>
-              ${canCompleteMatch ? `<button type="button" data-winner="${escapeAttr(participantAId)}" data-match="${escapeAttr(match.id)}">GANÓ</button>` : ""}
             </div>
             <div class="tournament-pro-page__match-player ${match.winnerId === participantBId ? "is-winner" : ""}">
               <span>${escapeHtml(getParticipantName(participantBId))}</span>
-              ${canCompleteMatch ? `<button type="button" data-winner="${escapeAttr(participantBId)}" data-match="${escapeAttr(match.id)}">GANÓ</button>` : ""}
             </div>
             ${match.score ? `<div class="tournament-pro-page__score">Resultado · ${escapeHtml(formatScore(match.score))}</div>` : ""}
             ${match.status === "bye" ? `<div class="tournament-pro-page__match-note"><i class="fa-solid fa-forward" aria-hidden="true"></i> BYE · avance automático</div>` : ""}
@@ -395,14 +412,7 @@ export function TournamentPro() {
                 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Abrir match
               </button>
             ` : ""}
-            ${canCompleteMatch ? `
-              <div class="tournament-pro-page__score-inputs">
-                <label><span>A</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-a="${escapeAttr(match.id)}"></label>
-                <span class="tournament-pro-page__score-separator">—</span>
-                <label><span>B</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-b="${escapeAttr(match.id)}"></label>
-              </div>
-              <small class="tournament-pro-page__match-helper">Selecciona GANÓ para cerrar el match y avanzar el bracket.</small>
-            ` : ""}
+
           </article>
         `;
       };
@@ -528,6 +538,7 @@ export function TournamentPro() {
         const selectedOperationalMatch = selectedOperationalStation?.currentMatchId
           ? allCompetitionMatches.find((item) => item.match?.id === selectedOperationalStation.currentMatchId)?.match || null
           : null;
+        const selectedOperationalMatchGameSummary = getMatchGameSummary(selectedOperationalMatch);
         const operationalAssignableMatches = operationsModel.readyUnassigned;
         if (!matchSelectionPool.some((match) => match?.id === selectedWorkspaceMatchId)) {
           selectedWorkspaceMatchId = null;
@@ -1211,6 +1222,37 @@ export function TournamentPro() {
                   <div><span>ESTADO</span><strong>${escapeHtml(matchStatusLabel(selectedWorkspaceMatch.status))}</strong></div>
                 </div>
 
+                ${selectedWorkspaceMatch.status === "live" ? `
+                  <section class="tournament-pro-page__match-series-panel tournament-pro-page__match-series-panel--workspace" aria-label="Progreso de la serie">
+                    <div class="tournament-pro-page__match-series-panel-header">
+                      <div>
+                        <span class="tournament-pro-page__eyebrow">SERIE EN CURSO</span>
+                        <strong>Games ${selectedWorkspaceMatchGameSummary.winsA} — ${selectedWorkspaceMatchGameSummary.winsB}</strong>
+                      </div>
+                      <span class="tournament-pro-page__match-series-next-badge">GAME ${selectedWorkspaceMatchGameSummary.nextGameNumber}</span>
+                    </div>
+                    <div class="tournament-pro-page__match-series-progress">
+                      <div>
+                        <span>ÚLTIMO GAME</span>
+                        <strong>${selectedWorkspaceMatchGameSummary.lastGame ? `GAME ${selectedWorkspaceMatchGameSummary.games.length}` : "NINGUNO"}</strong>
+                        <small>${selectedWorkspaceMatchGameSummary.lastGame
+                          ? `${selectedWorkspaceMatchGameSummary.lastWinnerSide === "A"
+                            ? escapeHtml(getParticipantName(selectedWorkspaceMatch.participantAId))
+                            : selectedWorkspaceMatchGameSummary.lastWinnerSide === "B"
+                              ? escapeHtml(getParticipantName(selectedWorkspaceMatch.participantBId))
+                              : "Resultado registrado"} ganó`
+                          : "Aún no hay Games registrados"}</small>
+                      </div>
+                      <div class="tournament-pro-page__match-series-arrow" aria-hidden="true">→</div>
+                      <div class="is-next">
+                        <span>AHORA</span>
+                        <strong>GAME ${selectedWorkspaceMatchGameSummary.nextGameNumber}</strong>
+                        <small>Listo para registrar</small>
+                      </div>
+                    </div>
+                  </section>
+                ` : ""}
+
                 <div class="tournament-pro-page__match-workspace-actions">
                   ${selectedWorkspaceMatchCanStart && selectedMatchStation ? `<button type="button" class="tournament-pro-page__primary-action" data-start-match="${escapeAttr(selectedWorkspaceMatch.id || "")}"><i class="fa-solid fa-play" aria-hidden="true"></i> Iniciar match</button>` : ""}
                   ${selectedWorkspaceMatchCanComplete ? `
@@ -1269,6 +1311,45 @@ export function TournamentPro() {
                           <div><span>ESTADO</span><strong>${escapeHtml(matchStatusLabel(selectedOperationalMatch.status))}</strong></div>
                         </div>
 
+                        ${selectedOperationalMatch.status === "live" ? `
+                          <section class="tournament-pro-page__match-series-panel" aria-label="Progreso de la serie">
+                            <div class="tournament-pro-page__match-series-panel-header">
+                              <div>
+                                <span class="tournament-pro-page__eyebrow">SERIE EN CURSO</span>
+                                <strong>Games ${selectedOperationalMatchGameSummary.winsA} — ${selectedOperationalMatchGameSummary.winsB}</strong>
+                              </div>
+                              <span class="tournament-pro-page__match-series-next-badge">
+                                GAME ${selectedOperationalMatchGameSummary.nextGameNumber}
+                              </span>
+                            </div>
+
+                            <div class="tournament-pro-page__match-series-progress">
+                              <div>
+                                <span>ÚLTIMO GAME</span>
+                                <strong>${selectedOperationalMatchGameSummary.lastGame ? `GAME ${selectedOperationalMatchGameSummary.games.length}` : "NINGUNO"}</strong>
+                                <small>${selectedOperationalMatchGameSummary.lastGame
+                                  ? `${selectedOperationalMatchGameSummary.lastWinnerSide === "A"
+                                    ? escapeHtml(getParticipantName(selectedOperationalMatch.participantAId))
+                                    : selectedOperationalMatchGameSummary.lastWinnerSide === "B"
+                                      ? escapeHtml(getParticipantName(selectedOperationalMatch.participantBId))
+                                      : "Resultado registrado"} ganó`
+                                  : "Aún no hay Games registrados"}</small>
+                              </div>
+                              <div class="tournament-pro-page__match-series-arrow" aria-hidden="true">→</div>
+                              <div class="is-next">
+                                <span>AHORA</span>
+                                <strong>GAME ${selectedOperationalMatchGameSummary.nextGameNumber}</strong>
+                                <small>Registra el siguiente Game de la serie</small>
+                              </div>
+                            </div>
+
+                            <div class="tournament-pro-page__match-series-meta">
+                              <span>Serie: <strong>${selectedOperationalMatchGameSummary.winsA} — ${selectedOperationalMatchGameSummary.winsB}</strong></span>
+                              <span>Games registrados: <strong>${selectedOperationalMatchGameSummary.games.length}</strong></span>
+                            </div>
+                          </section>
+                        ` : ""}
+
                         ${selectedOperationalMatch.status === "pending" ? `
                           <div class="tournament-pro-page__operations-modal-actions">
                             <button type="button" class="tournament-pro-page__primary-action" data-start-match="${escapeAttr(selectedOperationalMatch.id)}">
@@ -1278,13 +1359,20 @@ export function TournamentPro() {
                           </div>
                         ` : selectedOperationalMatch.status === "live" ? `
                           <div class="tournament-pro-page__operations-modal-actions">
-                            <div class="tournament-pro-page__score-inputs">
-                              <label><span>A</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-a="${escapeAttr(selectedOperationalMatch.id)}"></label>
-                              <span class="tournament-pro-page__score-separator">—</span>
-                              <label><span>B</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-b="${escapeAttr(selectedOperationalMatch.id)}"></label>
+                            <div class="tournament-pro-page__match-game-entry-heading">
+                              <div>
+                                <span class="tournament-pro-page__eyebrow">REGISTRAR RESULTADO</span>
+                                <strong>GAME ${selectedOperationalMatchGameSummary.nextGameNumber}</strong>
+                              </div>
+                              <small>Elige el ganador después de introducir el marcador.</small>
                             </div>
-                            <button type="button" data-winner="${escapeAttr(selectedOperationalMatch.participantAId || "")}" data-match="${escapeAttr(selectedOperationalMatch.id)}">Ganó ${escapeHtml(getParticipantName(selectedOperationalMatch.participantAId))}</button>
-                            <button type="button" data-winner="${escapeAttr(selectedOperationalMatch.participantBId || "")}" data-match="${escapeAttr(selectedOperationalMatch.id)}">Ganó ${escapeHtml(getParticipantName(selectedOperationalMatch.participantBId))}</button>
+                            <div class="tournament-pro-page__score-inputs">
+                              <label><span>${escapeHtml(getParticipantName(selectedOperationalMatch.participantAId))}</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-a="${escapeAttr(selectedOperationalMatch.id)}"></label>
+                              <span class="tournament-pro-page__score-separator">—</span>
+                              <label><span>${escapeHtml(getParticipantName(selectedOperationalMatch.participantBId))}</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-b="${escapeAttr(selectedOperationalMatch.id)}"></label>
+                            </div>
+                            <button type="button" data-winner="${escapeAttr(selectedOperationalMatch.participantAId || "")}" data-match="${escapeAttr(selectedOperationalMatch.id)}">GAME ${escapeHtml(String(selectedOperationalMatchGameSummary.nextGameNumber))} · GANÓ ${escapeHtml(getParticipantName(selectedOperationalMatch.participantAId))}</button>
+                            <button type="button" data-winner="${escapeAttr(selectedOperationalMatch.participantBId || "")}" data-match="${escapeAttr(selectedOperationalMatch.id)}">GAME ${escapeHtml(String(selectedOperationalMatchGameSummary.nextGameNumber))} · GANÓ ${escapeHtml(getParticipantName(selectedOperationalMatch.participantBId))}</button>
                           </div>
                         ` : `
                           <div class="tournament-pro-page__operations-modal-actions">

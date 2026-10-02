@@ -69,8 +69,14 @@ function renderMatch(pro, match) {
   const winner = match?.winnerId || null;
   const matchSystem = match?.matchSystem || pro?.matchSystem || null;
   const score = match?.score;
-  const formattedScore = score && typeof score === "object" && ("a" in score || "b" in score)
-    ? `${score.a ?? 0} — ${score.b ?? 0}`
+  const formattedScore = score && typeof score === "object"
+    ? (
+        "A" in score || "B" in score
+          ? `${score.A ?? 0} — ${score.B ?? 0}`
+          : "a" in score || "b" in score
+            ? `${score.a ?? 0} — ${score.b ?? 0}`
+            : ""
+      )
     : score != null
       ? String(score)
       : "";

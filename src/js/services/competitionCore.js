@@ -29,6 +29,9 @@ import {
   STATION_TYPES,
   STATION_STATUS
 } from "./competitionTypes.js";
+import {
+  getMatchResultBridgePreview
+} from "./competitionMatchResultBridge.js";
 
 
 /**
@@ -1684,12 +1687,71 @@ export function applyAdvancementPlan(bracket, advancementPlan, { score = null } 
 }
 
 /**
+ * Returns the Game-based Match Result bridge preview for a live Match.
+ *
+ * This is the Core boundary between the new Game Result domain and the
+ * existing Tournament Pro result engine. It is intentionally read-only: no
+ * bracket mutation or advancement occurs here.
+ */
+export function getGameBasedMatchResultPreview(bracket, matchId) {
+  const match = validateMatchStateInBracket(
+    bracket,
+    matchId,
+    "result"
+  );
+
+  return getMatchResultBridgePreview(match);
+}
+
+/**
+ * Applies a Match result produced from completed Games through the existing
+ * Match Result command and Advancement pipeline.
+ *
+ * An undecided Match returns without mutating the bracket. Once the Game
+ * results decide the Match, the bridge produces the legacy-compatible
+ * command and the existing application seam handles advancement.
+ */
+export function applyGameBasedMatchResultCommand(bracket, matchId) {
+  const preview = getGameBasedMatchResultPreview(
+    bracket,
+    matchId
+  );
+
+  if (preview.status === "in_progress") {
+    return {
+      bracket,
+      applied: false,
+      result: preview.result,
+      advancementPlan: null,
+      source: "GAME_RESULTS"
+    };
+  }
+
+  if (preview.status !== "ready" || !preview.command) {
+    throw new Error(
+      `Cannot apply Game-based match result: ${preview.status}`
+    );
+  }
+
+  const applied = applyMatchResultCommand(
+    bracket,
+    preview.command
+  );
+
+  return {
+    ...applied,
+    applied: true,
+    source: "GAME_RESULTS"
+  };
+}
+
+/**
  * Applies a Match result through the existing competition engine.
  *
  * The Core now has an explicit two-step boundary: first it decides the
  * advancement plan, then it applies that plan through the existing engine.
  * This keeps future clients (Tournament Operations, API, etc.) on the same
- * advancement path without creating a second bracket engine.
+ * advancement path without creating a second advancement engine.
  */
 export function applyMatchResultCommand(bracket, command) {
   const normalizedCommand = normalizeMatchResultCommand(command);

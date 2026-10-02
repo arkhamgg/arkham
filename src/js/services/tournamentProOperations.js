@@ -28,6 +28,18 @@ import {
   getCompetitionStations,
   normalizeStation
 } from "./competitionCore.js";
+import {
+  createNextMatchGame
+} from "./competitionGames.js";
+import {
+  applyGameResult
+} from "./competitionGameResults.js";
+import {
+  getMatchResult
+} from "./competitionMatchResults.js";
+import {
+  createLegacyMatchResultCommand
+} from "./competitionMatchResultBridge.js";
 import { STATION_STATUS, STATION_TYPES } from "./competitionTypes.js";
 import {
   validateCompetitionConfiguration,
@@ -92,6 +104,20 @@ function ensurePersistentEntry(pro, participant, { competitionId = null } = {}) 
 
   pro.entries[entry.id] = entry;
   return entry;
+}
+
+function normalizeGameScoreValue(value) {
+  const score = Number(value);
+
+  if (!Number.isFinite(score) || score < 0) {
+    return null;
+  }
+
+  return score;
+}
+
+function cloneValue(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 function resolveParticipantId(pro, identifier) {
@@ -1118,25 +1144,148 @@ export async function completeMatch({
     match
   );
 
-  const winnerEntryId = winnerId === match.participantAId
-    ? match.entryAId || null
-    : winnerId === match.participantBId
-      ? match.entryBId || null
-      : null;
+  if (match.status !== MATCH_STATUS.LIVE) {
+    throw new Error(
+      "El match debe estar en vivo antes de registrar el resultado del Game."
+    );
+  }
 
-  const resultCommand = {
-    matchId,
-    winnerId,
-    winnerEntryId,
-    score,
-    source: "TOURNAMENT_PRO"
+  const winnerSide =
+    winnerId === match.participantAId
+      ? "A"
+      : winnerId === match.participantBId
+        ? "B"
+        : null;
+
+  if (!winnerSide) {
+    throw new Error(
+      "El ganador indicado no pertenece al match."
+    );
+  }
+
+  const scoreA = normalizeGameScoreValue(
+    score?.A ?? score?.a
+  );
+  const scoreB = normalizeGameScoreValue(
+    score?.B ?? score?.b
+  );
+
+  if (scoreA === null || scoreB === null) {
+    throw new Error(
+      "El resultado del Game requiere un marcador numérico para A y B."
+    );
+  }
+
+  // Trabajamos sobre una copia completa del bracket.
+  // Así, si Advancement o la validación Entry/Participant falla,
+  // el Match original no queda contaminado con un Game que nunca
+  // llegó a persistirse.
+  const workingPro = {
+    ...pro,
+    bracket: cloneValue(pro.bracket)
+  };
+
+  // Esta es la API pública existente para reconciliar Slots, Matches
+  // y Entries. No exportamos ni duplicamos la función interna de
+  // tournamentPro.js; reutilizamos el contrato ya existente.
+  syncBracketSlotsWithEntries(workingPro);
+
+  const workingMatch = findMatch(
+    workingPro.bracket,
+    matchId
+  );
+
+  if (!workingMatch) {
+    throw new Error("Match no encontrado en el bracket de trabajo.");
+  }
+
+  validateMatchParticipants(
+    workingPro,
+    workingMatch
+  );
+
+  const workingWinnerSide =
+    winnerId === workingMatch.participantAId
+      ? "A"
+      : winnerId === workingMatch.participantBId
+        ? "B"
+        : null;
+
+  if (!workingWinnerSide) {
+    throw new Error(
+      "El ganador indicado no pertenece al match después de reconciliar identidades."
+    );
+  }
+
+  const {
+    match: matchWithGame,
+    game
+  } = createNextMatchGame(workingMatch);
+
+  const gameResultOperation = applyGameResult(
+    game,
+    {
+      winnerSide: workingWinnerSide,
+      scoreA,
+      scoreB
+    }
+  );
+
+  workingMatch.games = matchWithGame.games.map(
+    (candidateGame) =>
+      candidateGame.id === game.id
+        ? gameResultOperation.game
+        : candidateGame
+  );
+
+  const matchResult = getMatchResult(workingMatch);
+
+  if (matchResult.status === "invalid") {
+    throw new Error(
+      "El formato del match no permite calcular el resultado de la serie."
+    );
+  }
+
+  // El score del Match representa ahora la serie:
+  // cantidad de Games ganados por cada lado.
+  workingMatch.score = {
+    A: matchResult.score.A,
+    B: matchResult.score.B
+  };
+
+  // Si la serie todavía no está decidida (por ejemplo, BO3 1-0
+  // o BO3 1-1), persistimos únicamente el bracket de trabajo válido
+  // y dejamos el Match en vivo.
+  if (matchResult.status !== "completed") {
+    pro.bracket = workingPro.bracket;
+    ensureStationState(pro, event);
+
+    return savePro(
+      tournamentId,
+      eventId,
+      event,
+      pro
+    );
+  }
+
+  // Solo cuando Match Result confirma la serie usamos el Bridge
+  // sobre el Match reconciliado para entrar al mismo motor de
+  // Advancement que ya existía.
+  const resultCommand =
+    createLegacyMatchResultCommand(workingMatch);
+
+  resultCommand.source = {
+    ...resultCommand.source,
+    operation: "TOURNAMENT_PRO_GAME_RESULTS"
   };
 
   const resultOperation = applyMatchResultCommand(
-    pro.bracket,
+    workingPro.bracket,
     resultCommand
   );
 
+  // Advancement terminó correctamente. Solo ahora reemplazamos el
+  // bracket real; si lanza una excepción, pro.bracket sigue intacto.
   pro.bracket = resultOperation.bracket;
 
   const updatedMatch = findMatch(
