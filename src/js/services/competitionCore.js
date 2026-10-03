@@ -719,6 +719,286 @@ export function getCompetitionStructureSlotSummary(event = {}, options = {}) {
 }
 
 /**
+ * Competition Structure Slot Placement Domain v2.
+ *
+ * Placement Resolution answers one read-only question: given the declared
+ * Structure Slots and the current Seeding assignments, which Entry would
+ * resolve to each Slot, and is that resolution valid?
+ *
+ * This layer deliberately does not persist assignments, generate brackets,
+ * calculate BYEs, or move Entries. It only exposes a deterministic resolution
+ * view that a future placement command or bracket generator can consume.
+ */
+export const PLACEMENT_STATUS = {
+  UNRESOLVED: "UNRESOLVED",
+  RESOLVED: "RESOLVED",
+  CONFLICT: "CONFLICT",
+  INVALID: "INVALID"
+};
+
+export const PLACEMENT_SOURCES = {
+  ENTRY: "ENTRY",
+  SEED: "SEED",
+  ENTRY_AND_SEED: "ENTRY_AND_SEED",
+  NONE: "NONE"
+};
+
+function normalizePlacementStatus(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return Object.values(PLACEMENT_STATUS).includes(normalized)
+    ? normalized
+    : PLACEMENT_STATUS.UNRESOLVED;
+}
+
+function normalizePlacementSource(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return Object.values(PLACEMENT_SOURCES).includes(normalized)
+    ? normalized
+    : PLACEMENT_SOURCES.NONE;
+}
+
+/**
+ * Normalizes one derived Slot placement result.
+ *
+ * The returned object is a view model only. It never writes the resolved
+ * Entry back to the Slot or Entry.
+ */
+export function normalizeStructureSlotPlacement(placement = {}) {
+  if (!placement || typeof placement !== "object") return null;
+
+  const slotId = typeof placement.slotId === "string" && placement.slotId.trim()
+    ? placement.slotId.trim()
+    : null;
+
+  if (!slotId) return null;
+
+  const seed = normalizeSeedValue(placement.seed);
+  const entryId = typeof placement.entryId === "string" && placement.entryId.trim()
+    ? placement.entryId.trim()
+    : null;
+
+  return {
+    ...placement,
+    slotId,
+    structureId: placement.structureId ?? null,
+    phaseId: placement.phaseId ?? null,
+    phaseGroupId: placement.phaseGroupId ?? null,
+    roundId: placement.roundId ?? null,
+    position: placement.position ?? null,
+    seed,
+    entryId,
+    participantId: placement.participantId ?? null,
+    status: normalizePlacementStatus(placement.status),
+    source: normalizePlacementSource(placement.source),
+    reasonCodes: Array.isArray(placement.reasonCodes)
+      ? [...new Set(placement.reasonCodes)]
+      : []
+  };
+}
+
+/**
+ * Derives all Slot placement resolutions for the selected Structure context.
+ *
+ * Resolution precedence is explicit:
+ * 1. a persisted slot.entryId is an Entry reference;
+ * 2. a persisted slot.seed resolves through the Seeding domain;
+ * 3. when both exist they must point to the same Entry;
+ * 4. an empty Slot remains UNRESOLVED.
+ *
+ * Conflicts are detected across Slots as well: an Entry or Seed may not
+ * resolve to multiple structural positions in the same placement scope.
+ */
+export function getCompetitionStructureSlotPlacements(event = {}, options = {}) {
+  const slots = getCompetitionStructureSlots(event, options);
+  const entries = getCompetitionEntries(event, { includeInactive: true });
+  const entriesById = new Map(entries.map((entry) => [entry.id, entry]));
+  const seeds = getCompetitionSeeds(event, options);
+  const seedsByValue = new Map();
+
+  seeds.forEach((assignment) => {
+    if (!seedsByValue.has(assignment.seed)) {
+      seedsByValue.set(assignment.seed, []);
+    }
+    seedsByValue.get(assignment.seed).push(assignment);
+  });
+
+  const entrySlotCounts = new Map();
+  const seedSlotCounts = new Map();
+
+  slots.forEach((slot) => {
+    if (slot.entryId) {
+      entrySlotCounts.set(slot.entryId, (entrySlotCounts.get(slot.entryId) || 0) + 1);
+    }
+    if (slot.seed != null) {
+      seedSlotCounts.set(slot.seed, (seedSlotCounts.get(slot.seed) || 0) + 1);
+    }
+  });
+
+  return slots.map((slot) => {
+    const reasonCodes = [];
+    const explicitEntry = slot.entryId
+      ? entriesById.get(slot.entryId) || null
+      : null;
+    const seedAssignments = slot.seed != null
+      ? (seedsByValue.get(slot.seed) || [])
+      : [];
+    const seedAssignment = seedAssignments.length === 1
+      ? seedAssignments[0]
+      : null;
+    const seedEntry = seedAssignment?.entry || null;
+
+    if (slot.entryId && !explicitEntry) {
+      reasonCodes.push("ENTRY_NOT_FOUND");
+    }
+
+    if (slot.seed != null && seedAssignments.length === 0) {
+      reasonCodes.push("SEED_NOT_FOUND");
+    }
+
+    if (slot.seed != null && seedAssignments.length > 1) {
+      reasonCodes.push("SEED_ASSIGNMENT_CONFLICT");
+    }
+
+    if (slot.entryId && slot.seed != null && seedAssignment && seedAssignment.entryId !== slot.entryId) {
+      reasonCodes.push("ENTRY_SEED_MISMATCH");
+    }
+
+    if (slot.entryId && entrySlotCounts.get(slot.entryId) > 1) {
+      reasonCodes.push("ENTRY_IN_MULTIPLE_SLOTS");
+    }
+
+    if (slot.seed != null && seedSlotCounts.get(slot.seed) > 1) {
+      reasonCodes.push("SEED_IN_MULTIPLE_SLOTS");
+    }
+
+    if (slot.status === SLOT_STATUS.BLOCKED) {
+      reasonCodes.push("SLOT_BLOCKED");
+    }
+
+    if (slot.status === SLOT_STATUS.BYE || slot.type === SLOT_TYPES.BYE) {
+      reasonCodes.push("SLOT_IS_BYE");
+    }
+
+    const resolvedEntry = explicitEntry && seedEntry
+      ? explicitEntry.id === seedEntry.id
+        ? explicitEntry
+        : null
+      : explicitEntry || seedEntry || null;
+
+    const hasEntrySource = Boolean(explicitEntry);
+    const hasSeedSource = Boolean(seedEntry);
+    const source = hasEntrySource && hasSeedSource
+      ? PLACEMENT_SOURCES.ENTRY_AND_SEED
+      : hasEntrySource
+        ? PLACEMENT_SOURCES.ENTRY
+        : hasSeedSource
+          ? PLACEMENT_SOURCES.SEED
+          : PLACEMENT_SOURCES.NONE;
+
+    const hasConflict = reasonCodes.some((code) => [
+      "ENTRY_SEED_MISMATCH",
+      "ENTRY_IN_MULTIPLE_SLOTS",
+      "SEED_IN_MULTIPLE_SLOTS",
+      "SEED_ASSIGNMENT_CONFLICT"
+    ].includes(code));
+
+    const hasInvalid = reasonCodes.some((code) => [
+      "ENTRY_NOT_FOUND",
+      "SEED_NOT_FOUND",
+      "SLOT_BLOCKED"
+    ].includes(code));
+
+    let status = PLACEMENT_STATUS.UNRESOLVED;
+
+    if (hasConflict) {
+      status = PLACEMENT_STATUS.CONFLICT;
+    } else if (hasInvalid) {
+      status = PLACEMENT_STATUS.INVALID;
+    } else if (resolvedEntry && ![SLOT_STATUS.BLOCKED, SLOT_STATUS.BYE].includes(slot.status)) {
+      status = PLACEMENT_STATUS.RESOLVED;
+    }
+
+    return normalizeStructureSlotPlacement({
+      slotId: slot.id,
+      structureId: slot.structureId,
+      phaseId: slot.phaseId,
+      phaseGroupId: slot.phaseGroupId,
+      roundId: slot.roundId,
+      position: slot.position,
+      seed: slot.seed,
+      entryId: resolvedEntry?.id || null,
+      participantId: resolvedEntry?.legacyParticipantId || null,
+      entry: resolvedEntry,
+      seedAssignment,
+      slot,
+      status,
+      source,
+      reasonCodes
+    });
+  });
+}
+
+/**
+ * Resolves one Slot placement by Slot ID without mutating state.
+ */
+export function getCompetitionStructureSlotPlacement(event = {}, slotId = null, options = {}) {
+  if (!slotId) return null;
+
+  return getCompetitionStructureSlotPlacements(event, options)
+    .find((placement) => placement.slotId === slotId) || null;
+}
+
+/**
+ * Resolves all structural positions currently associated with an Entry.
+ * Multiple results are intentionally preserved so duplicate placement
+ * conflicts remain visible to callers instead of being hidden by a first-match
+ * lookup.
+ */
+export function getCompetitionEntryPlacements(event = {}, entryId = null, options = {}) {
+  if (!entryId) return [];
+
+  return getCompetitionStructureSlotPlacements(event, options)
+    .filter((placement) => placement.entryId === entryId || placement.slot?.entryId === entryId);
+}
+
+/**
+ * Resolves all Slots associated with a Seed. Multiple results expose duplicate
+ * Slot declarations as a conflict instead of silently choosing one.
+ */
+export function getCompetitionSeedPlacements(event = {}, seed = null, options = {}) {
+  const normalizedSeed = normalizeSeedValue(seed);
+  if (normalizedSeed == null) return [];
+
+  return getCompetitionStructureSlotPlacements(event, options)
+    .filter((placement) => placement.seed === normalizedSeed);
+}
+
+/**
+ * Provides the placement-resolution summary consumed by future validation and
+ * bracket-generation layers.
+ */
+export function getCompetitionStructurePlacementSummary(event = {}, options = {}) {
+  const placements = getCompetitionStructureSlotPlacements(event, options);
+
+  return {
+    totalSlots: placements.length,
+    resolvedSlots: placements.filter((placement) => placement.status === PLACEMENT_STATUS.RESOLVED).length,
+    unresolvedSlots: placements.filter((placement) => placement.status === PLACEMENT_STATUS.UNRESOLVED).length,
+    conflictSlots: placements.filter((placement) => placement.status === PLACEMENT_STATUS.CONFLICT).length,
+    invalidSlots: placements.filter((placement) => placement.status === PLACEMENT_STATUS.INVALID).length,
+    byEntry: placements.filter((placement) => placement.source === PLACEMENT_SOURCES.ENTRY).length,
+    bySeed: placements.filter((placement) => placement.source === PLACEMENT_SOURCES.SEED).length,
+    byEntryAndSeed: placements.filter((placement) => placement.source === PLACEMENT_SOURCES.ENTRY_AND_SEED).length,
+    emptySlots: placements.filter((placement) => !placement.entryId && placement.status === PLACEMENT_STATUS.UNRESOLVED).length,
+    readyForGeneration: placements.length > 0 && placements.every((placement) =>
+      placement.status === PLACEMENT_STATUS.RESOLVED ||
+      placement.slot?.status === SLOT_STATUS.BYE ||
+      placement.slot?.type === SLOT_TYPES.BYE
+    )
+  };
+}
+
+/**
  * Resolves the Phase context of a Match. Legacy matches without phaseId
  * continue to resolve to null.
  */
