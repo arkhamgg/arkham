@@ -281,6 +281,259 @@ function normalizeEntryStatus(status) {
 }
 
 /**
+ * Competition Seeding Domain v1.
+ *
+ * Seeding answers one specific domain question: in what initial competitive
+ * order does each Entry enter a Structure? It does not create slots, generate
+ * brackets, calculate BYEs, or mutate the competition. Those responsibilities
+ * remain outside this read-only adapter until the Seeding engine is introduced.
+ */
+export const SEEDING_METHODS = {
+  MANUAL: "MANUAL",
+  RANDOM: "RANDOM",
+  PRESEEDED: "PRESEEDED",
+  RESEED: "RESEED",
+  CUSTOM: "CUSTOM"
+};
+
+export const SEEDING_STATUS = {
+  UNSEEDED: "UNSEEDED",
+  PARTIAL: "PARTIAL",
+  SEEDED: "SEEDED",
+  INVALID: "INVALID"
+};
+
+function normalizeSeedingMethod(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return Object.values(SEEDING_METHODS).includes(normalized)
+    ? normalized
+    : null;
+}
+
+function normalizeSeedValue(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : null;
+}
+
+/**
+ * Normalizes one Entry seed assignment without mutating the Entry.
+ *
+ * A seed is an initial ordering value. It is deliberately kept separate from
+ * the Entry identity and from any future Structure Slot identity.
+ */
+export function normalizeSeedAssignment(seed = {}, { competitionId = null } = {}) {
+  if (!seed || typeof seed !== "object") return null;
+
+  const entryId = typeof seed.entryId === "string" && seed.entryId.trim()
+    ? seed.entryId.trim()
+    : null;
+  const value = normalizeSeedValue(seed.seed ?? seed.value ?? seed.position);
+
+  if (!entryId || value == null) return null;
+
+  return {
+    ...seed,
+    entryId,
+    competitionId: seed.competitionId ?? competitionId ?? null,
+    seed: value,
+    status: seed.status || SEEDING_STATUS.SEEDED,
+    structureId: seed.structureId ?? null,
+    phaseId: seed.phaseId ?? null,
+    phaseGroupId: seed.phaseGroupId ?? null,
+    slotId: seed.slotId ?? null,
+    source: seed.source || "entry"
+  };
+}
+
+/**
+ * Normalizes the optional persisted Seeding configuration.
+ *
+ * When no explicit `pro.seeding` object exists, the adapter derives the
+ * assignment list from Entry.seed values. This preserves the current Entry
+ * model while establishing a stable Seeding domain read contract.
+ */
+export function normalizeSeeding(seeding = null, {
+  competitionId = null,
+  entries = []
+} = {}) {
+  const source = seeding && typeof seeding === "object" ? seeding : {};
+  const configuredAssignments = Array.isArray(source.assignments)
+    ? source.assignments
+    : Array.isArray(source.entries)
+      ? source.entries
+      : [];
+
+  const assignmentsFromConfig = configuredAssignments
+    .map((assignment) => normalizeSeedAssignment(assignment, { competitionId }))
+    .filter(Boolean);
+
+  const assignments = assignmentsFromConfig.length
+    ? assignmentsFromConfig
+    : entries
+        .map((entry) => normalizeSeedAssignment({
+          entryId: entry?.id,
+          seed: entry?.seed,
+          structureId: source.structureId ?? null,
+          phaseId: source.phaseId ?? null,
+          phaseGroupId: source.phaseGroupId ?? null,
+          source: "entry"
+        }, { competitionId }))
+        .filter(Boolean);
+
+  const uniqueSeeds = new Set();
+  const uniqueEntries = new Set();
+  let invalid = false;
+
+  assignments.forEach((assignment) => {
+    if (uniqueSeeds.has(assignment.seed) || uniqueEntries.has(assignment.entryId)) {
+      invalid = true;
+    }
+    uniqueSeeds.add(assignment.seed);
+    uniqueEntries.add(assignment.entryId);
+  });
+
+  const eligibleEntries = entries.filter((entry) => (
+    entry &&
+    ![ENTRY_STATUS.WITHDRAWN, ENTRY_STATUS.DQ].includes(entry.status)
+  ));
+
+  const seededEligibleCount = eligibleEntries.filter((entry) =>
+    assignments.some((assignment) => assignment.entryId === entry.id)
+  ).length;
+
+  let status = SEEDING_STATUS.UNSEEDED;
+  if (invalid) {
+    status = SEEDING_STATUS.INVALID;
+  } else if (seededEligibleCount === eligibleEntries.length && eligibleEntries.length > 0) {
+    status = SEEDING_STATUS.SEEDED;
+  } else if (seededEligibleCount > 0) {
+    status = SEEDING_STATUS.PARTIAL;
+  }
+
+  return {
+    ...source,
+    competitionId: source.competitionId ?? competitionId ?? null,
+    method: normalizeSeedingMethod(source.method) ||
+      (assignments.length ? SEEDING_METHODS.PRESEEDED : null),
+    status: source.status && Object.values(SEEDING_STATUS).includes(source.status)
+      ? source.status
+      : status,
+    structureId: source.structureId ?? null,
+    phaseId: source.phaseId ?? null,
+    phaseGroupId: source.phaseGroupId ?? null,
+    rules: source.rules ?? null,
+    assignments: assignments.sort((a, b) => a.seed - b.seed)
+  };
+}
+
+/**
+ * Returns the competition's Seeding domain object without mutating state.
+ */
+export function getCompetitionSeeding(event = {}, {
+  phaseId = null,
+  phaseGroupId = null,
+  structureId = null
+} = {}) {
+  const competitionId = event?.id || event?.eventId || event?.pro?.competitionId || null;
+  const entries = getCompetitionEntries(event, { includeInactive: true });
+  const persisted = event?.pro?.seeding;
+
+  const normalized = normalizeSeeding(persisted, {
+    competitionId,
+    entries
+  });
+
+  return {
+    ...normalized,
+    assignments: normalized.assignments.filter((assignment) => {
+      if (phaseId && assignment.phaseId && assignment.phaseId !== phaseId) return false;
+      if (phaseGroupId && assignment.phaseGroupId && assignment.phaseGroupId !== phaseGroupId) return false;
+      if (structureId && assignment.structureId && assignment.structureId !== structureId) return false;
+      return true;
+    })
+  };
+}
+
+/**
+ * Returns the ordered seed assignments, enriched with the corresponding Entry.
+ *
+ * This is the bridge future Structure Slot logic will consume. It does not
+ * create or persist a Slot and does not place Entries into a bracket.
+ */
+export function getCompetitionSeeds(event = {}, options = {}) {
+  const seeding = getCompetitionSeeding(event, options);
+  const entriesById = new Map(
+    getCompetitionEntries(event, { includeInactive: true }).map((entry) => [entry.id, entry])
+  );
+
+  return seeding.assignments.map((assignment) => ({
+    ...assignment,
+    entry: entriesById.get(assignment.entryId) || null,
+    displayName: entriesById.get(assignment.entryId)?.displayName || null,
+    participantId: entriesById.get(assignment.entryId)?.legacyParticipantId || null
+  }));
+}
+
+/**
+ * Resolves one Entry's current seed without assigning one.
+ */
+export function getCompetitionEntrySeed(event = {}, entryId = null, options = {}) {
+  if (!entryId) return null;
+
+  return getCompetitionSeeds(event, options)
+    .find((assignment) => assignment.entryId === entryId) || null;
+}
+
+/**
+ * Returns Entries that currently have a valid seed assignment.
+ */
+export function getSeededCompetitionEntries(event = {}, options = {}) {
+  const seededIds = new Set(
+    getCompetitionSeeds(event, options).map((assignment) => assignment.entryId)
+  );
+
+  return getCompetitionEntries(event, { includeInactive: true })
+    .filter((entry) => seededIds.has(entry.id));
+}
+
+/**
+ * Returns Entries without a current seed assignment.
+ */
+export function getUnseededCompetitionEntries(event = {}, options = {}) {
+  const seededIds = new Set(
+    getCompetitionSeeds(event, options).map((assignment) => assignment.entryId)
+  );
+
+  return getCompetitionEntries(event, { includeInactive: true })
+    .filter((entry) => !seededIds.has(entry.id));
+}
+
+/**
+ * Provides a compact read-only Seeding summary for future setup/validation UI.
+ * No BYE or bracket-slot calculation is performed here.
+ */
+export function getCompetitionSeedingSummary(event = {}, options = {}) {
+  const entries = getCompetitionEntries(event, { includeInactive: true })
+    .filter((entry) => ![ENTRY_STATUS.WITHDRAWN, ENTRY_STATUS.DQ].includes(entry.status));
+  const seeding = getCompetitionSeeding(event, options);
+  const seeds = getCompetitionSeeds(event, options);
+  const seededEntryIds = new Set(seeds.map((seed) => seed.entryId));
+
+  return {
+    status: seeding.status,
+    method: seeding.method,
+    totalEntries: entries.length,
+    seededEntries: entries.filter((entry) => seededEntryIds.has(entry.id)).length,
+    unseededEntries: entries.filter((entry) => !seededEntryIds.has(entry.id)).length,
+    assignedSeeds: seeds.length,
+    duplicateSeeds: seeding.status === SEEDING_STATUS.INVALID,
+    nextSeed: seeds.length
+      ? Math.max(...seeds.map((seed) => seed.seed)) + 1
+      : 1
+  };
+}
+
+/**
  * Resolves the Phase context of a Match. Legacy matches without phaseId
  * continue to resolve to null.
  */
