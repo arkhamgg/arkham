@@ -998,6 +998,240 @@ export function getCompetitionStructurePlacementSummary(event = {}, options = {}
   };
 }
 
+
+/**
+ * Competition Bracket Generation Domain v1.
+ *
+ * A Bracket Blueprint is a declarative proposal for how a declared Structure
+ * could be materialized into Matches. It consumes the existing Structure,
+ * Round, Slot, Seeding and Placement domains but never persists or mutates
+ * them. The legacy Tournament Pro bracket engine remains the only operational
+ * generator until a later migration step explicitly introduces a write seam.
+ */
+export const BRACKET_BLUEPRINT_STATUS = {
+  READY: "READY",
+  INCOMPLETE: "INCOMPLETE",
+  CONFLICT: "CONFLICT",
+  INVALID: "INVALID",
+  UNSUPPORTED: "UNSUPPORTED"
+};
+
+export const BRACKET_BLUEPRINT_SOURCES = {
+  DOMAIN: "DOMAIN",
+  LEGACY: "LEGACY"
+};
+
+function normalizeBlueprintStatus(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return Object.values(BRACKET_BLUEPRINT_STATUS).includes(normalized)
+    ? normalized
+    : BRACKET_BLUEPRINT_STATUS.INCOMPLETE;
+}
+
+function getBlueprintStructure(event = {}, options = {}) {
+  const structures = getCompetitionStructures(event);
+  const structureId = options.structureId || null;
+
+  if (structureId) {
+    return structures.find((structure) => structure.id === structureId) || null;
+  }
+
+  if (options.phaseId) {
+    return structures.find((structure) => structure.phaseId === options.phaseId) || null;
+  }
+
+  return structures[0] || null;
+}
+
+function getBlueprintRounds(event = {}, structure, options = {}) {
+  if (!structure) return [];
+
+  return getCompetitionRounds(event, {
+    phaseId: options.phaseId || structure.phaseId || null,
+    phaseGroupId: options.phaseGroupId || null,
+    structureId: structure.id,
+    bracket: options.bracket || null
+  }).sort((a, b) => {
+    if (String(a.bracket || "") !== String(b.bracket || "")) {
+      return String(a.bracket || "").localeCompare(String(b.bracket || ""));
+    }
+    return Number(a.order || 0) - Number(b.order || 0);
+  });
+}
+
+function buildBlueprintRound(round, placements) {
+  const hasRoundSpecificPlacements = placements.some((placement) => placement.roundId);
+  const roundSlots = placements
+    .filter((placement) => {
+      if (hasRoundSpecificPlacements) {
+        return round.id
+          ? placement.roundId === round.id
+          : false;
+      }
+
+      if (round.phaseGroupId && placement.phaseGroupId) {
+        return placement.phaseGroupId === round.phaseGroupId;
+      }
+
+      // Initial Structure Slots describe the first competitive round when no
+      // explicit roundId exists. Later rounds are represented by advancement
+      // rules and are not duplicated into the blueprint in V1.
+      return Number(round.order) === 1;
+    })
+    .sort((a, b) => Number(a.position || 0) - Number(b.position || 0));
+
+  const matches = [];
+  for (let index = 0; index < roundSlots.length; index += 2) {
+    const slotA = roundSlots[index] || null;
+    const slotB = roundSlots[index + 1] || null;
+
+    matches.push({
+      id: `${round.id || "round"}-match-${Math.floor(index / 2) + 1}`,
+      roundId: round.id || null,
+      phaseId: round.phaseId || null,
+      phaseGroupId: round.phaseGroupId || null,
+      structureId: round.structureId || null,
+      bracket: round.bracket || null,
+      order: Math.floor(index / 2) + 1,
+      participantSlots: [slotA?.slotId || null, slotB?.slotId || null],
+      participants: [
+        slotA?.entryId
+          ? { entryId: slotA.entryId, participantId: slotA.participantId || null, seed: slotA.seed || null }
+          : null,
+        slotB?.entryId
+          ? { entryId: slotB.entryId, participantId: slotB.participantId || null, seed: slotB.seed || null }
+          : null
+      ],
+      status: slotA?.entryId && slotB?.entryId
+        ? "READY"
+        : "PENDING",
+      source: BRACKET_BLUEPRINT_SOURCES.DOMAIN
+    });
+  }
+
+  return {
+    id: round.id || null,
+    name: round.name,
+    order: round.order,
+    number: round.number,
+    type: round.type,
+    bracket: round.bracket || null,
+    phaseId: round.phaseId || null,
+    phaseGroupId: round.phaseGroupId || null,
+    structureId: round.structureId || null,
+    slotIds: roundSlots.map((placement) => placement.slotId),
+    matchCount: matches.length,
+    matches
+  };
+}
+
+/**
+ * Builds a non-mutating Bracket Blueprint for one declared Structure.
+ *
+ * V1 intentionally supports only elimination structures. GROUP,
+ * ROUND_ROBIN and SWISS are reported as UNSUPPORTED rather than pretending
+ * that their pairing rules are equivalent to elimination brackets.
+ */
+export function generateCompetitionBracketBlueprint(event = {}, options = {}) {
+  const structure = getBlueprintStructure(event, options);
+
+  if (!structure) {
+    return {
+      status: BRACKET_BLUEPRINT_STATUS.INCOMPLETE,
+      reasonCodes: ["STRUCTURE_NOT_FOUND"],
+      structure: null,
+      rounds: [],
+      matches: []
+    };
+  }
+
+  const supportedStructures = [
+    STRUCTURE_TYPES.SINGLE_ELIMINATION,
+    STRUCTURE_TYPES.DOUBLE_ELIMINATION
+  ];
+
+  if (!supportedStructures.includes(structure.type)) {
+    return {
+      status: BRACKET_BLUEPRINT_STATUS.UNSUPPORTED,
+      reasonCodes: ["STRUCTURE_TYPE_NOT_SUPPORTED"],
+      structure: {
+        id: structure.id,
+        type: structure.type,
+        phaseId: structure.phaseId || null
+      },
+      rounds: [],
+      matches: []
+    };
+  }
+
+  const placementOptions = {
+    phaseId: options.phaseId || structure.phaseId || null,
+    phaseGroupId: options.phaseGroupId || null,
+    structureId: structure.id,
+    roundId: options.roundId || null
+  };
+  const placements = getCompetitionStructureSlotPlacements(event, placementOptions);
+  const placementSummary = getCompetitionStructurePlacementSummary(event, placementOptions);
+  const rounds = getBlueprintRounds(event, structure, options);
+  const reasonCodes = [];
+
+  if (!rounds.length) reasonCodes.push("ROUNDS_NOT_DECLARED");
+  if (!structure.slots?.length) reasonCodes.push("SLOTS_NOT_DECLARED");
+  if (placementSummary.conflictSlots > 0) reasonCodes.push("PLACEMENT_CONFLICT");
+  if (placementSummary.invalidSlots > 0) reasonCodes.push("PLACEMENT_INVALID");
+
+  const blueprintRounds = rounds.map((round) => buildBlueprintRound(round, placements));
+  const matches = blueprintRounds.flatMap((round) => round.matches);
+
+  if (blueprintRounds.some((round) => round.slotIds.length % 2 !== 0)) {
+    reasonCodes.push("ODD_SLOT_COUNT");
+  }
+
+  let status = BRACKET_BLUEPRINT_STATUS.READY;
+  if (reasonCodes.some((code) => ["PLACEMENT_CONFLICT"].includes(code))) {
+    status = BRACKET_BLUEPRINT_STATUS.CONFLICT;
+  } else if (reasonCodes.some((code) => ["PLACEMENT_INVALID"].includes(code))) {
+    status = BRACKET_BLUEPRINT_STATUS.INVALID;
+  } else if (reasonCodes.length) {
+    status = BRACKET_BLUEPRINT_STATUS.INCOMPLETE;
+  }
+
+  return {
+    status: normalizeBlueprintStatus(status),
+    reasonCodes: [...new Set(reasonCodes)],
+    source: BRACKET_BLUEPRINT_SOURCES.DOMAIN,
+    structure: {
+      id: structure.id,
+      name: structure.name,
+      type: structure.type,
+      phaseId: structure.phaseId || null,
+      status: structure.status || null
+    },
+    placement: placementSummary,
+    rounds: blueprintRounds,
+    matches,
+    summary: {
+      roundCount: blueprintRounds.length,
+      matchCount: matches.length,
+      readyMatches: matches.filter((match) => match.status === "READY").length,
+      pendingMatches: matches.filter((match) => match.status === "PENDING").length
+    }
+  };
+}
+
+/**
+ * Returns whether a Bracket Blueprint can be handed to a future persistence
+ * command. This remains a pure validation helper and does not persist it.
+ */
+export function canMaterializeCompetitionBracketBlueprint(blueprint = {}) {
+  if (!blueprint || typeof blueprint !== "object") return false;
+
+  return blueprint.status === BRACKET_BLUEPRINT_STATUS.READY &&
+    Array.isArray(blueprint.rounds) &&
+    blueprint.rounds.length > 0 &&
+    Array.isArray(blueprint.matches);
+}
+
 /**
  * Resolves the Phase context of a Match. Legacy matches without phaseId
  * continue to resolve to null.
