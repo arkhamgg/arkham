@@ -162,6 +162,50 @@ async function savePro(tournamentId, eventId, event, pro) {
   return { ...event, pro };
 }
 
+function saveProOptimistic(
+  tournamentId,
+  eventId,
+  event,
+  pro,
+  { onPersistenceSettled = null } = {}
+) {
+  const nextEvent = { ...event, pro };
+
+  void updateMapEntity(
+    "tournaments",
+    tournamentId,
+    "events",
+    eventId,
+    { pro }
+  )
+    .then(() => {
+      if (typeof onPersistenceSettled === "function") {
+        return onPersistenceSettled({
+          success: true,
+          error: null
+        });
+      }
+      return null;
+    })
+    .catch((error) => {
+      console.error(
+        "ARKHAM — Error persistiendo operación optimista de Tournament Pro:",
+        error
+      );
+
+      if (typeof onPersistenceSettled === "function") {
+        return onPersistenceSettled({
+          success: false,
+          error
+        });
+      }
+
+      return null;
+    });
+
+  return nextEvent;
+}
+
 export async function searchTournamentEntities(type, term = "") {
   const collection = type === "team" ? "teams" : "players";
   const normalized = String(term || "").trim().toLowerCase();
@@ -1168,7 +1212,8 @@ export async function completeMatch({
   event,
   matchId,
   winnerId,
-  score = null
+  score = null,
+  onPersistenceSettled = null
 }) {
   const pro = ensureTournamentProState(event);
   winnerId = resolveParticipantId(pro, winnerId);
@@ -1325,11 +1370,12 @@ export async function completeMatch({
     pro.bracket = workingPro.bracket;
     ensureStationState(pro, event);
 
-    return savePro(
+    return saveProOptimistic(
       tournamentId,
       eventId,
       event,
-      pro
+      pro,
+      { onPersistenceSettled }
     );
   }
 
@@ -1379,11 +1425,12 @@ export async function completeMatch({
   ensureStationState(pro, event);
   releaseStationInMemory(pro, matchId);
 
-  return savePro(
+  return saveProOptimistic(
     tournamentId,
     eventId,
     event,
-    pro
+    pro,
+    { onPersistenceSettled }
   );
 }
 

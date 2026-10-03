@@ -210,6 +210,10 @@ export function TournamentPro() {
       let selectedWorkspaceRoundId = null;
       let selectedWorkspaceMatchId = null;
       let selectedOperationalStationId = null;
+      const pendingMatchOperations = new Set();
+
+      const isMatchOperationPending = (matchId) =>
+        Boolean(matchId && pendingMatchOperations.has(matchId));
 
       const refresh = async () => {
         event = await getTournamentProEvent(tournamentId, eventId);
@@ -539,6 +543,7 @@ export function TournamentPro() {
           ? allCompetitionMatches.find((item) => item.match?.id === selectedOperationalStation.currentMatchId)?.match || null
           : null;
         const selectedOperationalMatchGameSummary = getMatchGameSummary(selectedOperationalMatch);
+        const selectedOperationalMatchPending = isMatchOperationPending(selectedOperationalMatch?.id);
         const operationalAssignableMatches = operationsModel.readyUnassigned;
         if (!matchSelectionPool.some((match) => match?.id === selectedWorkspaceMatchId)) {
           selectedWorkspaceMatchId = null;
@@ -556,6 +561,7 @@ export function TournamentPro() {
           selectedWorkspaceMatchHasBoth &&
           selectedWorkspaceMatch.status === "pending"
         );
+        const selectedWorkspaceMatchPending = isMatchOperationPending(selectedWorkspaceMatch?.id);
         const selectedWorkspaceMatchCanComplete = Boolean(
           eventLive &&
           selectedWorkspaceMatchHasBoth &&
@@ -1262,8 +1268,9 @@ export function TournamentPro() {
                       <span class="tournament-pro-page__score-separator">—</span>
                       <label><span>B</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-b="${escapeAttr(selectedWorkspaceMatch.id || "")}"></label>
                     </div>
-                    <button type="button" data-winner="${escapeAttr(selectedWorkspaceMatch.participantAId || "")}" data-match="${escapeAttr(selectedWorkspaceMatch.id || "")}">Ganó ${escapeHtml(getParticipantName(selectedWorkspaceMatch.participantAId))}</button>
-                    <button type="button" data-winner="${escapeAttr(selectedWorkspaceMatch.participantBId || "")}" data-match="${escapeAttr(selectedWorkspaceMatch.id || "")}">Ganó ${escapeHtml(getParticipantName(selectedWorkspaceMatch.participantBId))}</button>
+                    ${selectedWorkspaceMatchPending ? `<span class="tournament-pro-page__match-helper">Guardando resultado… Game ${escapeHtml(String(selectedWorkspaceMatchGameSummary.nextGameNumber))} quedará disponible al confirmar la persistencia.</span>` : ""}
+                    <button type="button" data-winner="${escapeAttr(selectedWorkspaceMatch.participantAId || "")}" data-match="${escapeAttr(selectedWorkspaceMatch.id || "")}" ${selectedWorkspaceMatchPending ? "disabled" : ""}>Ganó ${escapeHtml(getParticipantName(selectedWorkspaceMatch.participantAId))}</button>
+                    <button type="button" data-winner="${escapeAttr(selectedWorkspaceMatch.participantBId || "")}" data-match="${escapeAttr(selectedWorkspaceMatch.id || "")}" ${selectedWorkspaceMatchPending ? "disabled" : ""}>Ganó ${escapeHtml(getParticipantName(selectedWorkspaceMatch.participantBId))}</button>
                   ` : ""}
                   ${!selectedWorkspaceMatchCanStart && selectedWorkspaceMatch.status === "pending" && !selectedMatchStation ? `<span class="tournament-pro-page__match-helper">Asigna una estación antes de iniciar este match.</span>` : ""}
                 </div>
@@ -1372,8 +1379,9 @@ export function TournamentPro() {
                               <span class="tournament-pro-page__score-separator">—</span>
                               <label><span>${escapeHtml(getParticipantName(selectedOperationalMatch.participantBId))}</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-score-b="${escapeAttr(selectedOperationalMatch.id)}"></label>
                             </div>
-                            <button type="button" data-winner="${escapeAttr(selectedOperationalMatch.participantAId || "")}" data-match="${escapeAttr(selectedOperationalMatch.id)}">GAME ${escapeHtml(String(selectedOperationalMatchGameSummary.nextGameNumber))} · GANÓ ${escapeHtml(getParticipantName(selectedOperationalMatch.participantAId))}</button>
-                            <button type="button" data-winner="${escapeAttr(selectedOperationalMatch.participantBId || "")}" data-match="${escapeAttr(selectedOperationalMatch.id)}">GAME ${escapeHtml(String(selectedOperationalMatchGameSummary.nextGameNumber))} · GANÓ ${escapeHtml(getParticipantName(selectedOperationalMatch.participantBId))}</button>
+                            ${selectedOperationalMatchPending ? `<span class="tournament-pro-page__match-helper">Guardando resultado… Game ${escapeHtml(String(selectedOperationalMatchGameSummary.nextGameNumber))} quedará disponible al confirmar la persistencia.</span>` : ""}
+                            <button type="button" data-winner="${escapeAttr(selectedOperationalMatch.participantAId || "")}" data-match="${escapeAttr(selectedOperationalMatch.id)}" ${selectedOperationalMatchPending ? "disabled" : ""}>GAME ${escapeHtml(String(selectedOperationalMatchGameSummary.nextGameNumber))} · GANÓ ${escapeHtml(getParticipantName(selectedOperationalMatch.participantAId))}</button>
+                            <button type="button" data-winner="${escapeAttr(selectedOperationalMatch.participantBId || "")}" data-match="${escapeAttr(selectedOperationalMatch.id)}" ${selectedOperationalMatchPending ? "disabled" : ""}>GAME ${escapeHtml(String(selectedOperationalMatchGameSummary.nextGameNumber))} · GANÓ ${escapeHtml(getParticipantName(selectedOperationalMatch.participantBId))}</button>
                           </div>
                         ` : `
                           <div class="tournament-pro-page__operations-modal-actions">
@@ -1522,6 +1530,50 @@ export function TournamentPro() {
           render();
         } catch (error) {
           window.alert(error?.message || "No fue posible completar la operación.");
+        }
+      };
+
+      const runMatchResultOperation = async ({ matchId, winnerId, score }) => {
+        if (!matchId || pendingMatchOperations.has(matchId)) return;
+
+        pendingMatchOperations.add(matchId);
+        render();
+
+        try {
+          event = await completeMatch({
+            tournamentId,
+            eventId,
+            event,
+            matchId,
+            winnerId,
+            score,
+            onPersistenceSettled: async ({ success, error }) => {
+              pendingMatchOperations.delete(matchId);
+
+              if (!success) {
+                console.error("ARKHAM — No fue posible persistir el resultado del Match:", error);
+                try {
+                  event = await getTournamentProEvent(tournamentId, eventId);
+                  pro = ensureTournamentProState(event || {});
+                  render();
+                } catch (refreshError) {
+                  console.error("ARKHAM — No fue posible recuperar el estado después de un fallo de persistencia:", refreshError);
+                }
+                window.alert("El resultado se procesó localmente, pero no pudo guardarse. Se restauró el estado confirmado del torneo.");
+                return;
+              }
+
+              pro = ensureTournamentProState(event || {});
+              render();
+            }
+          });
+
+          pro = ensureTournamentProState(event || {});
+          render();
+        } catch (error) {
+          pendingMatchOperations.delete(matchId);
+          render();
+          window.alert(error?.message || "No fue posible registrar el resultado del Game.");
         }
       };
 
@@ -1737,14 +1789,11 @@ export function TournamentPro() {
               ? { a: Number(scoreA || 0), b: Number(scoreB || 0) }
               : null;
 
-            return runOperation(() => completeMatch({
-              tournamentId,
-              eventId,
-              event,
+            return runMatchResultOperation({
               matchId,
               winnerId: button.dataset.winner,
               score
-            }));
+            });
           });
         });
 
