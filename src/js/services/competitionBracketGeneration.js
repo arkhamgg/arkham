@@ -104,8 +104,8 @@ function createMatchFromBlueprint(blueprintMatch = {}) {
     games: [],
     result: null,
     advancement: {
-      winnerDestination: null,
-      loserDestination: null
+      winnerDestination: blueprintMatch.advancement?.winnerDestination || blueprintMatch.winnerDestination || null,
+      loserDestination: blueprintMatch.advancement?.loserDestination || blueprintMatch.loserDestination || null
     },
     source: BRACKET_GENERATION_SOURCES.BLUEPRINT
   };
@@ -140,6 +140,17 @@ function resolveWinnerRoutes(generatedMatches, blueprintRounds) {
   const matchesByRound = new Map();
 
   generatedMatches.forEach((match) => {
+    const destination = match.advancement?.winnerDestination;
+    if (!destination?.matchId) return;
+    routes.push({
+      sourceMatchId: match.id,
+      type: "WINNER",
+      destinationMatchId: destination.matchId,
+      destinationSlot: destination.slot || null
+    });
+  });
+
+  generatedMatches.forEach((match) => {
     if (!match.roundId) return;
     if (!matchesByRound.has(match.roundId)) {
       matchesByRound.set(match.roundId, []);
@@ -166,6 +177,7 @@ function resolveWinnerRoutes(generatedMatches, blueprintRounds) {
       .slice()
       .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
       .forEach((match, index) => {
+        if (match.advancement.winnerDestination?.matchId) return;
         const destination = nextMatches[Math.floor(index / 2)] || null;
         if (!destination) return;
 

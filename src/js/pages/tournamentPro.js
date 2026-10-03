@@ -18,7 +18,9 @@ import {
   assignMatchToStation,
   releaseMatchStation,
   getOfficialResults,
-  finalizeTournament
+  finalizeTournament,
+  auditTournamentProBracketAgainstCompetitionCore,
+  syncCompetitionDomainStructureFromLegacyBracket
 } from "../services/tournamentProOperations.js";
 import { getTournamentRegistrationRequestsMarkup, loadTournamentRegistrationRequests, bindTournamentRegistrationRequests } from "../components/tournamentRegistrationRequests.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
@@ -210,6 +212,8 @@ export function TournamentPro() {
       let selectedWorkspaceRoundId = null;
       let selectedWorkspaceMatchId = null;
       let selectedOperationalStationId = null;
+      let competitionCoreAudit = null;
+      let competitionCoreAuditLoading = false;
       const pendingMatchOperations = new Set();
 
       const isMatchOperationPending = (matchId) =>
@@ -240,6 +244,54 @@ export function TournamentPro() {
         const normalized = String(value || "").replace(/[-_]/g, " ");
         if (!normalized) return "—";
         return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
+      };
+
+      const formatAuditSide = (side) => {
+        if (!side) return "Posición vacía";
+        if (side.displayName) return side.displayName;
+        if (side.participantId) {
+          return pro.participants?.[side.participantId]?.displayName || side.participantId;
+        }
+        if (side.entryId) {
+          return pro.entries?.[side.entryId]?.displayName || `Entry ${side.entryId}`;
+        }
+        return "Posición vacía";
+      };
+
+      const renderAuditMatchList = (label, matches = []) => {
+        const safeMatches = Array.isArray(matches) ? matches : [];
+        if (!safeMatches.length) return "";
+
+        return `
+          <details class="tournament-pro-page__audit-details">
+            <summary><strong>${escapeHtml(label)} (${safeMatches.length})</strong></summary>
+            <div class="tournament-pro-page__audit-match-list">
+              ${safeMatches.map((match) => {
+                const round = match.roundOrder ?? match.round ?? match.roundId ?? "Sin round";
+                const bracket = formatLabel(match.bracket || "competition");
+                const winnerRoute = match.advancement?.winnerDestination;
+                const loserRoute = match.advancement?.loserDestination;
+                const routes = [
+                  winnerRoute?.matchId
+                    ? `Ganador → ${winnerRoute.matchId}${winnerRoute.slot ? ` (${winnerRoute.slot})` : ""}`
+                    : null,
+                  loserRoute?.matchId
+                    ? `Perdedor → ${loserRoute.matchId}${loserRoute.slot ? ` (${loserRoute.slot})` : ""}`
+                    : null
+                ].filter(Boolean);
+
+                return `
+                  <div class="tournament-pro-page__audit-match">
+                    <strong>${escapeHtml(match.id || "Match sin ID")}</strong>
+                    <small>${escapeHtml(`${bracket} · Round ${round}`)}</small>
+                    <small>${escapeHtml(formatAuditSide(match.participantA))} vs ${escapeHtml(formatAuditSide(match.participantB))}</small>
+                    <small>${escapeHtml(routes.length ? routes.join(" · ") : "Sin rutas declaradas")}</small>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </details>
+        `;
       };
 
       const participationLabel = formatLabel(event.participationType);
@@ -689,6 +741,117 @@ export function TournamentPro() {
 
           </section>
           ${mobileExperienceModalMarkup}
+        `;
+
+        const competitionCoreAuditMarkup = competitionCoreAuditLoading ? `
+          <section class="tournament-pro-page__card tournament-pro-page__card--wide">
+            <div class="tournament-pro-page__workspace-header">
+              <div>
+                <span class="tournament-pro-page__eyebrow">COMPETITION CORE</span>
+                <h2>Auditando bracket</h2>
+                <p>Comparando el bracket operativo actual contra el modelo declarativo de Competition Core.</p>
+              </div>
+              <span class="tournament-pro-page__workspace-count">ANALIZANDO</span>
+            </div>
+          </section>
+        ` : competitionCoreAudit ? `
+          <section class="tournament-pro-page__card tournament-pro-page__card--wide">
+            <div class="tournament-pro-page__workspace-header">
+              <div>
+                <span class="tournament-pro-page__eyebrow">COMPETITION CORE</span>
+                <h2>Audit de arquitectura</h2>
+                <p>Diagnóstico de solo lectura. No modifica ni persiste el bracket operativo.</p>
+              </div>
+              <span class="tournament-pro-page__workspace-count">${escapeHtml(formatLabel(competitionCoreAudit.status || "—"))}</span>
+            </div>
+            <div class="tournament-pro-page__workspace-body">
+              <div class="tournament-pro-page__structure-selector">
+                <span class="tournament-pro-page__workspace-label">PIPELINE</span>
+                <div class="tournament-pro-page__phase-flow">
+                  ${[
+                    ["GENERATION", competitionCoreAudit.generation?.status],
+                    ["COMPARISON", competitionCoreAudit.comparison?.status],
+                    ["READINESS", competitionCoreAudit.readiness?.status],
+                    ["RECONCILIATION", competitionCoreAudit.reconciliation?.status]
+                  ].map(([label, status]) => `
+                    <div class="tournament-pro-page__phase-card ${status === "READY" || status === "MATCH" || status === "NOT_REQUIRED" ? "is-active" : ""}">
+                      <span class="tournament-pro-page__phase-index">${escapeHtml(label.slice(0, 2))}</span>
+                      <span class="tournament-pro-page__phase-card-copy">
+                        <strong>${escapeHtml(label)}</strong>
+                        <small>${escapeHtml(formatLabel(status || "NO EJECUTADO"))}</small>
+                      </span>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+              <div class="tournament-pro-page__workspace-entry">
+                <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-code-compare" aria-hidden="true"></i></span>
+                <span>
+                  <strong>Resultado del diagnóstico</strong>
+                  <small>${escapeHtml((competitionCoreAudit.reasonCodes || []).length
+                    ? competitionCoreAudit.reasonCodes.join(" · ")
+                    : "No se detectaron códigos de bloqueo o diferencia.")}</small>
+                </span>
+              </div>
+              ${competitionCoreAudit.comparison ? `
+                <div class="tournament-pro-page__workspace-entry">
+                  <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></span>
+                  <span>
+                    <strong>Detalle de matches comparados</strong>
+                    <small>${escapeHtml(`${competitionCoreAudit.comparison.summary?.currentMatchCount || 0} actuales · ${competitionCoreAudit.comparison.summary?.generatedMatchCount || 0} generados · ${competitionCoreAudit.comparison.summary?.equivalentMatches || 0} equivalentes`)}</small>
+                  </span>
+                </div>
+                ${renderAuditMatchList("Solo en el bracket actual", competitionCoreAudit.comparison.currentOnly)}
+                ${renderAuditMatchList("Solo en Competition Core", competitionCoreAudit.comparison.generatedOnly)}
+              ` : ""}
+              ${competitionCoreAudit.generation?.summary ? `
+                <div class="tournament-pro-page__workspace-entry">
+                  <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></span>
+                  <span>
+                    <strong>Competition Core</strong>
+                    <small>${escapeHtml(`${competitionCoreAudit.generation.summary.matchCount || 0} matches · ${competitionCoreAudit.generation.summary.roundCount || 0} rounds · ${competitionCoreAudit.generation.summary.winnerRoutes || 0} rutas de ganador · ${competitionCoreAudit.generation.summary.loserRoutes || 0} rutas de perdedor`)}</small>
+                  </span>
+                </div>
+              ` : ""}
+              <div class="tournament-pro-page__workspace-entry">
+                <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+                <span>
+                  <strong>Acción recomendada por el pipeline</strong>
+                  <small>${escapeHtml(competitionCoreAudit.reconciliation?.status === "NOT_REQUIRED"
+                    ? "El gráfico actual y el generado son equivalentes; todavía no se aplica ninguna migración."
+                    : competitionCoreAudit.generation?.status === "INCOMPLETE"
+                      ? "Competition Core todavía necesita una estructura declarativa válida para poder comparar el bracket."
+                      : "El diagnóstico detectó diferencias o bloqueos. No se modifica el bracket operativo.")}</small>
+                </span>
+              </div>
+              ${competitionCoreAudit.generation?.reasonCodes?.includes("STRUCTURE_NOT_FOUND") ? `
+                <div class="tournament-pro-page__workspace-entry">
+                  <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-link" aria-hidden="true"></i></span>
+                  <span>
+                    <strong>Preparar estructura declarativa</strong>
+                    <small>Crea Phase → Structure → Round → Slot a partir del bracket actual. El bracket operativo legacy permanece intacto.</small>
+                  </span>
+                  <button type="button" class="tournament-pro-page__primary-action" data-sync-competition-core-structure>
+                    Preparar estructura
+                  </button>
+                </div>
+              ` : ""}
+            </div>
+          </section>
+        ` : `
+          <section class="tournament-pro-page__card tournament-pro-page__card--wide">
+            <div class="tournament-pro-page__workspace-header">
+              <div>
+                <span class="tournament-pro-page__eyebrow">COMPETITION CORE</span>
+                <h2>Validar arquitectura competitiva</h2>
+                <p>Ejecuta un diagnóstico de solo lectura antes de tocar el motor operativo actual.</p>
+              </div>
+              <button type="button" class="tournament-pro-page__primary-action" data-run-competition-core-audit>
+                <i class="fa-solid fa-code-compare" aria-hidden="true"></i>
+                Ejecutar audit
+              </button>
+            </div>
+          </section>
         `;
 
         const competitionStructureMarkup = `
@@ -1584,6 +1747,72 @@ export function TournamentPro() {
 
         page.querySelectorAll("[data-competition-view]").forEach((button) => {
           button.addEventListener("click", () => navigateCompetitionView(button.dataset.competitionView || "structure"));
+        });
+
+        page.querySelector("[data-run-competition-core-audit]")?.addEventListener("click", () => {
+          if (competitionCoreAuditLoading) return;
+
+          competitionCoreAuditLoading = true;
+          competitionCoreAudit = null;
+          render();
+
+          requestAnimationFrame(() => {
+            try {
+              competitionCoreAudit = auditTournamentProBracketAgainstCompetitionCore(event, {
+                structureId: selectedWorkspaceStructureId || null,
+                phaseId: selectedWorkspacePhaseId || null
+              });
+            } catch (error) {
+              competitionCoreAudit = {
+                status: "INVALID",
+                reasonCodes: [error?.message || "AUDIT_ERROR"],
+                generation: null,
+                comparison: null,
+                readiness: null,
+                reconciliation: null
+              };
+            } finally {
+              competitionCoreAuditLoading = false;
+              render();
+            }
+          });
+        });
+
+        page.querySelector("[data-sync-competition-core-structure]")?.addEventListener("click", async () => {
+          if (competitionCoreAuditLoading) return;
+
+          const confirmed = window.confirm(
+            "Se agregará la estructura declarativa de Competition Core a partir del bracket actual. El bracket operativo legacy no se reemplazará. ¿Continuar?"
+          );
+          if (!confirmed) return;
+
+          competitionCoreAuditLoading = true;
+          render();
+
+          try {
+            event = await syncCompetitionDomainStructureFromLegacyBracket({
+              tournamentId,
+              eventId,
+              event
+            });
+            pro = ensureTournamentProState(event || {});
+            competitionCoreAudit = auditTournamentProBracketAgainstCompetitionCore(event, {
+              structureId: selectedWorkspaceStructureId || null,
+              phaseId: selectedWorkspacePhaseId || null
+            });
+          } catch (error) {
+            competitionCoreAudit = {
+              status: "INVALID",
+              reasonCodes: [error?.message || "STRUCTURE_SYNC_ERROR"],
+              generation: null,
+              comparison: null,
+              readiness: null,
+              reconciliation: null
+            };
+          } finally {
+            competitionCoreAuditLoading = false;
+            render();
+          }
         });
 
         page.querySelector("[data-pro-back]")?.addEventListener("click", () => navigateWorkspace("dashboard"));

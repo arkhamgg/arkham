@@ -1046,83 +1046,190 @@ function getBlueprintStructure(event = {}, options = {}) {
 function getBlueprintRounds(event = {}, structure, options = {}) {
   if (!structure) return [];
 
-  return getCompetitionRounds(event, {
-    phaseId: options.phaseId || structure.phaseId || null,
-    phaseGroupId: options.phaseGroupId || null,
-    structureId: structure.id,
-    bracket: options.bracket || null
-  }).sort((a, b) => {
-    if (String(a.bracket || "") !== String(b.bracket || "")) {
-      return String(a.bracket || "").localeCompare(String(b.bracket || ""));
-    }
-    return Number(a.order || 0) - Number(b.order || 0);
-  });
+  const declaredRounds = Array.isArray(structure.rounds) ? structure.rounds : [];
+  return declaredRounds
+    .map((round, index) => normalizeRound(round, {
+      phaseId: round?.phaseId ?? structure.phaseId ?? null,
+      structureId: round?.structureId ?? structure.id ?? null,
+      structureType: structure.type,
+      order: round?.order ?? index + 1,
+      source: "domain"
+    }))
+    .filter((round) => {
+      if (!round) return false;
+      if (options.phaseId && round.phaseId !== options.phaseId) return false;
+      if (options.phaseGroupId && round.phaseGroupId !== options.phaseGroupId) return false;
+      if (options.bracket && round.bracket !== normalizeBracketSegment(options.bracket)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const bracketOrder = { winners: 0, losers: 1, grand_final: 2 };
+      const aOrder = bracketOrder[a.bracket] ?? 3;
+      const bOrder = bracketOrder[b.bracket] ?? 3;
+      return aOrder - bOrder || Number(a.number || a.order || 0) - Number(b.number || b.order || 0);
+    });
 }
 
-function buildBlueprintRound(round, placements) {
-  const hasRoundSpecificPlacements = placements.some((placement) => placement.roundId);
-  const roundSlots = placements
-    .filter((placement) => {
-      if (hasRoundSpecificPlacements) {
-        return round.id
-          ? placement.roundId === round.id
-          : false;
-      }
+function getEliminationRoundSpecs(structureType, bracketSize) {
+  if (!Number.isInteger(bracketSize) || bracketSize < 2 || (bracketSize & (bracketSize - 1)) !== 0) {
+    return null;
+  }
 
-      if (round.phaseGroupId && placement.phaseGroupId) {
-        return placement.phaseGroupId === round.phaseGroupId;
-      }
-
-      // Initial Structure Slots describe the first competitive round when no
-      // explicit roundId exists. Later rounds are represented by advancement
-      // rules and are not duplicated into the blueprint in V1.
-      return Number(round.order) === 1;
-    })
-    .sort((a, b) => Number(a.position || 0) - Number(b.position || 0));
-
-  const matches = [];
-  for (let index = 0; index < roundSlots.length; index += 2) {
-    const slotA = roundSlots[index] || null;
-    const slotB = roundSlots[index + 1] || null;
-
-    matches.push({
-      id: `${round.id || "round"}-match-${Math.floor(index / 2) + 1}`,
-      roundId: round.id || null,
-      phaseId: round.phaseId || null,
-      phaseGroupId: round.phaseGroupId || null,
-      structureId: round.structureId || null,
-      bracket: round.bracket || null,
-      order: Math.floor(index / 2) + 1,
-      participantSlots: [slotA?.slotId || null, slotB?.slotId || null],
-      participants: [
-        slotA?.entryId
-          ? { entryId: slotA.entryId, participantId: slotA.participantId || null, seed: slotA.seed || null }
-          : null,
-        slotB?.entryId
-          ? { entryId: slotB.entryId, participantId: slotB.participantId || null, seed: slotB.seed || null }
-          : null
-      ],
-      status: slotA?.entryId && slotB?.entryId
-        ? "READY"
-        : "PENDING",
-      source: BRACKET_BLUEPRINT_SOURCES.DOMAIN
+  const winnersRoundCount = Math.log2(bracketSize);
+  const specs = [];
+  for (let round = 1; round <= winnersRoundCount; round += 1) {
+    specs.push({
+      bracket: BRACKET_SEGMENTS.WINNERS,
+      number: round,
+      matchCount: bracketSize / (2 ** round)
     });
   }
 
-  return {
-    id: round.id || null,
-    name: round.name,
-    order: round.order,
-    number: round.number,
-    type: round.type,
-    bracket: round.bracket || null,
-    phaseId: round.phaseId || null,
-    phaseGroupId: round.phaseGroupId || null,
-    structureId: round.structureId || null,
-    slotIds: roundSlots.map((placement) => placement.slotId),
-    matchCount: matches.length,
-    matches
+  if (structureType === STRUCTURE_TYPES.DOUBLE_ELIMINATION) {
+    const losersRoundCount = Math.max(1, (winnersRoundCount * 2) - 2);
+    for (let round = 1; round <= losersRoundCount; round += 1) {
+      const stageIndex = Math.ceil(round / 2);
+      specs.push({
+        bracket: BRACKET_SEGMENTS.LOSERS,
+        number: round,
+        matchCount: Math.max(1, Math.floor(bracketSize / (2 ** (stageIndex + 1))))
+      });
+    }
+    specs.push({ bracket: BRACKET_SEGMENTS.GRAND_FINAL, number: 1, matchCount: 1 });
+  }
+
+  return specs;
+}
+
+function buildGeneratedBlueprintRounds(structure, declaredRounds, placements, specs) {
+  const placementsByPosition = placements
+    .slice()
+    .sort((a, b) => Number(a.position || 0) - Number(b.position || 0));
+  let winnersMatchSequence = 1;
+  let losersMatchSequence = 1;
+  const rounds = specs.map((spec) => {
+    const declaredRound = declaredRounds.find((round) =>
+      round.bracket === spec.bracket && Number(round.number) === spec.number
+    );
+    if (!declaredRound) return null;
+
+    const matches = Array.from({ length: spec.matchCount }, (_, index) => {
+      const position = index + 1;
+      let id;
+      if (spec.bracket === BRACKET_SEGMENTS.WINNERS) {
+        id = `W-R${spec.number}-M${winnersMatchSequence++}`;
+      } else if (spec.bracket === BRACKET_SEGMENTS.LOSERS) {
+        id = `L-R${spec.number}-M${losersMatchSequence++}`;
+      } else {
+        id = `GF-M${position}`;
+      }
+
+      const slotA = spec.bracket === BRACKET_SEGMENTS.WINNERS && spec.number === 1
+        ? placementsByPosition[(index * 2)] || null
+        : null;
+      const slotB = spec.bracket === BRACKET_SEGMENTS.WINNERS && spec.number === 1
+        ? placementsByPosition[(index * 2) + 1] || null
+        : null;
+      const participantFromSlot = (slot) => slot?.entryId
+        ? {
+            entryId: slot.entryId,
+            participantId: slot.participantId || null,
+            seed: slot.seed ?? null
+          }
+        : null;
+
+      return {
+        id,
+        roundId: declaredRound.id,
+        round: spec.number,
+        roundOrder: spec.number,
+        phaseId: declaredRound.phaseId || null,
+        phaseGroupId: declaredRound.phaseGroupId || null,
+        structureId: structure.id,
+        bracket: spec.bracket,
+        order: position,
+        participantSlots: [slotA?.slotId || null, slotB?.slotId || null],
+        participants: [participantFromSlot(slotA), participantFromSlot(slotB)],
+        advancement: { winnerDestination: null, loserDestination: null },
+        status: slotA?.entryId && slotB?.entryId ? "READY" : "PENDING",
+        source: BRACKET_BLUEPRINT_SOURCES.DOMAIN
+      };
+    });
+
+    return {
+      id: declaredRound.id,
+      name: declaredRound.name,
+      order: declaredRound.order,
+      number: spec.number,
+      type: declaredRound.type,
+      bracket: spec.bracket,
+      phaseId: declaredRound.phaseId || null,
+      phaseGroupId: declaredRound.phaseGroupId || null,
+      structureId: structure.id,
+      slotIds: spec.bracket === BRACKET_SEGMENTS.WINNERS && spec.number === 1
+        ? placementsByPosition.map((placement) => placement.slotId)
+        : [],
+      matchCount: matches.length,
+      matches
+    };
+  });
+
+  if (rounds.some((round) => !round)) return null;
+  return rounds;
+}
+
+function routeBlueprintMatches(rounds, structureType) {
+  const matchesByRoundAndPosition = new Map();
+  rounds.forEach((round) => round.matches.forEach((match) => {
+    matchesByRoundAndPosition.set(`${round.bracket}|${round.number}|${match.order}`, match);
+  }));
+  const addRoute = (source, type, target, slot) => {
+    if (!source || !target) return;
+    source.advancement[type === "WINNER" ? "winnerDestination" : "loserDestination"] = {
+      matchId: target.id,
+      slot,
+      reason: type === "WINNER" ? "WINNER_ADVANCEMENT" : "LOSER_ROUTE"
+    };
   };
+
+  const winnersRounds = rounds.filter((round) => round.bracket === BRACKET_SEGMENTS.WINNERS);
+  winnersRounds.forEach((round) => round.matches.forEach((match) => {
+    const nextRound = winnersRounds.find((candidate) => Number(candidate.number) === Number(round.number) + 1);
+    if (nextRound) {
+      const next = matchesByRoundAndPosition.get(`${nextRound.bracket}|${nextRound.number}|${Math.ceil(match.order / 2)}`);
+      addRoute(match, "WINNER", next, match.order % 2 === 1 ? "A" : "B");
+    }
+
+    if (structureType !== STRUCTURE_TYPES.DOUBLE_ELIMINATION) return;
+    const loserRoundNumber = round.number === 1 ? 1 : (round.number * 2) - 2;
+    const loserPosition = round.number === 1 ? Math.ceil(match.order / 2) : match.order;
+    const loserSlot = round.number === 1
+      ? (match.order % 2 === 1 ? "A" : "B")
+      : "B";
+    const loserTarget = matchesByRoundAndPosition.get(`${BRACKET_SEGMENTS.LOSERS}|${loserRoundNumber}|${loserPosition}`);
+    addRoute(match, "LOSER", loserTarget, loserSlot);
+  }));
+
+  const losersRounds = rounds.filter((round) => round.bracket === BRACKET_SEGMENTS.LOSERS);
+  losersRounds.forEach((round) => round.matches.forEach((match) => {
+    const nextRound = losersRounds.find((candidate) => Number(candidate.number) === Number(round.number) + 1);
+    if (nextRound) {
+      const targetPosition = round.number % 2 === 1 ? match.order : Math.ceil(match.order / 2);
+      const targetSlot = round.number % 2 === 1
+        ? "A"
+        : (match.order % 2 === 1 ? "A" : "B");
+      const target = matchesByRoundAndPosition.get(`${nextRound.bracket}|${nextRound.number}|${targetPosition}`);
+      addRoute(match, "WINNER", target, targetSlot);
+    }
+  }));
+
+  if (structureType === STRUCTURE_TYPES.DOUBLE_ELIMINATION) {
+    const grandFinal = rounds.find((round) => round.bracket === BRACKET_SEGMENTS.GRAND_FINAL);
+    const lastWinnersRound = winnersRounds[winnersRounds.length - 1];
+    const lastLosersRound = losersRounds[losersRounds.length - 1];
+    addRoute(lastWinnersRound?.matches[0], "WINNER", grandFinal?.matches[0], "A");
+    addRoute(lastLosersRound?.matches[0], "WINNER", grandFinal?.matches[0], "B");
+  }
 }
 
 /**
@@ -1179,13 +1286,35 @@ export function generateCompetitionBracketBlueprint(event = {}, options = {}) {
   if (!structure.slots?.length) reasonCodes.push("SLOTS_NOT_DECLARED");
   if (placementSummary.conflictSlots > 0) reasonCodes.push("PLACEMENT_CONFLICT");
   if (placementSummary.invalidSlots > 0) reasonCodes.push("PLACEMENT_INVALID");
+  const declaredSlots = getCompetitionStructureSlots(event, {
+    phaseId: placementOptions.phaseId,
+    phaseGroupId: placementOptions.phaseGroupId,
+    structureId: structure.id
+  });
+  const specs = getEliminationRoundSpecs(structure.type, declaredSlots.length);
 
-  const blueprintRounds = rounds.map((round) => buildBlueprintRound(round, placements));
-  const matches = blueprintRounds.flatMap((round) => round.matches);
+  if (!specs) reasonCodes.push("BRACKET_SIZE_NOT_POWER_OF_TWO");
 
-  if (blueprintRounds.some((round) => round.slotIds.length % 2 !== 0)) {
-    reasonCodes.push("ODD_SLOT_COUNT");
+  const hasExpectedRoundLayout = Boolean(specs) &&
+    rounds.length === specs.length &&
+    specs.every((spec) => rounds.some((round) =>
+      round.bracket === spec.bracket && Number(round.number) === spec.number
+    ));
+
+  if (specs && !hasExpectedRoundLayout) reasonCodes.push("ROUND_LAYOUT_MISMATCH");
+
+  const blueprintRounds = hasExpectedRoundLayout
+    ? buildGeneratedBlueprintRounds(structure, rounds, placements, specs)
+    : [];
+  if (hasExpectedRoundLayout && !blueprintRounds) {
+    reasonCodes.push("ROUND_LAYOUT_MISMATCH");
   }
+
+  const normalizedBlueprintRounds = blueprintRounds || [];
+  if (normalizedBlueprintRounds.length) {
+    routeBlueprintMatches(normalizedBlueprintRounds, structure.type);
+  }
+  const matches = normalizedBlueprintRounds.flatMap((round) => round.matches);
 
   let status = BRACKET_BLUEPRINT_STATUS.READY;
   if (reasonCodes.some((code) => ["PLACEMENT_CONFLICT"].includes(code))) {
@@ -1208,10 +1337,10 @@ export function generateCompetitionBracketBlueprint(event = {}, options = {}) {
       status: structure.status || null
     },
     placement: placementSummary,
-    rounds: blueprintRounds,
+    rounds: normalizedBlueprintRounds,
     matches,
     summary: {
-      roundCount: blueprintRounds.length,
+      roundCount: normalizedBlueprintRounds.length,
       matchCount: matches.length,
       readyMatches: matches.filter((match) => match.status === "READY").length,
       pendingMatches: matches.filter((match) => match.status === "PENDING").length

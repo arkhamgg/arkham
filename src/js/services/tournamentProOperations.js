@@ -255,6 +255,146 @@ export function auditTournamentProBracketAgainstCompetitionCore(
   };
 }
 
+
+/**
+ * Builds and persists the declarative Competition Structure from the current
+ * legacy Tournament Pro bracket without replacing or rewriting that bracket.
+ *
+ * This is the controlled compatibility bridge discovered by the architecture
+ * audit: legacy stages remain operational, while Phase -> Structure -> Round
+ * -> Slot becomes explicitly available to Competition Core.
+ */
+export async function syncCompetitionDomainStructureFromLegacyBracket({
+  tournamentId,
+  eventId,
+  event
+}) {
+  const pro = ensureTournamentProState(event);
+  const bracket = pro?.bracket;
+
+  if (!bracket?.generated || !Array.isArray(bracket.stages) || !bracket.stages.length) {
+    throw new Error("No existe un bracket legacy generado que pueda sincronizarse con Competition Core.");
+  }
+
+  const existingPhases = Array.isArray(pro.phases)
+    ? pro.phases.map((phase) => ({ ...phase }))
+    : [];
+
+  const existingStructure = existingPhases
+    .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
+    .find((structure) => structure?.id);
+
+  if (existingStructure) {
+    return { ...event, pro };
+  }
+
+  const phaseIndex = existingPhases.length;
+  const phase = existingPhases.find((candidate) => candidate && typeof candidate === "object") || null;
+  const phaseId = phase?.id || `phase-main-${eventId}`;
+  const structureId = `structure-main-${eventId}`;
+  const structureType = String(bracket.type || "").toUpperCase() === "DOUBLE_ELIMINATION"
+    ? "DOUBLE_ELIMINATION"
+    : "SINGLE_ELIMINATION";
+
+  const rounds = bracket.stages.map((stage, index) => {
+    const roundId = stage?.id || `${structureId}-round-${index + 1}`;
+    const matches = Array.isArray(stage?.matches) ? stage.matches : [];
+
+    return {
+      id: roundId,
+      phaseId,
+      structureId,
+      order: Number.isFinite(Number(stage?.number)) ? Number(stage.number) : index + 1,
+      number: Number.isFinite(Number(stage?.number)) ? Number(stage.number) : index + 1,
+      name: stage?.bracket === "grand_final"
+        ? "Grand Final"
+        : `${stage?.bracket === "losers" ? "Losers" : "Winners"} Round ${Number(stage?.number) || index + 1}`,
+      type: stage?.bracket === "grand_final" ? "GRAND_FINAL" : "ELIMINATION",
+      bracket: stage?.bracket || "winners",
+      status: "configured",
+      matches: matches.map((match, matchIndex) => ({
+        id: match?.id || `${roundId}-match-${matchIndex + 1}`,
+        position: Number(match?.position) || matchIndex + 1,
+        participantAId: match?.participantAId || null,
+        participantBId: match?.participantBId || null,
+        entryAId: match?.entryAId || null,
+        entryBId: match?.entryBId || null,
+        nextMatchId: match?.nextMatchId || null,
+        nextSlot: match?.nextSlot || null,
+        loserRoute: match?.loserRoute || null
+      }))
+    };
+  });
+
+  const firstRound = rounds.find((round) => round.bracket === "winners" && Number(round.number) === 1)
+    || rounds[0]
+    || null;
+
+  const entriesByParticipantId = new Map(
+    Object.values(pro.entries || {})
+      .filter((entry) => entry?.legacyParticipantId)
+      .map((entry) => [entry.legacyParticipantId, entry])
+  );
+
+  const slots = Object.entries(bracket.slots || {}).map(([slotId, slot], index) => {
+    const participantId = slot?.participantId || null;
+    const entry = slot?.entryId
+      ? pro.entries?.[slot.entryId] || null
+      : entriesByParticipantId.get(participantId) || null;
+    const seed = Number(slot?.seed);
+    const normalizedSeed = Number.isFinite(seed) ? seed : index + 1;
+
+    return {
+      id: slotId,
+      phaseId,
+      structureId,
+      roundId: firstRound?.id || null,
+      position: normalizedSeed,
+      order: normalizedSeed,
+      seed: normalizedSeed,
+      entryId: entry?.id || slot?.entryId || null,
+      participantId: participantId || entry?.legacyParticipantId || null,
+      type: participantId || entry?.id ? "ENTRY" : "EMPTY",
+      status: participantId || entry?.id ? "ASSIGNED" : "EMPTY",
+      bracket: "winners",
+      side: normalizedSeed % 2 === 1 ? "A" : "B",
+      matchId: null,
+      sourceSlotId: null
+    };
+  });
+
+  const structure = {
+    id: structureId,
+    phaseId,
+    name: structureType === "DOUBLE_ELIMINATION" ? "Double Elimination" : "Single Elimination",
+    order: 1,
+    type: structureType,
+    status: "configured",
+    rounds,
+    slots
+  };
+
+  const nextPhase = {
+    ...(phase || {}),
+    id: phaseId,
+    competitionId: phase?.competitionId || eventId,
+    name: phase?.name || "Main Competition",
+    order: Number.isFinite(Number(phase?.order)) ? Number(phase.order) : phaseIndex + 1,
+    status: phase?.status || "configured",
+    matchFormat: phase?.matchFormat ?? pro.matchSystem ?? event?.matchSystem ?? null,
+    phaseGroups: Array.isArray(phase?.phaseGroups) ? [...phase.phaseGroups] : [],
+    structures: [structure]
+  };
+
+  const nextPhases = phase
+    ? existingPhases.map((candidate) => candidate?.id === phaseId ? nextPhase : candidate)
+    : [...existingPhases, nextPhase];
+
+  pro.phases = nextPhases;
+  return savePro(tournamentId, eventId, event, pro);
+}
+
+
 async function savePro(tournamentId, eventId, event, pro) {
   await updateMapEntity(
     "tournaments",

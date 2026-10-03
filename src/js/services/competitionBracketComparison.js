@@ -112,10 +112,17 @@ function normalizeMatch(match = {}) {
     participantBId: participantB?.participantId ?? normalizeValue(match.participantBId),
     advancement: {
       winnerDestination: normalizeDestination(
-        match?.advancement?.winnerDestination || match?.winnerDestination || null
+        match?.advancement?.winnerDestination ||
+        match?.winnerDestination ||
+        (match?.nextMatchId
+          ? { matchId: match.nextMatchId, slot: match.nextSlot || null, reason: "WINNER_ADVANCEMENT" }
+          : null)
       ),
       loserDestination: normalizeDestination(
-        match?.advancement?.loserDestination || match?.loserDestination || null
+        match?.advancement?.loserDestination ||
+        match?.loserDestination ||
+        match?.loserRoute ||
+        null
       )
     }
   };
@@ -131,20 +138,47 @@ function normalizeDestination(destination = null) {
   };
 }
 
-function extractCurrentMatches(currentBracket) {
-  if (Array.isArray(currentBracket)) return currentBracket;
-  if (Array.isArray(currentBracket?.matches)) return currentBracket.matches;
-  if (Array.isArray(currentBracket?.bracket?.matches)) return currentBracket.bracket.matches;
-  if (Array.isArray(currentBracket?.bracket?.stages)) {
-    return currentBracket.bracket.stages.flatMap((stage) =>
-      Array.isArray(stage?.matches) ? stage.matches : []
+function extractCurrentMatches(currentBracket, event = {}, generatedMatches = []) {
+  const generatedById = new Map(
+    generatedMatches.filter((match) => match?.id).map((match) => [match.id, match])
+  );
+  const entriesByParticipantId = new Map(
+    Object.values(event?.pro?.entries || {})
+      .filter((entry) => entry?.legacyParticipantId && entry?.id)
+      .map((entry) => [entry.legacyParticipantId, entry.id])
+  );
+  const enrich = (match, stage = null, stageIndex = null) => {
+    const generated = generatedById.get(match?.id) || {};
+    return {
+      ...match,
+      phaseId: match?.phaseId ?? stage?.phaseId ?? generated.phaseId ?? null,
+      phaseGroupId: match?.phaseGroupId ?? stage?.phaseGroupId ?? generated.phaseGroupId ?? null,
+      structureId: match?.structureId ?? stage?.structureId ?? generated.structureId ?? null,
+      roundId: match?.roundId ?? stage?.id ?? generated.roundId ?? null,
+      round: match?.round ?? stage?.number ?? generated.round ?? null,
+      roundOrder: match?.roundOrder ?? stage?.number ?? generated.roundOrder ?? (stageIndex == null ? null : stageIndex + 1),
+      order: match?.order ?? match?.position ?? generated.order ?? null,
+      bracket: match?.bracket ?? stage?.bracket ?? generated.bracket ?? null,
+      entryAId: match?.entryAId ?? entriesByParticipantId.get(match?.participantAId) ?? null,
+      entryBId: match?.entryBId ?? entriesByParticipantId.get(match?.participantBId) ?? null
+    };
+  };
+  const currentStages = Array.isArray(currentBracket?.bracket?.stages)
+    ? currentBracket.bracket.stages
+    : Array.isArray(currentBracket?.stages)
+      ? currentBracket.stages
+      : null;
+
+  if (currentStages) {
+    return currentStages.flatMap((stage, index) =>
+      (Array.isArray(stage?.matches) ? stage.matches : [])
+        .map((match) => enrich(match, stage, index))
     );
   }
-  if (Array.isArray(currentBracket?.stages)) {
-    return currentBracket.stages.flatMap((stage) =>
-      Array.isArray(stage?.matches) ? stage.matches : []
-    );
-  }
+
+  if (Array.isArray(currentBracket)) return currentBracket.map((match) => enrich(match));
+  if (Array.isArray(currentBracket?.matches)) return currentBracket.matches.map((match) => enrich(match));
+  if (Array.isArray(currentBracket?.bracket?.matches)) return currentBracket.bracket.matches.map((match) => enrich(match));
 
   return [];
 }
@@ -544,8 +578,8 @@ export function compareCompetitionBrackets(event = {}, options = {}) {
     };
   }
 
-  const currentMatches = extractCurrentMatches(currentBracket);
   const generatedMatches = extractGeneratedMatches(generation);
+  const currentMatches = extractCurrentMatches(currentBracket, event, generatedMatches);
 
   const currentIndex = buildMatchIndex(currentMatches);
   const generatedIndex = buildMatchIndex(generatedMatches);
