@@ -34,6 +34,7 @@ export const BRACKET_MIGRATION_MATERIALIZER_CODES = {
   CURRENT_STAGES_MISSING: "CURRENT_STAGES_MISSING",
   GENERATED_MATCHES_MISSING: "GENERATED_MATCHES_MISSING",
   GENERATED_MATCH_INVALID: "GENERATED_MATCH_INVALID",
+  GENERATED_MATCH_STATUS_UNSUPPORTED: "GENERATED_MATCH_STATUS_UNSUPPORTED",
   GENERATED_MATCH_DUPLICATE: "GENERATED_MATCH_DUPLICATE",
   GENERATED_ROUND_MISSING: "GENERATED_ROUND_MISSING",
   GENERATED_STAGE_UNRESOLVED: "GENERATED_STAGE_UNRESOLVED",
@@ -117,6 +118,25 @@ function normalizeGeneratedMatch(match) {
   if (!getMatchRoundId(match) && !getMatchRoundNumber(match)) return null;
 
   return clone(match);
+}
+
+function normalizeOperationalMatchStatus(status) {
+  switch (String(status || "").trim().toUpperCase()) {
+    // READY and PENDING are Competition Core generation states. In the
+    // persisted Tournament Pro model, both are represented by legacy PENDING;
+    // readiness is derived from participant assignment by Match Lifecycle.
+    case "READY":
+    case "PENDING":
+      return "pending";
+    case "LIVE":
+      return "live";
+    case "COMPLETED":
+      return "completed";
+    case "BYE":
+      return "bye";
+    default:
+      return null;
+  }
 }
 
 function resolveStageForMatch(match, stages) {
@@ -220,6 +240,26 @@ export function materializeCompetitionBracketForMigration(
       afterMatchCount: 0
     };
   }
+
+  const unsupportedStatusMatches = generatedMatches
+    .filter((match) => !normalizeOperationalMatchStatus(match.status))
+    .map((match) => match.id);
+
+  if (unsupportedStatusMatches.length) {
+    return {
+      status: BRACKET_MIGRATION_MATERIALIZER_STATUS.INVALID,
+      reasonCodes: [BRACKET_MIGRATION_MATERIALIZER_CODES.GENERATED_MATCH_STATUS_UNSUPPORTED],
+      materialized: false,
+      bracket: null,
+      unsupportedMatchIds: unsupportedStatusMatches,
+      beforeMatchCount: extractMatches(currentBracket).length,
+      afterMatchCount: 0
+    };
+  }
+
+  generatedMatches.forEach((match) => {
+    match.status = normalizeOperationalMatchStatus(match.status);
+  });
 
   const ids = generatedMatches.map((match) => String(match.id));
   if (new Set(ids).size !== ids.length) {

@@ -83,6 +83,17 @@ export function getMatchLifecycle(match = {}) {
       : MATCH_LIFECYCLE.IN_PROGRESS;
   }
 
+  // Recovery bridge for brackets written by the first migration attempt.
+  // Competition Core generation writes READY/PENDING as uppercase statuses,
+  // while Tournament Pro persists lowercase `pending` and derives readiness
+  // from participant assignment. Read both uppercase values only as a
+  // recovery bridge so the test event can load and be rematerialized safely.
+  if (status === "READY" || status === "PENDING") {
+    return hasBothParticipants(match)
+      ? MATCH_LIFECYCLE.READY
+      : MATCH_LIFECYCLE.SCHEDULED;
+  }
+
   if (status === "pending") {
     if (match.calledAt) {
       return MATCH_LIFECYCLE.CALLED;

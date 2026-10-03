@@ -89,14 +89,15 @@ function unique(values = []) {
  * Evaluates the policy gate for a future migration operation.
  *
  * `allowEquivalentDryRunAdoption` must be explicitly true before V1 will
- * produce DRY_RUN_ADOPT_GENERATED. No real adoption is ever authorized here.
+ * produce DRY_RUN_ADOPT_GENERATED. Persistence additionally requires explicit authorization.
  */
 export function evaluateCompetitionBracketMigrationPolicy(
   event = {},
   {
     readiness = null,
     reconciliation = null,
-    allowEquivalentDryRunAdoption = false
+    allowEquivalentDryRunAdoption = false,
+    allowEquivalentPersistence = false
   } = {}
 ) {
   const operational = isOperationallyBlocked(event);
@@ -275,7 +276,7 @@ export function evaluateCompetitionBracketMigrationPolicy(
     ],
     competitionState: operational.state,
     dryRunAllowed: true,
-    persistenceAllowed: false
+    persistenceAllowed: allowEquivalentPersistence === true
   };
 }
 

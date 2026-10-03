@@ -25,6 +25,8 @@ import {
 import { getTournamentRegistrationRequestsMarkup, loadTournamentRegistrationRequests, bindTournamentRegistrationRequests } from "../components/tournamentRegistrationRequests.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
 import { runCompetitionBracketMigrationDryRun } from "../services/competitionBracketMigrationDryRun.js";
+import { executeCompetitionBracketMigration } from "../services/competitionBracketMigrationExecutor.js";
+import { persistCompetitionBracketMigration } from "../services/competitionBracketMigrationPersistence.js";
 import {
   getCompetitionPhases,
   getCompetitionStructures,
@@ -215,6 +217,7 @@ export function TournamentPro() {
       let selectedOperationalStationId = null;
       let competitionCoreAudit = null;
       let competitionCoreAuditLoading = false;
+      let competitionCoreMigrationDryRun = null;
       const pendingMatchOperations = new Set();
 
       const isMatchOperationPending = (matchId) =>
@@ -822,6 +825,10 @@ export function TournamentPro() {
                     Simular migración sin guardar
                   </button>
                   <small>Se habilita cuando Readiness está lista y no hace falta reconciliación.</small>
+                  <button type="button" class="tournament-pro-page__primary-action" data-persist-competition-core-migration ${competitionCoreMigrationDryRun?.status !== "READY" || competitionCoreMigrationDryRun?.validation?.valid !== true ? "disabled" : ""}>
+                    Migrar bracket del torneo de prueba
+                  </button>
+                  <small>Control interno de desarrollo. Úsalo únicamente en un evento de prueba en preparación.</small>
                   <small>${escapeHtml(competitionCoreAudit.reconciliation?.status === "NOT_REQUIRED"
                     ? "El gráfico actual y el generado son equivalentes; todavía no se aplica ninguna migración."
                     : competitionCoreAudit.generation?.status === "INCOMPLETE"
@@ -1760,6 +1767,7 @@ export function TournamentPro() {
 
           competitionCoreAuditLoading = true;
           competitionCoreAudit = null;
+          competitionCoreMigrationDryRun = null;
           render();
 
           requestAnimationFrame(() => {
@@ -1794,6 +1802,8 @@ export function TournamentPro() {
               reconciliation: competitionCoreAudit.reconciliation,
               allowEquivalentAdoption: true
             });
+            competitionCoreMigrationDryRun = result;
+            render();
             window.alert([
               "Resultado: " + result.status,
               "Materializer: " + (result.materialization?.status || "no ejecutado"),
@@ -1804,6 +1814,57 @@ export function TournamentPro() {
             ].filter(Boolean).join("\n"));
           } catch (error) {
             window.alert("No se pudo simular la migración: " + (error?.message || "error desconocido"));
+          }
+        });
+
+        page.querySelector("[data-persist-competition-core-migration]")?.addEventListener("click", async () => {
+          if (!competitionCoreAudit || competitionCoreMigrationDryRun?.status !== "READY" ||
+              competitionCoreMigrationDryRun?.validation?.valid !== true) return;
+
+          const confirmed = window.confirm(
+            "Esta acción reemplazará únicamente el bracket operativo del evento abierto. Úsala solo en el torneo de PRUEBA, en preparación. Se comprobarán otra vez el estado y el bracket antes de guardar. ¿Confirmas?"
+          );
+          if (!confirmed) return;
+
+          const execution = executeCompetitionBracketMigration(event, {
+            currentBracket: competitionCoreAudit.currentBracket,
+            proposedBracket: competitionCoreMigrationDryRun.proposedBracket,
+            readiness: competitionCoreAudit.readiness,
+            reconciliation: competitionCoreAudit.reconciliation,
+            validation: competitionCoreMigrationDryRun.validation,
+            authorizePersistence: true
+          });
+          if (execution.status !== "READY" || execution.executable !== true ||
+              execution.persistenceAllowed !== true) {
+            window.alert("Migración detenida antes de guardar: " + execution.reasonCodes.join(" · "));
+            return;
+          }
+
+          try {
+            const result = await persistCompetitionBracketMigration({
+              tournamentId, eventId,
+              proposedBracket: competitionCoreMigrationDryRun.proposedBracket,
+              expectedCurrentBracket: competitionCoreAudit.currentBracket,
+              confirmPersistence: true
+            });
+            if (result.persisted === true && result.verified === true) {
+              event = await getTournamentProEvent(tournamentId, eventId);
+              pro = ensureTournamentProState(event || {});
+              competitionCoreMigrationDryRun = null;
+              competitionCoreAudit = auditTournamentProBracketAgainstCompetitionCore(event, {
+                structureId: selectedWorkspaceStructureId || null,
+                phaseId: selectedWorkspacePhaseId || null
+              });
+            }
+            render();
+            window.alert([
+              "Migración: " + result.status,
+              "Guardado: " + (result.persisted ? "sí" : "no"),
+              "Verificación: " + (result.verified ? "correcta" : "no confirmada"),
+              (result.reasonCodes || []).join(" · ")
+            ].filter(Boolean).join("\n"));
+          } catch (error) {
+            window.alert("La migración no pudo completarse: " + (error?.message || "error desconocido"));
           }
         });
 

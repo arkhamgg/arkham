@@ -34,9 +34,13 @@
 // ========================================
 
 import {
-  getMapEntity,
-  updateMapEntity
-} from "./firestore.js";
+  doc,
+  FieldPath,
+  runTransaction,
+  serverTimestamp
+} from "firebase/firestore";
+import { db } from "./firebase.js";
+import { getMapEntity } from "./firestore.js";
 
 export const BRACKET_MIGRATION_PERSISTENCE_STATUS = {
   READY: "READY",
@@ -53,11 +57,13 @@ export const BRACKET_MIGRATION_PERSISTENCE_CODES = {
   CURRENT_EVENT_MISSING: "CURRENT_EVENT_MISSING",
   CURRENT_BRACKET_MISSING: "CURRENT_BRACKET_MISSING",
   PROPOSED_BRACKET_MISSING: "PROPOSED_BRACKET_MISSING",
+  EXPECTED_CURRENT_BRACKET_MISSING: "EXPECTED_CURRENT_BRACKET_MISSING",
   CONFIRMATION_REQUIRED: "CONFIRMATION_REQUIRED",
   COMPETITION_STATE_BLOCKED: "COMPETITION_STATE_BLOCKED",
   CURRENT_BRACKET_CHANGED: "CURRENT_BRACKET_CHANGED",
   BRACKET_ALREADY_EQUAL: "BRACKET_ALREADY_EQUAL",
   PERSISTENCE_FAILED: "PERSISTENCE_FAILED",
+  PERSISTED_EVENT_READ_FAILED: "PERSISTED_EVENT_READ_FAILED",
   PERSISTED_EVENT_MISSING: "PERSISTED_EVENT_MISSING",
   PERSISTED_BRACKET_MISSING: "PERSISTED_BRACKET_MISSING",
   PERSISTED_BRACKET_MISMATCH: "PERSISTED_BRACKET_MISMATCH",
@@ -103,12 +109,9 @@ function stableStringify(value) {
 }
 
 function normalizeCompetitionState(event) {
-  return (
-    event?.status ||
-    event?.pro?.status ||
-    event?.competition?.status ||
-    null
-  );
+  const state = event?.pro?.status || event?.pro?.eventStatus ||
+    event?.status || event?.eventStatus || event?.competition?.status || null;
+  return state === null ? null : String(state).trim().toUpperCase() || null;
 }
 
 function isValidBracketShape(bracket) {
@@ -168,7 +171,8 @@ function buildResult({
 export async function prepareCompetitionBracketMigrationPersistence({
   tournamentId = null,
   eventId = null,
-  proposedBracket = null
+  proposedBracket = null,
+  expectedCurrentBracket = null
 } = {}) {
   const reasonCodes = [];
 
@@ -187,6 +191,11 @@ export async function prepareCompetitionBracketMigrationPersistence({
   if (!proposedBracket) {
     reasonCodes.push(
       BRACKET_MIGRATION_PERSISTENCE_CODES.PROPOSED_BRACKET_MISSING
+    );
+  }
+  if (expectedCurrentBracket === null) {
+    reasonCodes.push(
+      BRACKET_MIGRATION_PERSISTENCE_CODES.EXPECTED_CURRENT_BRACKET_MISSING
     );
   }
 
@@ -270,6 +279,14 @@ export async function prepareCompetitionBracketMigrationPersistence({
     });
   }
 
+  if (!areBracketsEqual(currentBracket, expectedCurrentBracket)) {
+    return buildResult({
+      status: BRACKET_MIGRATION_PERSISTENCE_STATUS.BLOCKED,
+      reasonCodes: [BRACKET_MIGRATION_PERSISTENCE_CODES.CURRENT_BRACKET_CHANGED],
+      tournamentId, eventId, competitionState, currentBracket, proposedBracket
+    });
+  }
+
   if (areBracketsEqual(currentBracket, proposedBracket)) {
     return buildResult({
       status:
@@ -299,235 +316,133 @@ export async function prepareCompetitionBracketMigrationPersistence({
   });
 }
 
+
+
 /**
- * Persists the proposed legacy bracket after an explicit confirmation.
- *
- * This function deliberately re-reads the event immediately before writing.
- * That protects against using a stale in-memory bracket as the migration
- * source. It is not a database transaction, so a concurrent write can still
- * race between the final read and updateDoc().
+ * Persists only after explicit confirmation. A Firestore transaction rechecks
+ * the event state and expected bracket before updating events[eventId].pro.bracket.
  */
 export async function persistCompetitionBracketMigration({
   tournamentId = null,
   eventId = null,
   proposedBracket = null,
+  expectedCurrentBracket = null,
   confirmPersistence = false
 } = {}) {
   if (!confirmPersistence) {
     return buildResult({
-      status:
-        BRACKET_MIGRATION_PERSISTENCE_STATUS.BLOCKED,
-      reasonCodes: [
-        BRACKET_MIGRATION_PERSISTENCE_CODES.CONFIRMATION_REQUIRED
-      ],
-      tournamentId,
-      eventId,
-      proposedBracket
+      status: BRACKET_MIGRATION_PERSISTENCE_STATUS.BLOCKED,
+      reasonCodes: [BRACKET_MIGRATION_PERSISTENCE_CODES.CONFIRMATION_REQUIRED],
+      tournamentId, eventId, proposedBracket
     });
   }
+  const preparation = await prepareCompetitionBracketMigrationPersistence({
+    tournamentId, eventId, proposedBracket, expectedCurrentBracket
+  });
+  if (preparation.status === BRACKET_MIGRATION_PERSISTENCE_STATUS.NO_CHANGE) return preparation;
+  if (preparation.status !== BRACKET_MIGRATION_PERSISTENCE_STATUS.READY) return preparation;
 
-  const preparation =
-    await prepareCompetitionBracketMigrationPersistence({
-      tournamentId,
-      eventId,
-      proposedBracket
-    });
-
-  if (
-    preparation.status ===
-    BRACKET_MIGRATION_PERSISTENCE_STATUS.NO_CHANGE
-  ) {
-    return preparation;
-  }
-
-  if (
-    preparation.status !==
-    BRACKET_MIGRATION_PERSISTENCE_STATUS.READY
-  ) {
-    return preparation;
-  }
-
-  const latestEvent = await getMapEntity(
-    "tournaments",
-    tournamentId,
-    "events",
-    eventId
-  );
-
-  if (!latestEvent) {
-    return buildResult({
-      status:
-        BRACKET_MIGRATION_PERSISTENCE_STATUS.BLOCKED,
-      reasonCodes: [
-        BRACKET_MIGRATION_PERSISTENCE_CODES.CURRENT_EVENT_MISSING
-      ],
-      tournamentId,
-      eventId,
-      competitionState:
-        preparation.competitionState,
-      currentBracket:
-        preparation.currentBracket,
-      proposedBracket
-    });
-  }
-
-  const latestCurrentBracket =
-    getCurrentBracket(latestEvent);
-
-  if (!isValidBracketShape(latestCurrentBracket)) {
-    return buildResult({
-      status:
-        BRACKET_MIGRATION_PERSISTENCE_STATUS.BLOCKED,
-      reasonCodes: [
-        BRACKET_MIGRATION_PERSISTENCE_CODES.CURRENT_BRACKET_MISSING
-      ],
-      tournamentId,
-      eventId,
-      competitionState:
-        normalizeCompetitionState(latestEvent),
-      currentBracket: latestCurrentBracket,
-      proposedBracket
-    });
-  }
-
-  if (
-    !areBracketsEqual(
-      preparation.currentBracket,
-      latestCurrentBracket
-    )
-  ) {
-    return buildResult({
-      status:
-        BRACKET_MIGRATION_PERSISTENCE_STATUS.BLOCKED,
-      reasonCodes: [
-        BRACKET_MIGRATION_PERSISTENCE_CODES.CURRENT_BRACKET_CHANGED
-      ],
-      tournamentId,
-      eventId,
-      competitionState:
-        normalizeCompetitionState(latestEvent),
-      currentBracket: latestCurrentBracket,
-      proposedBracket
-    });
-  }
-
+  let outcome;
   try {
-    await updateMapEntity(
-      "tournaments",
-      tournamentId,
-      "events",
-      eventId,
-      {
-        bracket: clone(proposedBracket)
-      }
-    );
-  } catch (error) {
-    console.error(
-      "ARKHAM — Error persistiendo bracket migrado:",
-      error
-    );
+    const tournamentRef = doc(db, "tournaments", tournamentId);
+    outcome = await runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(tournamentRef);
+      if (!snapshot.exists()) return { persisted: false, reasonCode: BRACKET_MIGRATION_PERSISTENCE_CODES.CURRENT_EVENT_MISSING };
+      const currentEvent = snapshot.data()?.events?.[eventId] || null;
+      if (!currentEvent) return { persisted: false, reasonCode: BRACKET_MIGRATION_PERSISTENCE_CODES.CURRENT_EVENT_MISSING };
 
+      const competitionState = normalizeCompetitionState(currentEvent);
+      const currentBracket = getCurrentBracket(currentEvent);
+      if (BLOCKED_COMPETITION_STATES.has(competitionState)) {
+        return { persisted: false, reasonCode: BRACKET_MIGRATION_PERSISTENCE_CODES.COMPETITION_STATE_BLOCKED, competitionState, currentBracket };
+      }
+      if (!isValidBracketShape(currentBracket)) {
+        return { persisted: false, reasonCode: BRACKET_MIGRATION_PERSISTENCE_CODES.CURRENT_BRACKET_MISSING, competitionState, currentBracket };
+      }
+      if (!areBracketsEqual(currentBracket, expectedCurrentBracket)) {
+        return { persisted: false, reasonCode: BRACKET_MIGRATION_PERSISTENCE_CODES.CURRENT_BRACKET_CHANGED, competitionState, currentBracket };
+      }
+
+      transaction.update(
+        tournamentRef,
+        new FieldPath("events", eventId, "pro", "bracket"),
+        clone(proposedBracket),
+        new FieldPath("events", eventId, "updatedAt"),
+        serverTimestamp(),
+        "updatedAt",
+        serverTimestamp()
+      );
+      return { persisted: true, competitionState, currentBracket };
+    });
+  } catch (error) {
+    console.error("ARKHAM — Error persistiendo bracket migrado:", error);
     return buildResult({
-      status:
-        BRACKET_MIGRATION_PERSISTENCE_STATUS.FAILED,
-      reasonCodes: [
-        BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTENCE_FAILED
-      ],
-      tournamentId,
-      eventId,
-      competitionState:
-        normalizeCompetitionState(latestEvent),
-      currentBracket: latestCurrentBracket,
-      proposedBracket,
-      changed: true,
-      error
+      status: BRACKET_MIGRATION_PERSISTENCE_STATUS.FAILED,
+      reasonCodes: [BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTENCE_FAILED],
+      tournamentId, eventId, competitionState: preparation.competitionState,
+      currentBracket: preparation.currentBracket, proposedBracket, error
     });
   }
 
-  const persistedEvent = await getMapEntity(
-    "tournaments",
-    tournamentId,
-    "events",
-    eventId
-  );
+  if (!outcome?.persisted) {
+    return buildResult({
+      status: BRACKET_MIGRATION_PERSISTENCE_STATUS.BLOCKED,
+      reasonCodes: [outcome?.reasonCode || BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTENCE_FAILED],
+      tournamentId, eventId,
+      competitionState: outcome?.competitionState || preparation.competitionState,
+      currentBracket: outcome?.currentBracket || preparation.currentBracket,
+      proposedBracket
+    });
+  }
 
+  let persistedEvent;
+  try {
+    persistedEvent = await getMapEntity("tournaments", tournamentId, "events", eventId);
+  } catch (error) {
+    return buildResult({
+      status: BRACKET_MIGRATION_PERSISTENCE_STATUS.VERIFICATION_FAILED,
+      reasonCodes: [BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTED_EVENT_READ_FAILED],
+      tournamentId, eventId, competitionState: outcome.competitionState,
+      currentBracket: outcome.currentBracket, proposedBracket,
+      persisted: true, changed: true, error
+    });
+  }
   if (!persistedEvent) {
     return buildResult({
-      status:
-        BRACKET_MIGRATION_PERSISTENCE_STATUS.VERIFICATION_FAILED,
-      reasonCodes: [
-        BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTED_EVENT_MISSING
-      ],
-      tournamentId,
-      eventId,
-      competitionState:
-        normalizeCompetitionState(latestEvent),
-      currentBracket: latestCurrentBracket,
-      proposedBracket,
-      persisted: true,
-      changed: true
+      status: BRACKET_MIGRATION_PERSISTENCE_STATUS.VERIFICATION_FAILED,
+      reasonCodes: [BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTED_EVENT_MISSING],
+      tournamentId, eventId, competitionState: outcome.competitionState,
+      currentBracket: outcome.currentBracket, proposedBracket,
+      persisted: true, changed: true
     });
   }
 
-  const persistedBracket =
-    getCurrentBracket(persistedEvent);
-
+  const persistedBracket = getCurrentBracket(persistedEvent);
   if (!persistedBracket) {
     return buildResult({
-      status:
-        BRACKET_MIGRATION_PERSISTENCE_STATUS.VERIFICATION_FAILED,
-      reasonCodes: [
-        BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTED_BRACKET_MISSING
-      ],
-      tournamentId,
-      eventId,
-      competitionState:
-        normalizeCompetitionState(persistedEvent),
-      currentBracket: latestCurrentBracket,
-      proposedBracket,
-      persisted: true,
-      changed: true
+      status: BRACKET_MIGRATION_PERSISTENCE_STATUS.VERIFICATION_FAILED,
+      reasonCodes: [BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTED_BRACKET_MISSING],
+      tournamentId, eventId, competitionState: normalizeCompetitionState(persistedEvent),
+      currentBracket: outcome.currentBracket, proposedBracket,
+      persisted: true, changed: true
     });
   }
-
-  if (
-    !areBracketsEqual(
-      persistedBracket,
-      proposedBracket
-    )
-  ) {
+  if (!areBracketsEqual(persistedBracket, proposedBracket)) {
     return buildResult({
-      status:
-        BRACKET_MIGRATION_PERSISTENCE_STATUS.VERIFICATION_FAILED,
-      reasonCodes: [
-        BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTED_BRACKET_MISMATCH
-      ],
-      tournamentId,
-      eventId,
-      competitionState:
-        normalizeCompetitionState(persistedEvent),
-      currentBracket: latestCurrentBracket,
-      proposedBracket,
-      persistedBracket,
-      persisted: true,
-      changed: true
+      status: BRACKET_MIGRATION_PERSISTENCE_STATUS.VERIFICATION_FAILED,
+      reasonCodes: [BRACKET_MIGRATION_PERSISTENCE_CODES.PERSISTED_BRACKET_MISMATCH],
+      tournamentId, eventId, competitionState: normalizeCompetitionState(persistedEvent),
+      currentBracket: outcome.currentBracket, proposedBracket, persistedBracket,
+      persisted: true, changed: true
     });
   }
 
   return buildResult({
-    status:
-      BRACKET_MIGRATION_PERSISTENCE_STATUS.READY,
+    status: BRACKET_MIGRATION_PERSISTENCE_STATUS.READY,
     reasonCodes: [],
-    tournamentId,
-    eventId,
-    competitionState:
-      normalizeCompetitionState(persistedEvent),
-    currentBracket: latestCurrentBracket,
-    proposedBracket,
-    persistedBracket,
-    persisted: true,
-    verified: true,
-    changed: true
+    tournamentId, eventId, competitionState: normalizeCompetitionState(persistedEvent),
+    currentBracket: outcome.currentBracket, proposedBracket, persistedBracket,
+    persisted: true, verified: true, changed: true
   });
 }
 

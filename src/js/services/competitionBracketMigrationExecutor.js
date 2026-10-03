@@ -206,12 +206,12 @@ function buildExecutionPlan({
 } = {}) {
   return {
     operation: "ADOPT_GENERATED_BRACKET",
-    mode: "DECLARATIVE_ONLY",
+    mode: "TRANSACTIONAL_PERSISTENCE",
     source: "COMPETITION_CORE",
     currentMatchCount: getMatchCount(currentBracket),
     proposedMatchCount: getMatchCount(proposedBracket),
     persistenceRequired: true,
-    persistenceSupported: false,
+    persistenceSupported: true,
     mutationRequired: true,
     executionSteps: [
       "REVALIDATE_CURRENT_GRAPH",
@@ -223,7 +223,7 @@ function buildExecutionPlan({
       "RELOAD_COMPETITION_STATE"
     ],
     note:
-      "V1 only describes the future operation. No persistence or mutation is performed."
+      "The executor validates permission; the persistence adapter performs the separately confirmed transaction."
   };
 }
 
@@ -233,9 +233,8 @@ function buildExecutionPlan({
  * Upstream objects may be supplied by the caller. V1 intentionally
  * re-validates critical gates instead of trusting them blindly.
  *
- * `authorizePersistence` is deliberately ineffective in V1: persistence
- * remains unsupported until a later executor version explicitly implements
- * and tests the write path.
+ * `authorizePersistence` is explicit. This executor never writes; it returns
+ * permission only after rechecking the migration gates.
  */
 export function executeCompetitionBracketMigration(
   event = {},
@@ -610,12 +609,12 @@ export function executeCompetitionBracketMigration(
     });
   }
 
-  const resolvedPolicy =
-    policy ||
-    evaluateCompetitionBracketMigrationPolicy(event, {
-      readiness: resolvedReadiness,
-      reconciliation
-    });
+  const resolvedPolicy = evaluateCompetitionBracketMigrationPolicy(event, {
+    readiness: resolvedReadiness,
+    reconciliation,
+    allowEquivalentDryRunAdoption: true,
+    allowEquivalentPersistence: persistenceRequested
+  });
 
   if (!resolvedPolicy || typeof resolvedPolicy !== "object") {
     return buildBaseResult({
@@ -764,26 +763,33 @@ export function executeCompetitionBracketMigration(
     });
   }
 
-  // V1 deliberately stops here. Even explicit caller authorization cannot
-  // enable persistence until a future executor version implements the write
-  // path and its corresponding transaction/rollback verification.
-  return buildBaseResult({
-    status: BRACKET_MIGRATION_EXECUTOR_STATUS.BLOCKED,
-    reasonCodes: [
-      BRACKET_MIGRATION_EXECUTOR_CODES.PERSISTENCE_UNSUPPORTED,
-      ...(persistenceRequested
-        ? []
-        : [BRACKET_MIGRATION_EXECUTOR_CODES.PERSISTENCE_NOT_AUTHORIZED])
-    ],
-    event,
-    readiness: resolvedReadiness,
-    reconciliation,
-    policy: resolvedPolicy,
-    validation: resolvedValidation,
-    currentBracket,
-    proposedBracket,
-    persistenceRequested
-  });
+  if (!persistenceRequested) {
+    return buildBaseResult({
+      status: BRACKET_MIGRATION_EXECUTOR_STATUS.BLOCKED,
+      reasonCodes: [BRACKET_MIGRATION_EXECUTOR_CODES.PERSISTENCE_NOT_AUTHORIZED],
+      event, readiness: resolvedReadiness, reconciliation, policy: resolvedPolicy,
+      validation: resolvedValidation, currentBracket, proposedBracket, persistenceRequested
+    });
+  }
+  if (resolvedPolicy.persistenceAllowed !== true) {
+    return buildBaseResult({
+      status: BRACKET_MIGRATION_EXECUTOR_STATUS.BLOCKED,
+      reasonCodes: [BRACKET_MIGRATION_EXECUTOR_CODES.POLICY_BLOCKED],
+      event, readiness: resolvedReadiness, reconciliation, policy: resolvedPolicy,
+      validation: resolvedValidation, currentBracket, proposedBracket, persistenceRequested
+    });
+  }
+  return {
+    ...buildBaseResult({
+      status: BRACKET_MIGRATION_EXECUTOR_STATUS.READY,
+      reasonCodes: [],
+      event, readiness: resolvedReadiness, reconciliation, policy: resolvedPolicy,
+      validation: resolvedValidation, currentBracket, proposedBracket, persistenceRequested
+    }),
+    executable: true,
+    persistenceAllowed: true,
+    executionPlan: buildExecutionPlan({ currentBracket, proposedBracket })
+  };
 }
 
 /**
@@ -811,10 +817,8 @@ export function getCompetitionBracketMigrationExecutorSummary(
 }
 
 /**
- * Returns true only when a future executor implementation could proceed.
- *
- * V1 always returns false for real migration execution because persistence
- * is intentionally unsupported.
+ * Returns true when the current in-memory executor contract authorizes the
+ * separately confirmed persistence adapter.
  */
 export function canProceedWithCompetitionBracketMigrationExecution(
   result = {}
