@@ -214,21 +214,19 @@ export function auditTournamentProBracketAgainstCompetitionCore(
     };
   }
 
-  const generatedBracket = {
-    generated: true,
-    stages: generation.matches || []
-  };
-
   const comparison = compareCompetitionBrackets(
-    currentBracket,
-    generatedBracket
+    event,
+    {
+      currentBracket,
+      generated: generation
+    }
   );
 
   const readiness = evaluateCompetitionBracketMigrationReadiness(
     event,
     {
       currentBracket,
-      generatedBracket
+      generated: generation
     }
   );
 
@@ -236,7 +234,7 @@ export function auditTournamentProBracketAgainstCompetitionCore(
     event,
     {
       currentBracket,
-      generatedBracket,
+      generated: generation,
       readiness,
       comparison
     }
