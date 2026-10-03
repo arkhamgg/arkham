@@ -53,6 +53,18 @@ import {
   validateCompetitionConfiguration,
   COMPETITION_CONFIGURATION_STATUS
 } from "./competitionConfiguration.js";
+import {
+  generateCompetitionBracket
+} from "./competitionBracketGeneration.js";
+import {
+  compareCompetitionBrackets
+} from "./competitionBracketComparison.js";
+import {
+  evaluateCompetitionBracketMigrationReadiness
+} from "./competitionBracketMigrationReadiness.js";
+import {
+  buildCompetitionBracketReconciliationPlan
+} from "./competitionBracketReconciliation.js";
 
 function mapParticipantStatusToEntryStatus(status) {
   switch (status) {
@@ -149,6 +161,100 @@ function resolveParticipantId(pro, identifier) {
 
 export async function getTournamentProEvent(tournamentId, eventId) {
   return getMapEntity("tournaments", tournamentId, "events", eventId);
+}
+
+/**
+ * Read-only bridge between the current Tournament Pro operational bracket
+ * and the Competition Core bracket pipeline.
+ *
+ * It does not replace the legacy generator, mutate the event, or persist
+ * anything. It evaluates Generation -> Comparison -> Migration Readiness
+ * -> Reconciliation only.
+ */
+export function auditTournamentProBracketAgainstCompetitionCore(
+  event,
+  {
+    structureId = null,
+    phaseId = null,
+    phaseGroupId = null
+  } = {}
+) {
+  const currentBracket = event?.pro?.bracket || event?.bracket || null;
+
+  if (!currentBracket) {
+    return {
+      status: "BLOCKED",
+      reasonCodes: ["CURRENT_BRACKET_MISSING"],
+      currentBracket: null,
+      generation: null,
+      comparison: null,
+      readiness: null,
+      reconciliation: null
+    };
+  }
+
+  const generation = generateCompetitionBracket(event, {
+    structureId,
+    phaseId,
+    phaseGroupId
+  });
+
+  if (generation.status !== "READY") {
+    return {
+      status: generation.status,
+      reasonCodes: [
+        "COMPETITION_CORE_GENERATION_NOT_READY",
+        ...(generation.reasonCodes || [])
+      ],
+      currentBracket,
+      generation,
+      comparison: null,
+      readiness: null,
+      reconciliation: null
+    };
+  }
+
+  const generatedBracket = {
+    generated: true,
+    stages: generation.matches || []
+  };
+
+  const comparison = compareCompetitionBrackets(
+    currentBracket,
+    generatedBracket
+  );
+
+  const readiness = evaluateCompetitionBracketMigrationReadiness(
+    event,
+    {
+      currentBracket,
+      generatedBracket
+    }
+  );
+
+  const reconciliation = buildCompetitionBracketReconciliationPlan(
+    event,
+    {
+      currentBracket,
+      generatedBracket,
+      readiness,
+      comparison
+    }
+  );
+
+  return {
+    status: reconciliation.status,
+    reasonCodes: [
+      ...(comparison.reasonCodes || []),
+      ...(readiness.reasonCodes || []),
+      ...(reconciliation.reasonCodes || [])
+    ],
+    currentBracket,
+    generation,
+    comparison,
+    readiness,
+    reconciliation
+  };
 }
 
 async function savePro(tournamentId, eventId, event, pro) {
