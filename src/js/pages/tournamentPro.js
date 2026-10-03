@@ -24,6 +24,7 @@ import {
 } from "../services/tournamentProOperations.js";
 import { getTournamentRegistrationRequestsMarkup, loadTournamentRegistrationRequests, bindTournamentRegistrationRequests } from "../components/tournamentRegistrationRequests.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
+import { runCompetitionBracketMigrationDryRun } from "../services/competitionBracketMigrationDryRun.js";
 import {
   getCompetitionPhases,
   getCompetitionStructures,
@@ -817,6 +818,10 @@ export function TournamentPro() {
                 <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
                 <span>
                   <strong>Acción recomendada por el pipeline</strong>
+                  <button type="button" class="tournament-pro-page__primary-action" data-run-competition-core-migration-dry-run ${competitionCoreAudit.readiness?.status !== "READY" || competitionCoreAudit.reconciliation?.status !== "NOT_REQUIRED" ? "disabled" : ""}>
+                    Simular migración sin guardar
+                  </button>
+                  <small>Se habilita cuando Readiness está lista y no hace falta reconciliación.</small>
                   <small>${escapeHtml(competitionCoreAudit.reconciliation?.status === "NOT_REQUIRED"
                     ? "El gráfico actual y el generado son equivalentes; todavía no se aplica ninguna migración."
                     : competitionCoreAudit.generation?.status === "INCOMPLETE"
@@ -1577,6 +1582,7 @@ export function TournamentPro() {
         `;
         const competitionMarkup = `
           <div class="tournament-pro-page__competition-workspace">
+            ${import.meta.env.DEV ? competitionCoreAuditMarkup : ""}
             <nav class="tournament-pro-page__competition-tabs" aria-label="Competition workspace">
               <button type="button" class="${competitionView === "structure" ? "is-active" : ""}" data-competition-view="structure">STRUCTURE</button>
               <button type="button" class="${competitionView === "bracket" ? "is-active" : ""}" data-competition-view="bracket">BRACKET</button>
@@ -1776,6 +1782,29 @@ export function TournamentPro() {
               render();
             }
           });
+        });
+
+        page.querySelector("[data-run-competition-core-migration-dry-run]")?.addEventListener("click", () => {
+          if (!competitionCoreAudit || competitionCoreAuditLoading) return;
+
+          try {
+            const result = runCompetitionBracketMigrationDryRun(event, {
+              currentBracket: competitionCoreAudit.currentBracket,
+              readiness: competitionCoreAudit.readiness,
+              reconciliation: competitionCoreAudit.reconciliation,
+              allowEquivalentAdoption: true
+            });
+            window.alert([
+              "Resultado: " + result.status,
+              "Materializer: " + (result.materialization?.status || "no ejecutado"),
+              "Validación: " + (result.validation?.status || "no ejecutada"),
+              "Partidos: " + result.beforeMatchCount + " actuales → " + result.afterMatchCount + " propuestos",
+              "Persistencia: no",
+              (result.reasonCodes || []).join(" · ")
+            ].filter(Boolean).join("\n"));
+          } catch (error) {
+            window.alert("No se pudo simular la migración: " + (error?.message || "error desconocido"));
+          }
         });
 
         page.querySelector("[data-sync-competition-core-structure]")?.addEventListener("click", async () => {

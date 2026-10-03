@@ -107,6 +107,18 @@ function extractMatches(bracket) {
     return bracket;
   }
 
+  if (Array.isArray(bracket?.stages)) {
+    return bracket.stages.flatMap((stage) =>
+      Array.isArray(stage?.matches) ? stage.matches : []
+    );
+  }
+
+  if (Array.isArray(bracket?.bracket?.stages)) {
+    return bracket.bracket.stages.flatMap((stage) =>
+      Array.isArray(stage?.matches) ? stage.matches : []
+    );
+  }
+
   if (Array.isArray(bracket?.matches)) {
     return bracket.matches;
   }

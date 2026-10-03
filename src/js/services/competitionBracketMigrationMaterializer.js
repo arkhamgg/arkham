@@ -60,6 +60,16 @@ function extractStages(bracket) {
 
 function extractMatches(bracket) {
   if (Array.isArray(bracket)) return bracket;
+  if (Array.isArray(bracket?.stages)) {
+    return bracket.stages.flatMap((stage) =>
+      Array.isArray(stage?.matches) ? stage.matches : []
+    );
+  }
+  if (Array.isArray(bracket?.bracket?.stages)) {
+    return bracket.bracket.stages.flatMap((stage) =>
+      Array.isArray(stage?.matches) ? stage.matches : []
+    );
+  }
   if (Array.isArray(bracket?.matches)) return bracket.matches;
   if (Array.isArray(bracket?.bracket?.matches)) return bracket.bracket.matches;
   return [];

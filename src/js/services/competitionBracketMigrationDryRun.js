@@ -22,9 +22,16 @@ import {
 } from "./competitionBracketMigrationPolicy.js";
 
 import {
-  BRACKET_RECONCILIATION_STATUS,
   isCompetitionBracketReconciliationComplete
 } from "./competitionBracketReconciliation.js";
+import {
+  BRACKET_MIGRATION_MATERIALIZER_STATUS,
+  materializeCompetitionBracketForMigration
+} from "./competitionBracketMigrationMaterializer.js";
+import {
+  BRACKET_MIGRATION_VALIDATION_STATUS,
+  validateCompetitionBracketMigration
+} from "./competitionBracketMigrationValidation.js";
 
 export const BRACKET_MIGRATION_DRY_RUN_STATUS = {
   READY: "READY",
@@ -44,7 +51,10 @@ export const BRACKET_MIGRATION_DRY_RUN_CODES = {
   RECONCILIATION_REQUIRED: "RECONCILIATION_REQUIRED",
   GENERATED_GRAPH_SELECTED: "GENERATED_GRAPH_SELECTED",
   NO_CHANGE_REQUIRED: "NO_CHANGE_REQUIRED",
-  MATCH_COUNT_CHANGED: "MATCH_COUNT_CHANGED"
+  MATCH_COUNT_CHANGED: "MATCH_COUNT_CHANGED",
+  MATERIALIZATION_FAILED: "MATERIALIZATION_FAILED",
+  MATERIALIZATION_INCOMPLETE: "MATERIALIZATION_INCOMPLETE",
+  DUAL_VALIDATION_FAILED: "DUAL_VALIDATION_FAILED"
 };
 
 function clone(value) {
@@ -54,29 +64,19 @@ function clone(value) {
 
 function extractMatches(bracket) {
   if (Array.isArray(bracket)) return bracket;
+  if (Array.isArray(bracket?.stages)) {
+    return bracket.stages.flatMap((stage) =>
+      Array.isArray(stage?.matches) ? stage.matches : []
+    );
+  }
+  if (Array.isArray(bracket?.bracket?.stages)) {
+    return bracket.bracket.stages.flatMap((stage) =>
+      Array.isArray(stage?.matches) ? stage.matches : []
+    );
+  }
   if (Array.isArray(bracket?.matches)) return bracket.matches;
   if (Array.isArray(bracket?.bracket?.matches)) return bracket.bracket.matches;
   return [];
-}
-
-function buildProposedBracket(currentBracket, generated) {
-  const generatedMatches = clone(generated?.matches || []);
-
-  if (Array.isArray(currentBracket)) {
-    return generatedMatches;
-  }
-
-  const proposed = clone(currentBracket) || {};
-
-  if (Array.isArray(proposed.matches)) {
-    proposed.matches = generatedMatches;
-  } else if (Array.isArray(proposed?.bracket?.matches)) {
-    proposed.bracket.matches = generatedMatches;
-  } else {
-    proposed.matches = generatedMatches;
-  }
-
-  return proposed;
 }
 
 /**
@@ -231,15 +231,79 @@ export function runCompetitionBracketMigrationDryRun(
     };
   }
 
-  const proposedBracket = buildProposedBracket(currentBracket, generated);
+  const materialization = materializeCompetitionBracketForMigration(
+    currentBracket,
+    generated
+  );
+
+  if (
+    materialization.status !== BRACKET_MIGRATION_MATERIALIZER_STATUS.READY ||
+    materialization.materialized !== true ||
+    !materialization.bracket
+  ) {
+    return {
+      status: materialization.status === BRACKET_MIGRATION_MATERIALIZER_STATUS.INVALID
+        ? BRACKET_MIGRATION_DRY_RUN_STATUS.INVALID
+        : BRACKET_MIGRATION_DRY_RUN_STATUS.BLOCKED,
+      reasonCodes: [BRACKET_MIGRATION_DRY_RUN_CODES.MATERIALIZATION_FAILED],
+      applied: false,
+      policy,
+      materialization,
+      validation: null,
+      proposedBracket: null,
+      beforeMatchCount: extractMatches(currentBracket).length,
+      afterMatchCount: 0
+    };
+  }
+
+  if (Array.isArray(materialization.reasonCodes) && materialization.reasonCodes.length) {
+    return {
+      status: BRACKET_MIGRATION_DRY_RUN_STATUS.BLOCKED,
+      reasonCodes: [BRACKET_MIGRATION_DRY_RUN_CODES.MATERIALIZATION_INCOMPLETE],
+      applied: false,
+      policy,
+      materialization,
+      validation: null,
+      proposedBracket: null,
+      beforeMatchCount: extractMatches(currentBracket).length,
+      afterMatchCount: materialization.afterMatchCount || 0
+    };
+  }
+
+  const proposedBracket = materialization.bracket;
   const beforeMatchCount = extractMatches(currentBracket).length;
   const afterMatchCount = extractMatches(proposedBracket).length;
+  const validation = validateCompetitionBracketMigration(event, {
+    currentBracket,
+    proposedBracket,
+    strictProposed: true
+  });
+
+  if (
+    validation.status !== BRACKET_MIGRATION_VALIDATION_STATUS.READY ||
+    validation.valid !== true
+  ) {
+    return {
+      status: BRACKET_MIGRATION_DRY_RUN_STATUS.INVALID,
+      reasonCodes: [BRACKET_MIGRATION_DRY_RUN_CODES.DUAL_VALIDATION_FAILED],
+      applied: false,
+      policy,
+      materialization,
+      validation,
+      proposedBracket,
+      beforeMatchCount,
+      afterMatchCount,
+      matchCountChanged: beforeMatchCount !== afterMatchCount
+    };
+  }
 
   return {
     status: BRACKET_MIGRATION_DRY_RUN_STATUS.READY,
     reasonCodes: [BRACKET_MIGRATION_DRY_RUN_CODES.GENERATED_GRAPH_SELECTED],
     applied: false,
     policy,
+    materialization,
+    validation,
     proposedBracket,
     beforeMatchCount,
     afterMatchCount,
@@ -269,6 +333,9 @@ export function getCompetitionBracketMigrationDryRunSummary(
     beforeMatchCount: result.beforeMatchCount,
     afterMatchCount: result.afterMatchCount,
     matchCountChanged: result.matchCountChanged === true,
-    policyAction: result.policy?.action || null
+    policyAction: result.policy?.action || null,
+    materializationStatus: result.materialization?.status || null,
+    validationStatus: result.validation?.status || null,
+    validationPassed: result.validation?.valid === true
   };
 }
