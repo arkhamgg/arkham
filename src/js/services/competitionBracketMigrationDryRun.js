@@ -91,7 +91,7 @@ export function runCompetitionBracketMigrationDryRun(
     currentBracket = null,
     readiness = null,
     reconciliation = null,
-    allowEquivalentAdoption = true
+    allowEquivalentAdoption = false
   } = {}
 ) {
   if (!currentBracket) {
@@ -216,7 +216,10 @@ export function runCompetitionBracketMigrationDryRun(
     };
   }
 
-  if (policy.action !== BRACKET_MIGRATION_POLICY_ACTIONS.DRY_RUN_ADOPT_GENERATED) {
+  if (
+    policy.action !==
+    BRACKET_MIGRATION_POLICY_ACTIONS.DRY_RUN_ADOPT_GENERATED
+  ) {
     return {
       status: BRACKET_MIGRATION_DRY_RUN_STATUS.BLOCKED,
       reasonCodes: [BRACKET_MIGRATION_DRY_RUN_CODES.POLICY_BLOCKED],
@@ -248,7 +251,10 @@ export function runCompetitionBracketMigrationDryRun(
   };
 }
 
-export function getCompetitionBracketMigrationDryRunSummary(event = {}, options = {}) {
+export function getCompetitionBracketMigrationDryRunSummary(
+  event = {},
+  options = {}
+) {
   const result = runCompetitionBracketMigrationDryRun(event, options);
 
   return {
