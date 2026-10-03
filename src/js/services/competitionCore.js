@@ -404,6 +404,7 @@ export function normalizeStructure(structure = {}, { phaseId = null, order = 1 }
         .map((round, index) => normalizeRound(round, {
           structureId: id,
           phaseId: resolvedPhaseId,
+          structureType: type,
           order: index + 1,
           source: "domain"
         }))
@@ -579,6 +580,7 @@ export function normalizeMatchFormat(match = {}, event = {}) {
 
 function getMatchRoundFromCompetition(event, match, {
   phaseId = null,
+  phaseGroupId = null,
   structureId = null
 } = {}) {
   const explicitRound = getMatchRound(match);
@@ -586,6 +588,7 @@ function getMatchRoundFromCompetition(event, match, {
 
   const rounds = getCompetitionRounds(event, {
     phaseId,
+    phaseGroupId,
     structureId
   });
 
@@ -841,6 +844,7 @@ export function normalizeMatch(event = {}, match = {}) {
   const phaseGroup = phaseGroupContext.phaseGroup;
   const round = getMatchRoundFromCompetition(event, match, {
     phaseId: match.phaseId ?? phase?.id ?? null,
+    phaseGroupId: match.phaseGroupId ?? phaseGroup?.id ?? null,
     structureId: match.structureId ?? structure?.id ?? null
   });
   const bracket = getMatchBracketSegment(match);
@@ -927,6 +931,69 @@ export const BRACKET_SEGMENTS = {
   GRAND_FINAL: "grand_final"
 };
 
+export const ROUND_TYPES = {
+  ELIMINATION: "ELIMINATION",
+  GRAND_FINAL: "GRAND_FINAL",
+  GROUP: "GROUP",
+  ROUND_ROBIN: "ROUND_ROBIN",
+  SWISS: "SWISS",
+  CUSTOM: "CUSTOM"
+};
+
+function normalizeRoundType(value, { bracket = null, structureType = null } = {}) {
+  const normalized = String(value || "").trim().toUpperCase();
+
+  if (Object.values(ROUND_TYPES).includes(normalized)) {
+    return normalized;
+  }
+
+  if (bracket === BRACKET_SEGMENTS.GRAND_FINAL) {
+    return ROUND_TYPES.GRAND_FINAL;
+  }
+
+  if (structureType === STRUCTURE_TYPES.GROUP) {
+    return ROUND_TYPES.GROUP;
+  }
+
+  if (structureType === STRUCTURE_TYPES.ROUND_ROBIN) {
+    return ROUND_TYPES.ROUND_ROBIN;
+  }
+
+  if (structureType === STRUCTURE_TYPES.SWISS) {
+    return ROUND_TYPES.SWISS;
+  }
+
+  if (
+    structureType === STRUCTURE_TYPES.SINGLE_ELIMINATION ||
+    structureType === STRUCTURE_TYPES.DOUBLE_ELIMINATION ||
+    bracket === BRACKET_SEGMENTS.WINNERS ||
+    bracket === BRACKET_SEGMENTS.LOSERS
+  ) {
+    return ROUND_TYPES.ELIMINATION;
+  }
+
+  return ROUND_TYPES.CUSTOM;
+}
+
+function normalizeRoundMatchReference(match = null) {
+  if (!match || typeof match !== "object") return null;
+
+  const id = typeof match.id === "string" && match.id.trim()
+    ? match.id.trim()
+    : null;
+
+  if (!id) return null;
+
+  return {
+    id,
+    phaseId: match.phaseId ?? null,
+    phaseGroupId: match.phaseGroupId ?? null,
+    structureId: match.structureId ?? null,
+    roundId: match.roundId ?? null,
+    status: match.status ?? null
+  };
+}
+
 export function normalizeBracketSegment(value) {
   const normalized = String(value || "").trim().toLowerCase();
 
@@ -961,6 +1028,8 @@ export function normalizeBracketSegment(value) {
 export function normalizeRound(round = {}, {
   structureId = null,
   phaseId = null,
+  phaseGroupId = null,
+  structureType = null,
   order = 1,
   source = null
 } = {}) {
@@ -986,16 +1055,41 @@ export function normalizeRound(round = {}, {
         ? `Round ${number}`
         : "Round";
 
+  const resolvedStructureId = round.structureId ?? structureId ?? null;
+  const resolvedPhaseId = round.phaseId ?? phaseId ?? null;
+  const resolvedPhaseGroupId = round.phaseGroupId ?? phaseGroupId ?? null;
+  const resolvedStructureType =
+    round.structureType ??
+    round.structure?.type ??
+    structureType ??
+    null;
+
+  const matches = Array.isArray(round.matches)
+    ? round.matches
+    : [];
+
+  const matchReferences = matches
+    .map((match) => normalizeRoundMatchReference(match))
+    .filter(Boolean);
+
   return {
     ...round,
     id,
-    structureId: round.structureId ?? structureId ?? null,
-    phaseId: round.phaseId ?? phaseId ?? null,
+    structureId: resolvedStructureId,
+    phaseId: resolvedPhaseId,
+    phaseGroupId: resolvedPhaseGroupId,
     name,
     order: normalizedOrder,
     number: Number.isFinite(number) ? number : null,
+    type: normalizeRoundType(round.type ?? round.roundType, {
+      bracket,
+      structureType: normalizeStructureType(resolvedStructureType)
+    }),
     bracket,
-    matches: Array.isArray(round.matches) ? round.matches : [],
+    matches,
+    matchIds: matchReferences.map((match) => match.id),
+    matchCount: matchReferences.length,
+    matchReferences,
     status: round.status || "configured",
     source: source || (round.id ? "stage" : "legacy-derived")
   };
@@ -1019,6 +1113,7 @@ export function getMatchBracketSegment(match = {}) {
  */
 export function getCompetitionRounds(event = {}, {
   phaseId = null,
+  phaseGroupId = null,
   structureId = null,
   bracket = null
 } = {}) {
@@ -1031,16 +1126,32 @@ export function getCompetitionRounds(event = {}, {
   // provide stages, preventing duplicate representations during migration.
   if (!stages.length) {
     const declaredRounds = getCompetitionStructures(event)
-      .flatMap((structure) => Array.isArray(structure?.rounds) ? structure.rounds : []);
+      .flatMap((structure) => Array.isArray(structure?.rounds)
+        ? structure.rounds.map((round) => ({
+            ...round,
+            structureId: round.structureId ?? structure.id ?? null,
+            phaseId: round.phaseId ?? structure.phaseId ?? null,
+            structureType: round.structureType ?? structure.type ?? null
+          }))
+        : []);
 
     return declaredRounds
       .filter((round) => {
         if (!round) return false;
         if (phaseId && round.phaseId !== phaseId) return false;
+        if (phaseGroupId && round.phaseGroupId !== phaseGroupId) return false;
         if (structureId && round.structureId !== structureId) return false;
         if (bracket && round.bracket !== normalizeBracketSegment(bracket)) return false;
         return true;
-      });
+      })
+      .map((round) => normalizeRound(round, {
+        structureId: round.structureId,
+        phaseId: round.phaseId,
+        phaseGroupId: round.phaseGroupId,
+        structureType: round.structureType,
+        order: round.order,
+        source: round.source || "domain"
+      }));
   }
 
   return stages
@@ -1051,27 +1162,37 @@ export function getCompetitionRounds(event = {}, {
         ?? representativeMatch?.phaseId
         ?? phaseId
         ?? null;
+      const stagePhaseGroupId = stage?.phaseGroupId
+        ?? representativeMatch?.phaseGroupId
+        ?? phaseGroupId
+        ?? null;
+      const stageStructureId = stage?.structureId
+        ?? representativeMatch?.structureId
+        ?? structureId
+        ?? null;
       const stageStructure = getMatchStructure(event, {
         ...representativeMatch,
         phaseId: stagePhaseId,
-        structureId: stage?.structureId ?? structureId ?? null
+        structureId: stageStructureId
       });
       const normalizedBracket = normalizeBracketSegment(
         stage?.bracket || representativeMatch?.bracket
       );
 
       return normalizeRound(stage, {
-        structureId: stage?.structureId
+        structureId: stageStructureId
           ?? stageStructure?.id
-          ?? structureId
           ?? null,
         phaseId: stagePhaseId,
+        phaseGroupId: stagePhaseGroupId,
+        structureType: stageStructure?.type ?? null,
         order: index + 1
       });
     })
     .filter((round) => {
       if (!round) return false;
       if (phaseId && round.phaseId !== phaseId) return false;
+      if (phaseGroupId && round.phaseGroupId !== phaseGroupId) return false;
       if (structureId && round.structureId !== structureId) return false;
       if (bracket && round.bracket !== normalizeBracketSegment(bracket)) return false;
       return true;
@@ -1092,6 +1213,7 @@ export function getMatchCompetitionContext(event = {}, match = {}) {
   const structure = getMatchStructure(event, match);
   const round = getMatchRoundFromCompetition(event, match, {
     phaseId: match.phaseId ?? phase?.id ?? null,
+    phaseGroupId: match.phaseGroupId ?? phaseGroup?.id ?? null,
     structureId: match.structureId ?? structure?.id ?? null
   });
   const phaseGroup = getMatchPhaseGroup(event, match, phase);
