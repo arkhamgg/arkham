@@ -534,6 +534,191 @@ export function getCompetitionSeedingSummary(event = {}, options = {}) {
 }
 
 /**
+ * Competition Structure Slot Domain v1.
+ *
+ * A Slot is the positional place inside a Structure where an Entry may be
+ * placed. It is intentionally different from a Seed: Seed describes initial
+ * competitive ordering, while Slot describes structural position.
+ *
+ * This version is read-only. It does not assign Entries, calculate BYEs,
+ * generate bracket positions, or mutate existing Tournament Pro brackets.
+ */
+export const SLOT_STATUS = {
+  EMPTY: "EMPTY",
+  ASSIGNED: "ASSIGNED",
+  BYE: "BYE",
+  PENDING: "PENDING",
+  BLOCKED: "BLOCKED"
+};
+
+export const SLOT_TYPES = {
+  ENTRY: "ENTRY",
+  BYE: "BYE",
+  SOURCE: "SOURCE",
+  EMPTY: "EMPTY"
+};
+
+function normalizeSlotStatus(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return Object.values(SLOT_STATUS).includes(normalized)
+    ? normalized
+    : SLOT_STATUS.EMPTY;
+}
+
+function normalizeSlotType(value, { entryId = null, status = SLOT_STATUS.EMPTY } = {}) {
+  const normalized = String(value || "").trim().toUpperCase();
+
+  if (Object.values(SLOT_TYPES).includes(normalized)) {
+    return normalized;
+  }
+
+  if (status === SLOT_STATUS.BYE) return SLOT_TYPES.BYE;
+  if (entryId) return SLOT_TYPES.ENTRY;
+  return SLOT_TYPES.EMPTY;
+}
+
+/**
+ * Normalizes one Structure Slot without assigning a new Entry or changing
+ * the bracket. The adapter accepts both positional metadata and optional
+ * current Entry/seed references when they already exist in persisted data.
+ */
+export function normalizeStructureSlot(slot = {}, {
+  structureId = null,
+  phaseId = null,
+  phaseGroupId = null,
+  roundId = null,
+  order = 1
+} = {}) {
+  if (!slot || typeof slot !== "object") return null;
+
+  const id = typeof slot.id === "string" && slot.id.trim()
+    ? slot.id.trim()
+    : null;
+
+  if (!id) return null;
+
+  const resolvedStatus = normalizeSlotStatus(slot.status);
+  const entryId = typeof slot.entryId === "string" && slot.entryId.trim()
+    ? slot.entryId.trim()
+    : null;
+  const seed = normalizeSeedValue(slot.seed);
+  const position = Number(slot.position ?? slot.order);
+  const resolvedPosition = Number.isInteger(position) && position > 0
+    ? position
+    : Number.isInteger(Number(order)) && Number(order) > 0
+      ? Number(order)
+      : 1;
+
+  return {
+    ...slot,
+    id,
+    structureId: slot.structureId ?? structureId ?? null,
+    phaseId: slot.phaseId ?? phaseId ?? null,
+    phaseGroupId: slot.phaseGroupId ?? phaseGroupId ?? null,
+    roundId: slot.roundId ?? roundId ?? null,
+    position: resolvedPosition,
+    order: Number.isInteger(Number(slot.order)) && Number(slot.order) > 0
+      ? Number(slot.order)
+      : resolvedPosition,
+    seed,
+    entryId,
+    participantId: slot.participantId ?? null,
+    type: normalizeSlotType(slot.type, { entryId, status: resolvedStatus }),
+    status: resolvedStatus,
+    bracket: normalizeBracketSegment(slot.bracket),
+    side: slot.side ?? null,
+    matchId: slot.matchId ?? null,
+    sourceSlotId: slot.sourceSlotId ?? null
+  };
+}
+
+/**
+ * Returns explicitly declared Structure Slots from the competition domain.
+ * Legacy brackets are not converted into synthetic Slots in this version.
+ */
+export function getCompetitionStructureSlots(event = {}, {
+  phaseId = null,
+  phaseGroupId = null,
+  structureId = null,
+  roundId = null,
+  status = null
+} = {}) {
+  return getCompetitionStructures(event)
+    .flatMap((structure) => Array.isArray(structure?.slots)
+      ? structure.slots
+          .map((slot, index) => normalizeStructureSlot(slot, {
+            structureId: slot?.structureId ?? structure.id ?? null,
+            phaseId: slot?.phaseId ?? structure.phaseId ?? null,
+            order: index + 1
+          }))
+          .filter(Boolean)
+      : [])
+    .filter((slot) => {
+      if (phaseId && slot.phaseId !== phaseId) return false;
+      if (phaseGroupId && slot.phaseGroupId !== phaseGroupId) return false;
+      if (structureId && slot.structureId !== structureId) return false;
+      if (roundId && slot.roundId !== roundId) return false;
+      if (status && slot.status !== String(status).trim().toUpperCase()) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (String(a.structureId) !== String(b.structureId)) {
+        return String(a.structureId).localeCompare(String(b.structureId));
+      }
+      return a.position - b.position;
+    });
+}
+
+/**
+ * Resolves one declared Structure Slot by ID.
+ */
+export function getCompetitionStructureSlot(event = {}, slotId = null, options = {}) {
+  if (!slotId) return null;
+  return getCompetitionStructureSlots(event, options)
+    .find((slot) => slot.id === slotId) || null;
+}
+
+/**
+ * Resolves the declared Slot associated with an Entry without assigning one.
+ */
+export function getCompetitionEntrySlot(event = {}, entryId = null, options = {}) {
+  if (!entryId) return null;
+  return getCompetitionStructureSlots(event, options)
+    .find((slot) => slot.entryId === entryId) || null;
+}
+
+/**
+ * Resolves the declared Slot associated with a Seed. This is only a lookup:
+ * it never creates a positional assignment.
+ */
+export function getCompetitionSeedSlot(event = {}, seed = null, options = {}) {
+  const normalizedSeed = normalizeSeedValue(seed);
+  if (normalizedSeed == null) return null;
+
+  return getCompetitionStructureSlots(event, options)
+    .find((slot) => slot.seed === normalizedSeed) || null;
+}
+
+/**
+ * Provides a compact read-only summary of the declared Structure Slots.
+ */
+export function getCompetitionStructureSlotSummary(event = {}, options = {}) {
+  const slots = getCompetitionStructureSlots(event, options);
+  const assigned = slots.filter((slot) => slot.entryId || slot.status === SLOT_STATUS.ASSIGNED);
+  const byes = slots.filter((slot) => slot.status === SLOT_STATUS.BYE || slot.type === SLOT_TYPES.BYE);
+
+  return {
+    totalSlots: slots.length,
+    assignedSlots: assigned.length,
+    emptySlots: slots.filter((slot) => !slot.entryId && slot.status === SLOT_STATUS.EMPTY).length,
+    byeSlots: byes.length,
+    pendingSlots: slots.filter((slot) => slot.status === SLOT_STATUS.PENDING).length,
+    blockedSlots: slots.filter((slot) => slot.status === SLOT_STATUS.BLOCKED).length,
+    seededSlots: slots.filter((slot) => slot.seed != null).length
+  };
+}
+
+/**
  * Resolves the Phase context of a Match. Legacy matches without phaseId
  * continue to resolve to null.
  */
@@ -664,6 +849,16 @@ export function normalizeStructure(structure = {}, { phaseId = null, order = 1 }
         .filter(Boolean)
     : [];
 
+  const slots = Array.isArray(structure.slots)
+    ? structure.slots
+        .map((slot, index) => normalizeStructureSlot(slot, {
+          structureId: id,
+          phaseId: resolvedPhaseId,
+          order: index + 1
+        }))
+        .filter(Boolean)
+    : [];
+
   return {
     ...structure,
     id,
@@ -676,7 +871,10 @@ export function normalizeStructure(structure = {}, { phaseId = null, order = 1 }
       : order,
     type,
     status: structure.status || "configured",
-    rounds
+    rounds,
+    slots,
+    slotIds: slots.map((slot) => slot.id),
+    slotCount: slots.length
   };
 }
 
