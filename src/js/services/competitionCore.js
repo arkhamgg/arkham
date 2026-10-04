@@ -2444,9 +2444,7 @@ export function getMatchAdvancement(match = {}, bracket = {}) {
         reason: "WINNER_ADVANCEMENT"
       })
     : normalizeAdvancementDestination({
-        type: isGrandFinal
-          ? ADVANCEMENT_DESTINATION_TYPES.CHAMPION
-          : ADVANCEMENT_DESTINATION_TYPES.CHAMPION,
+        type: ADVANCEMENT_DESTINATION_TYPES.CHAMPION,
         reason: isGrandFinal
           ? "GRAND_FINAL_WIN"
           : "TERMINAL_WIN"
@@ -2973,28 +2971,14 @@ export function createAdvancementPlan(bracket, command) {
     ? match.entryBId || null
     : match.entryAId || null;
 
-  const winnerDestination = match.nextMatchId
-    ? {
-        matchId: match.nextMatchId,
-        slot: match.nextSlot || null,
-        reason: "WINNER_ADVANCEMENT"
-      }
-    : null;
-
-  const loserDestination =
-    bracket?.type === BRACKET_TYPES.DOUBLE_ELIMINATION &&
-    match.bracket === "winners" &&
-    match.loserRoute
-      ? {
-          matchId: match.loserRoute.matchId,
-          slot: match.loserRoute.slot || null,
-          reason: "LOSER_ROUTE"
-        }
-      : null;
-
-  const isGrandFinal = match.bracket === "grand_final";
+  const advancement = getMatchAdvancement(match, bracket);
+  const winnerDestination = advancement?.winnerDestination || null;
+  const loserDestination = advancement?.loserDestination || null;
+  const isGrandFinal = winnerDestination?.type === ADVANCEMENT_DESTINATION_TYPES.CHAMPION &&
+    winnerDestination?.reason === "GRAND_FINAL_WIN";
   const completesSingleElimination =
-    bracket?.type === BRACKET_TYPES.SINGLE_ELIMINATION && !winnerDestination;
+    bracket?.type === BRACKET_TYPES.SINGLE_ELIMINATION &&
+    winnerDestination?.type === ADVANCEMENT_DESTINATION_TYPES.CHAMPION;
 
   return {
     matchId: normalizedCommand.matchId,
@@ -3010,7 +2994,9 @@ export function createAdvancementPlan(bracket, command) {
     },
     completion: {
       isGrandFinal,
-      completesSingleElimination
+      completesSingleElimination,
+      winnerDestinationType: winnerDestination?.type || null,
+      loserDestinationType: loserDestination?.type || null
     }
   };
 }
