@@ -8,7 +8,13 @@ import {
   getEntities
 } from "./firestore.js";
 
-import { auth } from "./firebase.js";
+import { auth, db } from "./firebase.js";
+import {
+  doc,
+  FieldPath,
+  runTransaction,
+  serverTimestamp
+} from "firebase/firestore";
 
 import {
   ensureTournamentProState,
@@ -24,6 +30,7 @@ import {
 import {
   startMatchCommand,
   applyMatchResultCommand,
+  getCompetitionEliminationRoundSpecs,
   getCompetitionDeliveryMode,
   getCompetitionStations,
   normalizeStation
@@ -49,6 +56,7 @@ import {
   createLegacyMatchResultCommand
 } from "./competitionMatchResultBridge.js";
 import { STATION_STATUS, STATION_TYPES } from "./competitionTypes.js";
+import { getGameMatchSystems } from "./gameCatalog.js";
 import {
   validateCompetitionConfiguration,
   COMPETITION_CONFIGURATION_STATUS
@@ -392,6 +400,516 @@ export async function syncCompetitionDomainStructureFromLegacyBracket({
 
   pro.phases = nextPhases;
   return savePro(tournamentId, eventId, event, pro);
+}
+
+function assertCompetitionSetupEditable(event, pro) {
+  const terminalStatuses = new Set(["live", "check_in", "finished", "archived", "completed"]);
+  const eventStatus = String(event?.status || "").toLowerCase();
+  const proStatus = String(pro?.status || "").toLowerCase();
+
+  if (terminalStatuses.has(eventStatus) || terminalStatuses.has(proStatus)) {
+    throw new Error("La estructura no se puede editar cuando el torneo ya está en check-in o en curso.");
+  }
+
+  if (pro?.checkIn?.opened || pro?.checkIn?.completed || ["open", "completed"].includes(String(pro?.checkIn?.status || "").toLowerCase())) {
+    throw new Error("Cierra o completa el check-in antes de cambiar la estructura competitiva.");
+  }
+
+  const matches = [
+    ...Object.values(pro?.matches || {}),
+    ...(pro?.bracket?.stages || []).flatMap((stage) => stage?.matches || [])
+  ];
+  if (matches.some((match) => ["live", "completed"].includes(String(match?.status || "").toLowerCase()))) {
+    throw new Error("La estructura no se puede editar después de iniciar o completar un partido.");
+  }
+}
+
+function normalizeCompetitionSetupName(value, label) {
+  const name = String(value || "").trim();
+  if (!name) throw new Error(`Escribe un nombre para ${label}.`);
+  if (name.length > 80) throw new Error("El nombre no puede superar 80 caracteres.");
+  return name;
+}
+
+function normalizeStructureTypeValue(value) {
+  const type = String(value || "").trim().toUpperCase();
+  if (!["SINGLE_ELIMINATION", "DOUBLE_ELIMINATION"].includes(type)) {
+    throw new Error("Elige eliminación simple o doble para esta estructura.");
+  }
+  return type;
+}
+
+function getStoredCompetitionPhases(event) {
+  return Array.isArray(event?.pro?.phases) ? event.pro.phases : null;
+}
+
+function createLegacyMainCompetitionPhase({ eventId, event, pro }) {
+  return {
+    id: "legacy-main",
+    competitionId: eventId,
+    name: "Main Competition",
+    order: 1,
+    status: "draft",
+    matchFormat: pro?.matchSystem || event?.matchSystem || null,
+    phaseGroups: [],
+    structures: [],
+    legacy: true
+  };
+}
+
+function preserveLegacyMainCompetition(phases, { eventId, event, pro }) {
+  const hasCompatibilityPhase = phases.some((phase) => phase?.id === "legacy-main" || phase?.legacy === true);
+  const hasUnassignedLegacyBracket = (pro?.bracket?.stages || []).some((stage) =>
+    !stage?.phaseId && !(stage?.matches || []).some((match) => match?.phaseId)
+  );
+  const shouldPreserve = !hasCompatibilityPhase && (
+    phases.length === 0 || hasUnassignedLegacyBracket
+  );
+  if (!shouldPreserve) return;
+
+  phases.forEach((phase, index) => { phase.order = index + 2; });
+  phases.unshift(createLegacyMainCompetitionPhase({ eventId, event, pro }));
+}
+
+function serializeCompetitionPhases(phases) {
+  const sortObjectKeys = (value) => {
+    if (Array.isArray(value)) return value.map(sortObjectKeys);
+    if (!value || typeof value !== "object") return value;
+    return Object.keys(value).sort().reduce((sorted, key) => {
+      if (value[key] !== undefined) sorted[key] = sortObjectKeys(value[key]);
+      return sorted;
+    }, {});
+  };
+
+  return JSON.stringify(sortObjectKeys(phases));
+}
+
+async function persistCompetitionPhasesSafely({
+  tournamentId,
+  eventId,
+  expectedPhases,
+  nextPhases
+}) {
+  if (!tournamentId || !eventId) throw new Error("Falta identificar el torneo o el evento.");
+  const tournamentRef = doc(db, "tournaments", tournamentId);
+
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(tournamentRef);
+    if (!snapshot.exists()) throw new Error("No se encontró el torneo.");
+    const currentEvent = snapshot.data()?.events?.[eventId] || null;
+    if (!currentEvent) throw new Error("No se encontró el evento.");
+
+    const currentPhases = getStoredCompetitionPhases(currentEvent);
+    if (serializeCompetitionPhases(currentPhases) !== serializeCompetitionPhases(expectedPhases)) {
+      throw new Error("La configuración cambió en otra sesión. Recarga el evento antes de guardar de nuevo.");
+    }
+
+    const currentPro = ensureTournamentProState(currentEvent);
+    assertCompetitionSetupEditable(currentEvent, currentPro);
+    transaction.update(
+      tournamentRef,
+      new FieldPath("events", eventId, "pro", "phases"),
+      cloneValue(nextPhases),
+      new FieldPath("events", eventId, "updatedAt"),
+      serverTimestamp(),
+      "updatedAt",
+      serverTimestamp()
+    );
+  });
+
+  const persistedEvent = await getMapEntity("tournaments", tournamentId, "events", eventId);
+  if (!persistedEvent || serializeCompetitionPhases(getStoredCompetitionPhases(persistedEvent)) !== serializeCompetitionPhases(nextPhases)) {
+    throw new Error("No se pudo verificar la configuración guardada. Recarga el evento para confirmar el estado.");
+  }
+
+  // Return the persisted record; this write changes only pro.phases.
+  return persistedEvent;
+}
+
+async function validatePhaseMatchSystem(event, pro, phaseId, matchSystemMode, matchSystem) {
+  if (!["CUSTOM", "INHERIT"].includes(matchSystemMode)) {
+    throw new Error("Elige un formato de partida válido para esta fase.");
+  }
+  const mode = matchSystemMode === "CUSTOM" ? "CUSTOM" : "INHERIT";
+  if (mode === "INHERIT") return { matchSystemMode: mode, matchSystem: null, matchFormat: null };
+
+  const value = String(matchSystem || "").trim();
+  if (!value) throw new Error("Elige el formato de partida para esta fase.");
+
+  let allowed = [];
+  try {
+    allowed = await getGameMatchSystems(event?.gameId, event?.competitionOption);
+  } catch {
+    // Existing catalog outages should not prevent keeping the event's current format.
+  }
+
+  const existingValue = pro?.phases?.find((phase) => phase?.id === phaseId)?.matchSystem;
+  const inheritedValue = pro?.matchSystem || event?.matchSystem || null;
+  if (allowed.length > 0 && !allowed.includes(value)) {
+    throw new Error("Ese formato ya no está disponible para el juego y modalidad de este torneo.");
+  }
+  if (allowed.length === 0 && value !== inheritedValue && value !== existingValue) {
+    throw new Error("No se pudo verificar ese formato con las opciones del juego. Intenta de nuevo más tarde.");
+  }
+
+  return { matchSystemMode: mode, matchSystem: value, matchFormat: value };
+}
+
+export async function saveCompetitionPhaseConfiguration({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  name,
+  matchSystemMode = "INHERIT",
+  matchSystem = null
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+
+  const id = String(phaseId || "").trim();
+  if (!id) throw new Error("No se pudo identificar la fase.");
+
+  const phases = Array.isArray(pro.phases) ? pro.phases.map((phase) => ({
+    ...phase,
+    structures: Array.isArray(phase?.structures) ? phase.structures.map((structure) => ({ ...structure })) : []
+  })) : [];
+  preserveLegacyMainCompetition(phases, { eventId, event, pro });
+  const phaseIndex = phases.findIndex((phase) => phase?.id === id);
+  const existing = phaseIndex >= 0 ? phases[phaseIndex] : null;
+  const normalizedName = normalizeCompetitionSetupName(name, "la fase");
+  if (phases.some((phase) => phase?.id !== id && String(phase?.name || "").trim().toLowerCase() === normalizedName.toLowerCase())) {
+    throw new Error("Ya existe una fase con ese nombre.");
+  }
+
+  const format = await validatePhaseMatchSystem(event, pro, id, matchSystemMode, matchSystem);
+  const nextPhase = {
+    ...(existing || {}),
+    id,
+    competitionId: eventId,
+    name: normalizedName,
+    order: existing?.order || phases.length + 1,
+    status: existing?.status || "configured",
+    ...format,
+    phaseGroups: Array.isArray(existing?.phaseGroups) ? existing.phaseGroups : [],
+    structures: Array.isArray(existing?.structures) ? existing.structures : []
+  };
+
+  if (phaseIndex >= 0) phases[phaseIndex] = nextPhase;
+  else phases.push(nextPhase);
+  phases.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+  pro.phases = phases.map((phase, index) => ({ ...phase, order: index + 1 }));
+
+  return persistCompetitionPhasesSafely({
+    tournamentId,
+    eventId,
+    expectedPhases,
+    nextPhases: pro.phases
+  });
+}
+
+export async function moveCompetitionPhaseConfiguration({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  direction
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = Array.isArray(pro.phases) ? [...pro.phases] : [];
+  const index = phases.findIndex((phase) => phase?.id === phaseId);
+  const target = index + (direction === "up" ? -1 : direction === "down" ? 1 : 0);
+  if (index < 0 || target < 0 || target >= phases.length || target === index) return { ...event, pro };
+
+  [phases[index], phases[target]] = [phases[target], phases[index]];
+  pro.phases = phases.map((phase, phaseIndex) => ({ ...phase, order: phaseIndex + 1 }));
+  return persistCompetitionPhasesSafely({
+    tournamentId,
+    eventId,
+    expectedPhases,
+    nextPhases: pro.phases
+  });
+}
+
+export async function saveCompetitionStructureConfiguration({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  structureId,
+  name,
+  type
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = (pro.phases || []).map((item) => ({
+    ...item,
+    structures: Array.isArray(item?.structures) ? item.structures.map((structure) => ({ ...structure })) : []
+  }));
+  const phase = phases.find((item) => item?.id === phaseId);
+  if (!phase) throw new Error("Guarda una fase antes de configurar su estructura.");
+
+  const id = String(structureId || "").trim();
+  if (!id) throw new Error("No se pudo identificar la estructura.");
+  const normalizedName = normalizeCompetitionSetupName(name, "la estructura");
+  const normalizedType = normalizeStructureTypeValue(type);
+  const structures = Array.isArray(phase.structures) ? phase.structures.map((item) => ({ ...item })) : [];
+  const index = structures.findIndex((item) => item?.id === id);
+  const existing = index >= 0 ? structures[index] : null;
+
+  if (structures.some((item) => item?.id !== id && String(item?.name || "").trim().toLowerCase() === normalizedName.toLowerCase())) {
+    throw new Error("Ya existe una estructura con ese nombre en esta fase.");
+  }
+  if (existing && String(existing.type || "").toUpperCase() !== normalizedType && ((existing.rounds || []).length || (existing.slots || []).length)) {
+    throw new Error("No se puede cambiar el formato de una estructura que ya tiene rounds o posiciones. Crea otra estructura para usar otro formato.");
+  }
+
+  const nextStructure = {
+    ...(existing || {}),
+    id,
+    phaseId,
+    name: normalizedName,
+    order: existing?.order || structures.length + 1,
+    type: normalizedType,
+    status: existing?.status || "configured",
+    matchFormat: phase.matchFormat || phase.matchSystem || pro.matchSystem || event?.matchSystem || null,
+    rounds: Array.isArray(existing?.rounds) ? existing.rounds : [],
+    slots: Array.isArray(existing?.slots) ? existing.slots : []
+  };
+  if (index >= 0) structures[index] = nextStructure;
+  else structures.push(nextStructure);
+  structures.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+  phase.structures = structures.map((structure, structureIndex) => ({ ...structure, order: structureIndex + 1 }));
+  pro.phases = phases;
+
+  return persistCompetitionPhasesSafely({
+    tournamentId,
+    eventId,
+    expectedPhases,
+    nextPhases: pro.phases
+  });
+}
+
+function refreshPreparedStructureMatches({ event, pro, phases, phase, structure }) {
+  const generated = generateCompetitionBracket({
+    ...event,
+    pro: { ...pro, phases }
+  }, { phaseId: phase.id, structureId: structure.id });
+  if (generated.status !== "READY" || generated.matches.length === 0) {
+    throw new Error(`No se pudo actualizar el cuadro: ${(generated.reasonCodes || []).join(", ") || generated.status}.`);
+  }
+
+  const matchesByRoundId = new Map();
+  generated.matches.forEach((match) => {
+    const roundMatches = matchesByRoundId.get(match.roundId) || [];
+    const participantA = Array.isArray(match.participants)
+      ? match.participants[0] || null
+      : match.participants?.A || null;
+    const participantB = Array.isArray(match.participants)
+      ? match.participants[1] || null
+      : match.participants?.B || null;
+    roundMatches.push({
+      ...match,
+      entryAId: participantA?.entryId || match.entryAId || null,
+      participantAId: participantA?.participantId || match.participantAId || null,
+      entryBId: participantB?.entryId || match.entryBId || null,
+      participantBId: participantB?.participantId || match.participantBId || null,
+      matchSystem: structure.matchFormat || phase.matchFormat || phase.matchSystem || pro.matchSystem || event?.matchSystem || null
+    });
+    matchesByRoundId.set(match.roundId, roundMatches);
+  });
+
+  structure.rounds = structure.rounds.map((round) => {
+    const matches = matchesByRoundId.get(round.id) || [];
+    return {
+      ...round,
+      matches,
+      matchCount: matches.length,
+      matchIds: matches.map((match) => match.id),
+      source: "competition-core"
+    };
+  });
+  phase.structures = phase.structures.map((item) => item.id === structure.id ? structure : item);
+  return generated;
+}
+
+export async function prepareCompetitionStructureBracket({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  structureId
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = (pro.phases || []).map((phase) => ({
+    ...phase,
+    structures: Array.isArray(phase?.structures)
+      ? phase.structures.map((structure) => ({ ...structure }))
+      : []
+  }));
+  const phase = phases.find((item) => item?.id === phaseId);
+  const structure = phase?.structures?.find((item) => item?.id === structureId);
+  if (!phase || !structure) throw new Error("No se encontró la fase o estructura seleccionada.");
+  if ((structure.rounds || []).length || (structure.slots || []).length) {
+    throw new Error("Esta estructura ya tiene rondas o posiciones preparadas.");
+  }
+
+  const capacity = Number(pro.capacity?.value ?? pro.capacity ?? event?.capacity?.value ?? event?.capacity);
+  if (!Number.isInteger(capacity) || capacity < 2 || capacity > 256 || (capacity & (capacity - 1)) !== 0) {
+    throw new Error("Por ahora, Competition Core requiere una capacidad de 2, 4, 8, 16, 32, 64, 128 o 256 participantes para preparar este formato.");
+  }
+
+  const structureType = normalizeStructureTypeValue(structure.type);
+  const specs = getCompetitionEliminationRoundSpecs(structureType, capacity);
+  if (!Array.isArray(specs) || !specs.length) {
+    throw new Error("No se pudo crear el recorrido de rondas para esta estructura.");
+  }
+  const roundSpecs = specs.map((spec) => ({
+    ...spec,
+    name: spec.bracket === "grand_final" ? "Gran final" : `Ronda ${spec.number}`,
+    type: spec.bracket === "grand_final" ? "GRAND_FINAL" : "ELIMINATION"
+  }));
+
+  const rounds = roundSpecs.map((spec, index) => ({
+    id: `${structure.id}-round-${spec.bracket}-r${spec.number}`,
+    phaseId,
+    structureId,
+    order: index + 1,
+    number: spec.number,
+    name: spec.name,
+    type: spec.type,
+    bracket: spec.bracket,
+    status: "configured",
+    matchCount: spec.matchCount,
+    matches: []
+  }));
+  const firstRound = rounds.find((round) => round.bracket === "winners" && round.number === 1);
+  const slots = Array.from({ length: capacity }, (_, index) => ({
+    id: `${structure.id}-slot-${index + 1}`,
+    phaseId,
+    structureId,
+    roundId: firstRound.id,
+    position: index + 1,
+    order: index + 1,
+    seed: null,
+    entryId: null,
+    participantId: null,
+    type: "EMPTY",
+    status: "EMPTY",
+    bracket: "winners"
+  }));
+
+  structure.rounds = rounds;
+  structure.slots = slots;
+  phase.structures = phase.structures.map((item) => item.id === structureId ? structure : item);
+  refreshPreparedStructureMatches({ event, pro, phases, phase, structure });
+
+  return persistCompetitionPhasesSafely({
+    tournamentId,
+    eventId,
+    expectedPhases,
+    nextPhases: phases
+  });
+}
+
+export async function assignCompetitionEntryToStructureSlot({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  structureId,
+  slotId,
+  entryId
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = cloneValue(getStoredCompetitionPhases(event));
+  const phase = phases?.find((item) => item?.id === phaseId);
+  const structure = phase?.structures?.find((item) => item?.id === structureId);
+  const slot = structure?.slots?.find((item) => item?.id === slotId);
+  if (!phase || !structure || !slot) throw new Error("No se encontró la posición seleccionada.");
+  if (!(structure.rounds || []).length || !(structure.slots || []).length) {
+    throw new Error("Primero prepara las rondas y posiciones de esta estructura.");
+  }
+  if ((structure.rounds || []).some((round) => (round.matches || []).some((match) => ["LIVE", "COMPLETED"].includes(String(match?.status || "").toUpperCase())))) {
+    throw new Error("No se pueden cambiar participantes después de iniciar un partido.");
+  }
+
+  const normalizedEntryId = String(entryId || "").trim() || null;
+  const entry = normalizedEntryId ? pro.entries?.[normalizedEntryId] : null;
+  const participantId = entry?.legacyParticipantId || null;
+  const participant = participantId ? pro.participants?.[participantId] : null;
+  if (normalizedEntryId && (!entry || !participant)) {
+    throw new Error("No se encontró el participante seleccionado. Recarga el torneo e inténtalo de nuevo.");
+  }
+  const inactiveStatuses = new Set(["withdrawn", "eliminated", "dq", "rejected", "no_show"]);
+  if (entry && (inactiveStatuses.has(String(entry.status || "").toLowerCase()) || inactiveStatuses.has(String(participant.status || "").toLowerCase()))) {
+    throw new Error("Ese participante ya no está activo en la competencia.");
+  }
+
+  if (entry) {
+    const duplicateSlot = structure.slots.find((candidate) =>
+      candidate.id !== slot.id && (
+        candidate.entryId === normalizedEntryId ||
+        (participantId && candidate.participantId === participantId)
+      )
+    );
+    if (duplicateSlot) throw new Error("Ese participante ya ocupa otra posición de esta estructura.");
+  }
+
+  slot.entryId = normalizedEntryId;
+  slot.participantId = normalizedEntryId ? participantId : null;
+  slot.type = normalizedEntryId ? "ENTRY" : "EMPTY";
+  slot.status = normalizedEntryId ? "ASSIGNED" : "EMPTY";
+  slot.updatedAt = new Date().toISOString();
+  refreshPreparedStructureMatches({ event, pro, phases, phase, structure });
+
+  return persistCompetitionPhasesSafely({
+    tournamentId,
+    eventId,
+    expectedPhases,
+    nextPhases: phases
+  });
+}
+
+export async function moveCompetitionStructureConfiguration({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  structureId,
+  direction
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = (pro.phases || []).map((item) => ({
+    ...item,
+    structures: Array.isArray(item?.structures) ? [...item.structures] : []
+  }));
+  const phase = phases.find((item) => item?.id === phaseId);
+  if (!phase) throw new Error("Fase no encontrada.");
+  const structures = Array.isArray(phase.structures) ? [...phase.structures] : [];
+  const index = structures.findIndex((item) => item?.id === structureId);
+  const target = index + (direction === "up" ? -1 : direction === "down" ? 1 : 0);
+  if (index < 0 || target < 0 || target >= structures.length || target === index) return { ...event, pro };
+
+  [structures[index], structures[target]] = [structures[target], structures[index]];
+  phase.structures = structures.map((structure, structureIndex) => ({ ...structure, order: structureIndex + 1 }));
+  pro.phases = phases;
+  return persistCompetitionPhasesSafely({
+    tournamentId,
+    eventId,
+    expectedPhases,
+    nextPhases: pro.phases
+  });
 }
 
 

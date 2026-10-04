@@ -20,7 +20,13 @@ import {
   getOfficialResults,
   finalizeTournament,
   auditTournamentProBracketAgainstCompetitionCore,
-  syncCompetitionDomainStructureFromLegacyBracket
+  syncCompetitionDomainStructureFromLegacyBracket,
+  saveCompetitionPhaseConfiguration,
+  moveCompetitionPhaseConfiguration,
+  saveCompetitionStructureConfiguration,
+  prepareCompetitionStructureBracket,
+  assignCompetitionEntryToStructureSlot,
+  moveCompetitionStructureConfiguration
 } from "../services/tournamentProOperations.js";
 import { getTournamentRegistrationRequestsMarkup, loadTournamentRegistrationRequests, bindTournamentRegistrationRequests } from "../components/tournamentRegistrationRequests.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
@@ -40,6 +46,7 @@ import {
   validateCompetitionConfiguration,
   COMPETITION_CONFIGURATION_STATUS
 } from "../services/competitionConfiguration.js";
+import { getGameMatchSystems } from "../services/gameCatalog.js";
 
 export function TournamentPro() {
   const page = document.createElement("main");
@@ -173,6 +180,13 @@ export function TournamentPro() {
       let event = await getTournamentProEvent(tournamentId, eventId);
       if (!event) throw new Error("Evento no encontrado.");
 
+      let competitionMatchSystems = [];
+      try {
+        competitionMatchSystems = await getGameMatchSystems(event.gameId, event.competitionOption);
+      } catch (error) {
+        console.warn("ARKHAM — No fue posible cargar los formatos por fase:", error);
+      }
+
       let pro = ensureTournamentProState(event);
       let competitionValidation = validateCompetitionConfiguration({
         gameId: event.gameId,
@@ -210,6 +224,10 @@ export function TournamentPro() {
       let replacementParticipantId = null;
       let modalOpen = false;
       let finalizationModalOpen = false;
+      let phaseConfigurationMode = null;
+      let structureConfigurationModalOpen = false;
+      let editingStructureId = null;
+      let structureSlotAssignmentId = null;
       let selectedWorkspacePhaseId = null;
       let selectedWorkspaceStructureId = null;
       let selectedWorkspaceRoundId = null;
@@ -218,6 +236,7 @@ export function TournamentPro() {
       let competitionCoreAudit = null;
       let competitionCoreAuditLoading = false;
       let competitionCoreMigrationDryRun = null;
+      let competitionSetupSaving = false;
       const pendingMatchOperations = new Set();
 
       const isMatchOperationPending = (matchId) =>
@@ -242,6 +261,27 @@ export function TournamentPro() {
           registrationRequestsError = error?.message || "No fue posible cargar las solicitudes.";
         }
         render();
+      };
+
+      const createCompetitionConfigurationId = (prefix) => {
+        const id = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        return `${prefix}-${id}`;
+      };
+
+      const runCompetitionSetupChange = async (operation) => {
+        if (competitionSetupSaving) return;
+        competitionSetupSaving = true;
+        render();
+        try {
+          event = await operation();
+          pro = ensureTournamentProState(event || {});
+          competitionCoreAudit = null;
+        } catch (error) {
+          window.alert(error?.message || "No fue posible guardar la estructura competitiva.");
+        } finally {
+          competitionSetupSaving = false;
+          render();
+        }
       };
 
       const formatLabel = (value) => {
@@ -338,6 +378,13 @@ export function TournamentPro() {
         const stages = Array.isArray(pro.bracket?.stages) ? pro.bracket.stages : [];
         const bracketType = String(pro.bracket?.type || event.format || "single_elimination").toLowerCase();
         const legacyType = bracketType === "double_elimination" ? "DOUBLE_ELIMINATION" : "SINGLE_ELIMINATION";
+        const hasCompatibilityPhase = configuredPhases.some((phase) => phase?.id === "legacy-main" || phase?.legacy === true);
+        const hasUnassignedLegacyBracket = stages.some((stage) =>
+          !stage?.phaseId && !(stage?.matches || []).some((match) => match?.phaseId)
+        );
+        const shouldShowLegacyMain = configuredPhases.length > 0 &&
+          !hasCompatibilityPhase &&
+          hasUnassignedLegacyBracket;
 
         if (!configuredPhases.length) {
           const legacyPhaseId = "legacy-main";
@@ -359,25 +406,58 @@ export function TournamentPro() {
           }];
         }
 
-        return configuredPhases
+        const phasesToRender = shouldShowLegacyMain ? [{
+          id: "legacy-main",
+          name: "Main Competition",
+          order: 1,
+          status: pro.status || "draft",
+          matchFormat: pro.matchSystem || event.matchSystem || null,
+          legacy: true,
+          structures: [{
+            id: "legacy-main-structure",
+            name: bracketType === "double_elimination" ? "Double Elimination" : "Single Elimination",
+            type: legacyType,
+            order: 1,
+            legacy: true,
+            rounds: getCompetitionRounds(event, { bracket: null })
+          }]
+        }, ...configuredPhases.map((phase, index) => ({ ...phase, order: Number(phase.order) + 1 || index + 2 }))] : configuredPhases;
+
+        return phasesToRender
           .map((phase, phaseIndex) => {
-            const phaseStructures = structures.filter((structure) => structure.phaseId === phase.id);
+            const phaseStructures = shouldShowLegacyMain && phase.id === "legacy-main"
+              ? phase.structures
+              : structures.filter((structure) => structure.phaseId === phase.id);
             const phaseStages = stages.filter((stage) => {
               if (stage?.phaseId) return stage.phaseId === phase.id;
-              return phaseStructures.length === 0 && phaseIndex === 0;
+              return !shouldShowLegacyMain && phaseStructures.length === 0 && phaseIndex === 0;
             });
             const normalizedStructures = phaseStructures.length
-              ? phaseStructures.map((structure) => ({
-                  ...structure,
-                  rounds: getCompetitionRounds(event, { structureId: structure.id, phaseId: phase.id })
-                }))
+              ? phaseStructures.map((structure) => {
+                  const declaredRounds = Array.isArray(structure.rounds) ? structure.rounds : [];
+                  const hasLinkedOperationalStages = stages.some((stage) =>
+                    stage?.structureId === structure.id ||
+                    (stage?.matches || []).some((match) => match?.structureId === structure.id)
+                  );
+                  const operationalRounds = declaredRounds.length && hasLinkedOperationalStages
+                    ? getCompetitionRounds(event, { structureId: structure.id, phaseId: phase.id })
+                    : [];
+                  return {
+                    ...structure,
+                    rounds: operationalRounds.length ? operationalRounds : declaredRounds
+                  };
+                })
               : [{
                   id: `${phase.id}-derived`,
                   name: "Main Structure",
                   type: legacyType,
                   order: 1,
                   legacy: true,
-                  rounds: phaseStages.length ? phaseStages : getCompetitionRounds(event, { phaseId: phase.id })
+                  // Keep unassigned legacy rounds on the first compatibility phase only.
+                  // getCompetitionRounds(event, { phaseId }) can associate legacy stages
+                  // without a phaseId to any requested phase, which makes new phases
+                  // appear to inherit the active bracket.
+                  rounds: phaseStages
                 }];
 
             return {
@@ -569,12 +649,42 @@ export function TournamentPro() {
           selectedWorkspacePhaseId = workspacePhases[0]?.id || null;
         }
         const selectedWorkspacePhase = workspacePhases.find((phase) => phase.id === selectedWorkspacePhaseId) || workspacePhases[0] || null;
+        const declaredPhase = (pro.phases || []).find((phase) => phase?.id === selectedWorkspacePhase?.id) || null;
+        const declaredStructures = Array.isArray(declaredPhase?.structures) ? declaredPhase.structures : [];
         if (!selectedWorkspacePhase?.structures?.some((structure) => structure.id === selectedWorkspaceStructureId)) {
           selectedWorkspaceStructureId = selectedWorkspacePhase?.structures?.[0]?.id || null;
         }
         const selectedWorkspaceStructure = selectedWorkspacePhase?.structures?.find((structure) => structure.id === selectedWorkspaceStructureId)
           || selectedWorkspacePhase?.structures?.[0]
           || null;
+        const selectedDeclaredStructure = declaredStructures.find((structure) => structure?.id === selectedWorkspaceStructure?.id) || null;
+        const modalEditingStructure = declaredStructures.find((structure) => structure?.id === editingStructureId) || null;
+        const competitionSetupLocked = Boolean(
+          eventLive || eventFinished || checkInOpen || checkInCompleted ||
+          ["live", "check_in", "finished", "archived", "completed"].includes(String(event.status || pro.status || "").toLowerCase()) ||
+          pro.checkIn?.opened || pro.checkIn?.completed ||
+          stages.some((stage) => (stage.matches || []).some((match) => ["live", "completed"].includes(String(match.status || "").toLowerCase())))
+        );
+        const inheritedMatchSystem = pro.matchSystem || event.matchSystem || "";
+        const availablePhaseMatchSystems = [...new Set([
+          ...competitionMatchSystems,
+          inheritedMatchSystem,
+          ...workspacePhases.map((phase) => phase.matchSystem || null),
+          selectedWorkspacePhase?.matchFormat || null
+        ].filter(Boolean))];
+        const configuredPhaseMatchSystem = selectedWorkspacePhase?.matchSystem || selectedWorkspacePhase?.matchFormat || "";
+        const phaseMatchSystemValue = selectedWorkspacePhase?.matchSystemMode === "CUSTOM"
+          ? configuredPhaseMatchSystem
+          : configuredPhaseMatchSystem && configuredPhaseMatchSystem !== inheritedMatchSystem
+            ? configuredPhaseMatchSystem
+            : "";
+        const renderPhaseMatchSystemOptions = (selectedValue = "") => `
+          <option value="" ${selectedValue ? "" : "selected"}>Heredar del torneo${inheritedMatchSystem ? ` (${escapeHtml(inheritedMatchSystem)})` : ""}</option>
+          ${availablePhaseMatchSystems.map((system) => `<option value="${escapeAttr(system)}" ${system === selectedValue ? "selected" : ""}>${escapeHtml(system)}</option>`).join("")}
+        `;
+        const phaseIsDeclared = Boolean(declaredPhase);
+        const selectedStructureType = String(selectedDeclaredStructure?.type || (String(pro.bracket?.type || event.format || "").toLowerCase().includes("double") ? "DOUBLE_ELIMINATION" : "SINGLE_ELIMINATION")).toUpperCase();
+        const selectedStructureFormatLocked = Boolean((selectedDeclaredStructure?.rounds || []).length || (selectedDeclaredStructure?.slots || []).length);
         const workspaceRounds = selectedWorkspaceStructure?.rounds || [];
         if (!workspaceRounds.some((round) => round.id === selectedWorkspaceRoundId)) {
           selectedWorkspaceRoundId = workspaceRounds[0]?.id || null;
@@ -583,6 +693,26 @@ export function TournamentPro() {
           || workspaceRounds[0]
           || null;
         const selectedWorkspaceMatches = Array.isArray(selectedWorkspaceRound?.matches) ? selectedWorkspaceRound.matches : [];
+        const selectedWorkspaceRoundSlots = (selectedWorkspaceStructure?.slots || [])
+          .filter((slot) => slot?.roundId === selectedWorkspaceRound?.id)
+          .sort((a, b) => Number(a.position || a.order || 0) - Number(b.position || b.order || 0));
+        const selectedStructureSlotForAssignment = selectedDeclaredStructure?.slots
+          ?.find((slot) => slot?.id === structureSlotAssignmentId) || null;
+        const inactiveCompetitorStatuses = new Set(["withdrawn", "eliminated", "dq", "rejected", "no_show"]);
+        const entriesAssignedElsewhere = new Set((selectedDeclaredStructure?.slots || [])
+          .filter((slot) => slot?.id !== selectedStructureSlotForAssignment?.id && slot?.entryId)
+          .map((slot) => slot.entryId));
+        const structureAssignmentCandidates = Object.values(pro.entries || {})
+          .filter((entry) => {
+            const participant = entry?.legacyParticipantId ? pro.participants?.[entry.legacyParticipantId] : null;
+            return Boolean(
+              entry?.id && participant &&
+              !inactiveCompetitorStatuses.has(String(entry.status || "").toLowerCase()) &&
+              !inactiveCompetitorStatuses.has(String(participant.status || "").toLowerCase()) &&
+              (!entriesAssignedElsewhere.has(entry.id) || entry.id === selectedStructureSlotForAssignment?.entryId)
+            );
+          })
+          .sort((a, b) => String(a.displayName || "").localeCompare(String(b.displayName || ""), "es"));
         const matchSelectionPool = competitionView === "structure"
           ? selectedWorkspaceMatches
           : allCompetitionMatches.map((item) => item.match);
@@ -605,9 +735,11 @@ export function TournamentPro() {
           selectedWorkspaceMatchId = null;
         }
         const selectedWorkspaceMatch = matchSelectionPool.find((match) => match?.id === selectedWorkspaceMatchId) || null;
+        const selectedWorkspaceMatchIsOperational = Boolean(selectedWorkspaceMatch && allCompetitionMatches.some((item) => item.match === selectedWorkspaceMatch));
+        const selectedWorkspaceRoundIsOperational = Boolean(selectedWorkspaceRound && allCompetitionMatches.some((item) => item.stage?.id === selectedWorkspaceRound.id));
         const selectedWorkspaceMatchGameSummary = getMatchGameSummary(selectedWorkspaceMatch);
         const selectedWorkspaceMatchContext = selectedWorkspaceMatch
-          ? allCompetitionMatches.find((item) => item.match?.id === selectedWorkspaceMatch.id) || null
+          ? allCompetitionMatches.find((item) => item.match === selectedWorkspaceMatch) || null
           : null;
         const selectedWorkspaceMatchHasBoth = Boolean(
           selectedWorkspaceMatch?.participantAId && selectedWorkspaceMatch?.participantBId
@@ -626,12 +758,28 @@ export function TournamentPro() {
 
         const formatAdvancementDestination = (destination) => {
           if (!destination) return "Sin ruta definida";
-          if (destination.type === "MATCH") {
+          if (destination.type === "MATCH" || destination.matchId) {
             return `${destination.matchId || "Match"}${destination.slot ? ` · Slot ${destination.slot}` : ""}`;
           }
           if (destination.type === "CHAMPION") return "Campeón";
           if (destination.type === "ELIMINATED") return "Eliminado";
           return formatLabel(destination.type);
+        };
+
+        const getWorkspaceMatchAdvancement = (match) => {
+          if (!match?.advancement || typeof match.advancement !== "object") {
+            return getMatchAdvancement(match, pro.bracket || {});
+          }
+          const normalizeDestination = (destination, terminalType) => {
+            if (destination?.matchId) return { ...destination, type: destination.type || "MATCH" };
+            if (destination?.type) return destination;
+            return { type: terminalType };
+          };
+          return {
+            ...match.advancement,
+            winnerDestination: normalizeDestination(match.advancement.winnerDestination, "CHAMPION"),
+            loserDestination: normalizeDestination(match.advancement.loserDestination, "ELIMINATED")
+          };
         };
 
         const statusLabel = eventLive
@@ -871,40 +1019,56 @@ export function TournamentPro() {
             <div class="tournament-pro-page__workspace-header">
               <div>
                 <span class="tournament-pro-page__eyebrow">COMPETENCIA</span>
-                <h2>Main Competition</h2>
+                <h2>Administrar competencia</h2>
               </div>
-              <div class="tournament-pro-page__workspace-path">
-                <span>COMPETITION</span>
-                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                <strong>${escapeHtml(selectedWorkspacePhase?.name || "Sin fase")}</strong>
-                ${selectedWorkspaceStructure ? `<i class="fa-solid fa-chevron-right" aria-hidden="true"></i><strong>${escapeHtml(selectedWorkspaceStructure.name)}</strong>` : ""}
+              <div class="tournament-pro-page__workspace-header-actions">
+                <div class="tournament-pro-page__workspace-path">
+                  <span>COMPETENCIA</span>
+                  <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                  <strong>${escapeHtml(selectedWorkspacePhase?.name || "Sin fase")}</strong>
+                  ${selectedWorkspaceStructure ? `<i class="fa-solid fa-chevron-right" aria-hidden="true"></i><strong>${escapeHtml(selectedWorkspaceStructure.name)}</strong>` : ""}
+                </div>
+                <button type="button" class="tournament-pro-page__primary-action" data-open-phase-configuration="add" ${competitionSetupLocked ? "disabled" : ""}>
+                  <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar fase
+                </button>
               </div>
             </div>
 
+            <div class="tournament-pro-page__phase-flow-heading">
+              <div class="tournament-pro-page__phase-heading-copy">
+                <strong>Fases</strong>
+                <span>${workspacePhases.length} ${workspacePhases.length === 1 ? "fase" : "fases"}</span>
+              </div>
+              <button type="button" data-open-phase-configuration="edit" ${competitionSetupLocked || !selectedWorkspacePhase ? "disabled" : ""}>
+                <i class="fa-solid fa-pen" aria-hidden="true"></i> Editar fase
+              </button>
+            </div>
             <div class="tournament-pro-page__phase-flow" role="tablist" aria-label="Fases de competencia">
               ${workspacePhases.map((phase, index) => `
                 <button type="button" class="tournament-pro-page__phase-card ${phase.id === selectedWorkspacePhase?.id ? "is-active" : ""}" data-workspace-phase="${escapeAttr(phase.id)}" role="tab" aria-selected="${phase.id === selectedWorkspacePhase?.id}">
                   <span class="tournament-pro-page__phase-index">P${index + 1}</span>
                   <span class="tournament-pro-page__phase-card-copy">
                     <strong>${escapeHtml(phase.name)}</strong>
-                    <small>${escapeHtml(formatLabel(phase.status || "configured"))}${phase.legacy ? " · compatibilidad legacy" : ""}</small>
+                    <small>${escapeHtml(phase.status === "configured" ? "Configurada" : formatLabel(phase.status || "configured"))}${phase.legacy ? " · compatibilidad legacy" : ""}</small>
                   </span>
-                  ${index < workspacePhases.length - 1 ? `<i class="fa-solid fa-arrow-right tournament-pro-page__phase-arrow" aria-hidden="true"></i>` : ""}
-                </button>
+              </button>
               `).join("")}
             </div>
 
             ${selectedWorkspacePhase ? `
               <div class="tournament-pro-page__workspace-body">
-                <div class="tournament-pro-page__structure-selector" role="tablist" aria-label="Competition structures">
-                  <span class="tournament-pro-page__workspace-label">STRUCTURES</span>
+                <div class="tournament-pro-page__structure-selector" role="tablist" aria-label="Estructuras de competencia">
+                  <div class="tournament-pro-page__structure-selector-heading">
+                    <span class="tournament-pro-page__workspace-label">ESTRUCTURAS DE ${escapeHtml(selectedWorkspacePhase.name)}</span>
+                    <span class="tournament-pro-page__step-count">${selectedWorkspacePhase.structures.length} ${selectedWorkspacePhase.structures.length === 1 ? "estructura" : "estructuras"}</span>
+                  </div>
                   <div class="tournament-pro-page__structure-tabs">
                     ${selectedWorkspacePhase.structures.map((structure) => `
                       <button type="button" class="tournament-pro-page__structure-tab ${structure.id === selectedWorkspaceStructure?.id ? "is-active" : ""}" data-workspace-structure="${escapeAttr(structure.id)}" role="tab" aria-selected="${structure.id === selectedWorkspaceStructure?.id}">
                         <span class="tournament-pro-page__structure-icon"><i class="fa-solid ${structure.type === "DOUBLE_ELIMINATION" ? "fa-code-branch" : "fa-diagram-project"}" aria-hidden="true"></i></span>
                         <span class="tournament-pro-page__structure-tab-copy">
                           <strong>${escapeHtml(structure.name)}</strong>
-                          <small>${escapeHtml(formatLabel(structure.type || "Structure"))}</small>
+                          <small>${structure.type === "DOUBLE_ELIMINATION" ? "Doble eliminación" : "Eliminación simple"}</small>
                         </span>
                       </button>
                     `).join("")}
@@ -914,47 +1078,111 @@ export function TournamentPro() {
                 <div class="tournament-pro-page__structure-detail">
                   <div class="tournament-pro-page__structure-detail-header">
                     <div>
-                      <span class="tournament-pro-page__eyebrow">STRUCTURE</span>
+                      <span class="tournament-pro-page__eyebrow">ESTRUCTURA SELECCIONADA</span>
                       <h3>${escapeHtml(selectedWorkspaceStructure?.name || "Sin estructura")}</h3>
-                      <p>${escapeHtml(formatLabel(selectedWorkspaceStructure?.type || "Structure"))} · ${selectedWorkspaceStructure?.legacy ? "derivada del bracket actual" : "configurada en Competition Core"}</p>
+                      <p>${selectedWorkspaceStructure?.type === "DOUBLE_ELIMINATION" ? "Doble eliminación" : "Eliminación simple"} · ${selectedWorkspaceStructure?.legacy ? "derivada del bracket actual" : "configurada en Competition Core"}</p>
                     </div>
-                    <span class="tournament-pro-page__workspace-count">${selectedWorkspaceStructure?.rounds?.length || 0} rounds</span>
+                    <div class="tournament-pro-page__structure-detail-header-actions">
+                      <div class="tournament-pro-page__structure-actions">
+                        <button type="button" class="tournament-pro-page__primary-action" data-open-structure-configuration="create" ${competitionSetupLocked || !phaseIsDeclared ? "disabled" : ""}>
+                          <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar estructura
+                        </button>
+                        <button type="button" data-open-structure-configuration="edit" ${competitionSetupLocked || !selectedDeclaredStructure ? "disabled" : ""}>
+                          <i class="fa-solid fa-pen" aria-hidden="true"></i> Editar estructura
+                        </button>
+                      </div>
+                      <span class="tournament-pro-page__workspace-count">${selectedWorkspaceStructure?.rounds?.length || 0} rondas</span>
+                    </div>
                   </div>
+                  ${!phaseIsDeclared ? `<p class="tournament-pro-page__setup-note">Guarda primero esta fase desde “Editar fase” para agregarle estructuras.</p>` : ""}
+                  ${selectedStructureFormatLocked ? `<p class="tournament-pro-page__setup-note">Esta estructura ya tiene rounds o posiciones. Su formato está bloqueado para proteger los datos existentes.</p>` : ""}
 
+                  <div class="tournament-pro-page__rounds-heading">
+                    <strong>Rondas</strong>
+                  </div>
                   <div class="tournament-pro-page__round-grid">
                     ${(workspaceRounds).map((round, index) => {
                       const roundMatches = Array.isArray(round.matches) ? round.matches : [];
-                      const roundBracket = round.bracket ? formatLabel(round.bracket) : "Competition";
+                      const roundBracket = String(round.bracket || "").toLowerCase() === "winners"
+                        ? "Ganadores"
+                        : String(round.bracket || "").toLowerCase() === "losers"
+                          ? "Perdedores"
+                          : String(round.bracket || "").toLowerCase() === "grand_final"
+                            ? "Gran final"
+                            : round.bracket ? formatLabel(round.bracket) : "Competencia";
                       const matchCount = roundMatches.length || stages.filter((stage) => stage.number === round.number && (!round.bracket || stage.bracket === round.bracket)).reduce((total, stage) => total + (stage.matches?.length || 0), 0);
                       const roundId = round.id || `${round.bracket || "round"}-round-${round.number || index + 1}`;
+                      const roundName = /^round\s+\d+$/i.test(String(round.name || ""))
+                        ? String(round.name).replace(/^round/i, "Ronda")
+                        : round.name || `Ronda ${index + 1}`;
                       return `
                         <button type="button" class="tournament-pro-page__round-card ${roundId === selectedWorkspaceRound?.id ? "is-active" : ""}" data-workspace-round="${escapeAttr(roundId)}">
                           <span class="tournament-pro-page__round-number">${round.bracket === "grand_final" ? "GF" : `R${escapeHtml(String(round.number || index + 1))}`}</span>
                           <span class="tournament-pro-page__round-copy">
-                            <strong>${escapeHtml(round.name || `Round ${index + 1}`)}</strong>
-                            <small>${escapeHtml(roundBracket)} · ${matchCount} ${matchCount === 1 ? "match" : "matches"}</small>
+                            <strong>${escapeHtml(roundName)}</strong>
+                            <small>${escapeHtml(roundBracket)} · ${matchCount} ${matchCount === 1 ? "partido" : "partidos"}</small>
                           </span>
                           <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                         </button>
                       `;
-                    }).join("") || `<div class="tournament-pro-page__workspace-empty">Esta estructura todavía no tiene rounds materializados.</div>`}
+                    }).join("") || `
+                      <div class="tournament-pro-page__structure-rounds-empty">
+                        <div>
+                          <strong>Esta estructura todavía no tiene rondas</strong>
+                          <p>Prepara sus rondas y posiciones iniciales usando la capacidad del torneo (${escapeHtml(String(capacity))}).</p>
+                        </div>
+                        ${selectedDeclaredStructure && phaseIsDeclared ? `
+                          <button type="button" class="tournament-pro-page__primary-action" data-prepare-competition-structure ${competitionSetupLocked || competitionSetupSaving ? "disabled" : ""}>
+                            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Preparar cuadro
+                          </button>
+                        ` : ""}
+                      </div>
+                    `}
                   </div>
 
                   ${selectedWorkspaceRound ? `
                     <div class="tournament-pro-page__round-detail">
                       <div class="tournament-pro-page__round-detail-header">
                         <div>
-                          <span class="tournament-pro-page__eyebrow">ROUND</span>
+                          <span class="tournament-pro-page__eyebrow">RONDA</span>
                           <h4>${escapeHtml(selectedWorkspaceRound.name)}</h4>
-                          <p>${escapeHtml(formatLabel(selectedWorkspaceRound.bracket || "competition"))} · ${selectedWorkspaceRound.matches?.length || 0} matches</p>
+                          <p>${escapeHtml(formatLabel(selectedWorkspaceRound.bracket || "competition"))} · ${selectedWorkspaceRound.matches?.length || 0} ${selectedWorkspaceRound.matches?.length === 1 ? "partido" : "partidos"}</p>
                         </div>
-                        <button type="button" class="tournament-pro-page__round-open" data-open-bracket-round="${escapeAttr(selectedWorkspaceRound.id || "")}">
-                          Ver en bracket <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-                        </button>
+                        ${selectedWorkspaceRoundIsOperational ? `
+                          <button type="button" class="tournament-pro-page__round-open" data-open-bracket-round="${escapeAttr(selectedWorkspaceRound.id || "")}">
+                            Ver en bracket <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                          </button>
+                        ` : ""}
                       </div>
+                      ${selectedWorkspaceRoundSlots.length ? `
+                        <section class="tournament-pro-page__structure-slots" aria-label="Posiciones de entrada">
+                          <div class="tournament-pro-page__structure-slots-heading">
+                            <strong>Posiciones de entrada</strong>
+                            <span>${selectedWorkspaceRoundSlots.length}</span>
+                          </div>
+                          <div class="tournament-pro-page__structure-slots-grid">
+                            ${selectedWorkspaceRoundSlots.map((slot) => {
+                              const participantName = slot.participantId
+                                ? getParticipantName(slot.participantId)
+                                : slot.entryId
+                                  ? pro.entries?.[slot.entryId]?.displayName || "Participante asignado"
+                                  : "Disponible";
+                              return `
+                                <div class="tournament-pro-page__structure-slot">
+                                  <span>Posición ${escapeHtml(String(slot.position || slot.order || "—"))}</span>
+                                  <strong>${escapeHtml(participantName)}</strong>
+                                  <button type="button" data-edit-structure-slot="${escapeAttr(slot.id)}" ${competitionSetupLocked || competitionSetupSaving ? "disabled" : ""}>
+                                    <i class="fa-solid fa-${slot.entryId ? "pen" : "plus"}" aria-hidden="true"></i> ${slot.entryId ? "Cambiar" : "Asignar"}
+                                  </button>
+                                </div>
+                              `;
+                            }).join("")}
+                          </div>
+                        </section>
+                      ` : ""}
                       <div class="tournament-pro-page__round-matches">
                         ${(selectedWorkspaceRound.matches || []).map((match) => {
-                          const advancement = getMatchAdvancement(match, pro.bracket || {});
+                          const advancement = getWorkspaceMatchAdvancement(match);
                           const aName = getParticipantName(match.participantAId);
                           const bName = getParticipantName(match.participantBId);
                           return `
@@ -972,7 +1200,7 @@ export function TournamentPro() {
                               </span>
                             </button>
                           `;
-                        }).join("") || `<div class="tournament-pro-page__workspace-empty">Este round todavía no tiene matches.</div>`}
+                        }).join("") || `<div class="tournament-pro-page__workspace-empty">Esta ronda todavía no tiene partidos.</div>`}
                       </div>
 
                       ${selectedWorkspaceMatch ? `
@@ -1011,18 +1239,20 @@ export function TournamentPro() {
                             </div>
                             <div>
                               <span>WINNER</span>
-                              <strong>${escapeHtml(formatAdvancementDestination(getMatchAdvancement(selectedWorkspaceMatch, pro.bracket || {})?.winnerDestination))}</strong>
+                              <strong>${escapeHtml(formatAdvancementDestination(getWorkspaceMatchAdvancement(selectedWorkspaceMatch)?.winnerDestination))}</strong>
                             </div>
                             <div>
                               <span>LOSER</span>
-                              <strong>${escapeHtml(formatAdvancementDestination(getMatchAdvancement(selectedWorkspaceMatch, pro.bracket || {})?.loserDestination))}</strong>
+                              <strong>${escapeHtml(formatAdvancementDestination(getWorkspaceMatchAdvancement(selectedWorkspaceMatch)?.loserDestination))}</strong>
                             </div>
                           </div>
 
                           <div class="tournament-pro-page__match-workspace-actions">
-                            <button type="button" class="tournament-pro-page__round-open" data-open-bracket-match="${escapeAttr(selectedWorkspaceMatch.id || "")}">
-                              Ver en bracket <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-                            </button>
+                            ${selectedWorkspaceMatchIsOperational ? `
+                              <button type="button" class="tournament-pro-page__round-open" data-open-bracket-match="${escapeAttr(selectedWorkspaceMatch.id || "")}">
+                                Ver en bracket <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                              </button>
+                            ` : `<p class="tournament-pro-page__setup-note">Partido preparado; todavía falta asignar participantes.</p>`}
                           </div>
                         </article>
                       ` : ""}
@@ -1031,6 +1261,126 @@ export function TournamentPro() {
                 </div>
               </div>
             ` : `<div class="tournament-pro-page__workspace-empty">No hay fases configuradas para esta competencia.</div>`}
+
+            ${selectedStructureSlotForAssignment ? `
+              <div class="tournament-pro-page__modal-backdrop" data-structure-slot-modal-backdrop>
+                <section class="tournament-pro-page__modal tournament-pro-page__configuration-modal" role="dialog" aria-modal="true" aria-labelledby="structure-slot-modal-title">
+                  <header class="tournament-pro-page__modal-header">
+                    <div>
+                      <span class="tournament-pro-page__eyebrow">POSICIÓN ${escapeHtml(String(selectedStructureSlotForAssignment.position || selectedStructureSlotForAssignment.order || ""))}</span>
+                      <h2 id="structure-slot-modal-title">${selectedStructureSlotForAssignment.entryId ? "Cambiar participante" : "Asignar participante"}</h2>
+                      <p>El cambio se guarda en esta estructura y no modifica el bracket operativo.</p>
+                    </div>
+                    <button type="button" class="tournament-pro-page__modal-close" data-structure-slot-modal-close aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                  </header>
+                  <div class="tournament-pro-page__configuration-modal-body">
+                    ${structureAssignmentCandidates.length ? `
+                      <form class="tournament-pro-page__setup-form" data-assign-structure-entry>
+                        <label>Participante
+                          <select name="entryId" required ${competitionSetupLocked || competitionSetupSaving ? "disabled" : ""}>
+                            <option value="">Selecciona un participante</option>
+                            ${structureAssignmentCandidates.map((entry) => `
+                              <option value="${escapeAttr(entry.id)}" ${entry.id === selectedStructureSlotForAssignment.entryId ? "selected" : ""}>
+                                ${escapeHtml(entry.displayName || "Participante")}
+                              </option>
+                            `).join("")}
+                          </select>
+                        </label>
+                        <div class="tournament-pro-page__setup-form-actions">
+                          <button type="submit" class="tournament-pro-page__primary-action" ${competitionSetupLocked || competitionSetupSaving ? "disabled" : ""}>Guardar posición</button>
+                          ${selectedStructureSlotForAssignment.entryId ? `<button type="button" data-clear-structure-slot ${competitionSetupLocked || competitionSetupSaving ? "disabled" : ""}>Dejar disponible</button>` : ""}
+                        </div>
+                      </form>
+                    ` : `
+                      <div class="tournament-pro-page__workspace-empty">
+                        No hay participantes activos para asignar. Agrégalos primero en Participantes y vuelve a esta posición.
+                      </div>
+                    `}
+                  </div>
+                </section>
+              </div>
+            ` : ""}
+
+            ${phaseConfigurationMode ? `
+              <div class="tournament-pro-page__modal-backdrop" data-phase-configuration-backdrop>
+                <section class="tournament-pro-page__modal tournament-pro-page__configuration-modal" role="dialog" aria-modal="true" aria-labelledby="phase-configuration-title">
+                  <header class="tournament-pro-page__modal-header">
+                    <div>
+                      <span class="tournament-pro-page__eyebrow">${phaseConfigurationMode === "edit" ? "EDITAR FASE" : "NUEVA FASE"}</span>
+                      <h2 id="phase-configuration-title">${phaseConfigurationMode === "edit" ? "Editar fase" : "Agregar fase"}</h2>
+                      <p>${phaseConfigurationMode === "edit" ? "Actualiza el nombre, formato o posición de esta fase." : "Define el nombre y formato de partida de la nueva fase."}</p>
+                    </div>
+                    <button type="button" class="tournament-pro-page__modal-close" data-phase-configuration-close aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                  </header>
+                  <div class="tournament-pro-page__configuration-modal-body">
+                    ${phaseConfigurationMode === "edit" ? `
+                      <form class="tournament-pro-page__setup-form" data-save-competition-phase>
+                        <strong>${phaseIsDeclared ? `Editar: ${escapeHtml(selectedWorkspacePhase?.name || "")}` : "Guardar configuración inicial"}</strong>
+                        <label>Nombre de la fase
+                          <input name="phaseName" type="text" maxlength="80" required value="${escapeAttr(selectedWorkspacePhase?.name || "")}" ${competitionSetupLocked ? "disabled" : ""}>
+                        </label>
+                        <label>Formato de partida
+                          <select name="phaseMatchSystem" ${competitionSetupLocked ? "disabled" : ""}>${renderPhaseMatchSystemOptions(phaseMatchSystemValue)}</select>
+                        </label>
+                        <div class="tournament-pro-page__setup-form-actions">
+                          <button type="submit" class="tournament-pro-page__primary-action" ${competitionSetupLocked || competitionSetupSaving ? "disabled" : ""}>${phaseIsDeclared ? "Guardar cambios" : "Guardar configuración inicial"}</button>
+                          <button type="button" data-move-competition-phase="up" ${competitionSetupLocked || competitionSetupSaving || !phaseIsDeclared || Number(selectedWorkspacePhase?.order || 1) <= 1 ? "disabled" : ""} aria-label="Mover fase arriba"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+                          <button type="button" data-move-competition-phase="down" ${competitionSetupLocked || competitionSetupSaving || !phaseIsDeclared || Number(selectedWorkspacePhase?.order || 1) >= (pro.phases || []).length ? "disabled" : ""} aria-label="Mover fase abajo"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>
+                        </div>
+                      </form>
+                    ` : `
+                      <form class="tournament-pro-page__setup-form" data-create-competition-phase>
+                        <label>Nombre de la fase
+                          <input name="phaseName" type="text" maxlength="80" required placeholder="Ej. Playoffs" ${competitionSetupLocked ? "disabled" : ""}>
+                        </label>
+                        <label>Formato de partida
+                          <select name="phaseMatchSystem" ${competitionSetupLocked ? "disabled" : ""}>${renderPhaseMatchSystemOptions()}</select>
+                        </label>
+                        <div class="tournament-pro-page__setup-form-actions">
+                          <button type="submit" class="tournament-pro-page__primary-action" ${competitionSetupLocked || competitionSetupSaving ? "disabled" : ""}><i class="fa-solid fa-plus" aria-hidden="true"></i> Crear fase</button>
+                        </div>
+                      </form>
+                    `}
+                    <p class="tournament-pro-page__setup-note">La configuración se guarda separada del bracket operativo.</p>
+                  </div>
+                </section>
+              </div>
+            ` : ""}
+
+            ${structureConfigurationModalOpen ? `
+              <div class="tournament-pro-page__modal-backdrop" data-structure-configuration-backdrop>
+                <section class="tournament-pro-page__modal tournament-pro-page__configuration-modal" role="dialog" aria-modal="true" aria-labelledby="structure-configuration-title">
+                  <header class="tournament-pro-page__modal-header">
+                    <div>
+                      <span class="tournament-pro-page__eyebrow">${modalEditingStructure ? "EDITAR ESTRUCTURA" : "NUEVA ESTRUCTURA"}</span>
+                      <h2 id="structure-configuration-title">${modalEditingStructure ? "Editar estructura" : "Agregar estructura"}</h2>
+                      <p>Fase: ${escapeHtml(selectedWorkspacePhase?.name || "—")}. Esto no modifica el bracket operativo.</p>
+                    </div>
+                    <button type="button" class="tournament-pro-page__modal-close" data-structure-configuration-close aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                  </header>
+                  <div class="tournament-pro-page__configuration-modal-body">
+                    <form class="tournament-pro-page__setup-form" data-save-competition-structure>
+                      <label>Nombre de la estructura
+                        <input name="structureName" type="text" maxlength="80" required value="${escapeAttr(modalEditingStructure?.name || "")}" placeholder="Ej. Winners Bracket" ${competitionSetupLocked ? "disabled" : ""}>
+                      </label>
+                      <label>Formato competitivo
+                        <select name="structureType" ${competitionSetupLocked || (modalEditingStructure && ((modalEditingStructure.rounds || []).length || (modalEditingStructure.slots || []).length)) ? "disabled" : ""}>
+                          <option value="SINGLE_ELIMINATION" ${(modalEditingStructure?.type || "SINGLE_ELIMINATION") === "SINGLE_ELIMINATION" ? "selected" : ""}>Eliminación simple</option>
+                          <option value="DOUBLE_ELIMINATION" ${modalEditingStructure?.type === "DOUBLE_ELIMINATION" ? "selected" : ""}>Doble eliminación</option>
+                        </select>
+                      </label>
+                      <div class="tournament-pro-page__setup-form-actions">
+                        <button type="submit" class="tournament-pro-page__primary-action" ${competitionSetupLocked || competitionSetupSaving ? "disabled" : ""}>${modalEditingStructure ? "Guardar estructura" : "Crear estructura"}</button>
+                        ${modalEditingStructure ? `
+                          <button type="button" data-move-competition-structure="up" ${competitionSetupLocked || competitionSetupSaving || Number(modalEditingStructure.order || 1) <= 1 ? "disabled" : ""} aria-label="Mover estructura arriba"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+                          <button type="button" data-move-competition-structure="down" ${competitionSetupLocked || competitionSetupSaving || Number(modalEditingStructure.order || 1) >= declaredStructures.length ? "disabled" : ""} aria-label="Mover estructura abajo"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>
+                        ` : ""}
+                      </div>
+                    </form>
+                  </div>
+                </section>
+              </div>
+            ` : ""}
           </section>
 
         `;
@@ -1380,7 +1730,7 @@ export function TournamentPro() {
                   <div>
                     <span class="tournament-pro-page__eyebrow">MATCH</span>
                     <h3>${escapeHtml(selectedWorkspaceMatch.id || "Match")}</h3>
-                    <p>${escapeHtml(formatLabel(selectedWorkspaceMatch.bracket || "competition"))} · ${escapeHtml(selectedWorkspaceMatchContext?.stage?.name || `Round ${selectedWorkspaceMatchContext?.stage?.number || "—"}`)}</p>
+                            <p>${escapeHtml(formatLabel(selectedWorkspaceMatch.bracket || "competition"))} · ${escapeHtml(selectedWorkspaceMatchContext?.stage?.name || `Round ${selectedWorkspaceMatchContext?.stage?.number || "—"}`)}</p>
                   </div>
                   <span class="tournament-pro-page__match-workspace-status">${escapeHtml(matchStatusLabel(selectedWorkspaceMatch.status))}</span>
                 </div>
@@ -1756,6 +2106,218 @@ export function TournamentPro() {
       const bind = () => {
         page.querySelectorAll("[data-workspace-view]").forEach((button) => {
           button.addEventListener("click", () => navigateWorkspace(button.dataset.workspaceView || "dashboard"));
+        });
+
+        page.querySelectorAll("[data-open-phase-configuration]").forEach((button) => {
+          button.addEventListener("click", () => {
+            phaseConfigurationMode = button.dataset.openPhaseConfiguration;
+            structureConfigurationModalOpen = false;
+            render();
+          });
+        });
+
+        page.querySelectorAll("[data-open-structure-configuration]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const structureId = pro.phases
+              ?.find((phase) => phase?.id === selectedWorkspacePhaseId)
+              ?.structures
+              ?.find((structure) => structure?.id === selectedWorkspaceStructureId)
+              ?.id || null;
+            editingStructureId = button.dataset.openStructureConfiguration === "edit" ? structureId : null;
+            structureConfigurationModalOpen = true;
+            phaseConfigurationMode = null;
+            render();
+          });
+        });
+
+        page.querySelector("[data-prepare-competition-structure]")?.addEventListener("click", () => {
+          runCompetitionSetupChange(async () => {
+            const updatedEvent = await prepareCompetitionStructureBracket({
+              tournamentId,
+              eventId,
+              event,
+              phaseId: selectedWorkspacePhaseId,
+              structureId: selectedWorkspaceStructureId
+            });
+            const preparedStructure = updatedEvent?.pro?.phases
+              ?.find((phase) => phase?.id === selectedWorkspacePhaseId)
+              ?.structures
+              ?.find((structure) => structure?.id === selectedWorkspaceStructureId);
+            selectedWorkspaceRoundId = preparedStructure?.rounds
+              ?.find((round) => round.bracket === "winners" && Number(round.number) === 1)
+              ?.id || null;
+            selectedWorkspaceMatchId = null;
+            return updatedEvent;
+          });
+        });
+
+        page.querySelectorAll("[data-edit-structure-slot]").forEach((button) => {
+          button.addEventListener("click", () => {
+            structureSlotAssignmentId = button.dataset.editStructureSlot || null;
+            render();
+          });
+        });
+
+        page.querySelector("[data-structure-slot-modal-close]")?.addEventListener("click", () => {
+          structureSlotAssignmentId = null;
+          render();
+        });
+        page.querySelector("[data-structure-slot-modal-backdrop]")?.addEventListener("click", (clickEvent) => {
+          if (clickEvent.target !== clickEvent.currentTarget) return;
+          structureSlotAssignmentId = null;
+          render();
+        });
+
+        page.querySelector("[data-assign-structure-entry]")?.addEventListener("submit", (submitEvent) => {
+          submitEvent.preventDefault();
+          const entryId = new FormData(submitEvent.currentTarget).get("entryId");
+          runCompetitionSetupChange(async () => {
+            const updatedEvent = await assignCompetitionEntryToStructureSlot({
+              tournamentId,
+              eventId,
+              event,
+              phaseId: selectedWorkspacePhaseId,
+              structureId: selectedWorkspaceStructureId,
+              slotId: structureSlotAssignmentId,
+              entryId
+            });
+            structureSlotAssignmentId = null;
+            selectedWorkspaceMatchId = null;
+            return updatedEvent;
+          });
+        });
+
+        page.querySelector("[data-clear-structure-slot]")?.addEventListener("click", () => {
+          runCompetitionSetupChange(async () => {
+            const updatedEvent = await assignCompetitionEntryToStructureSlot({
+              tournamentId,
+              eventId,
+              event,
+              phaseId: selectedWorkspacePhaseId,
+              structureId: selectedWorkspaceStructureId,
+              slotId: structureSlotAssignmentId,
+              entryId: null
+            });
+            structureSlotAssignmentId = null;
+            selectedWorkspaceMatchId = null;
+            return updatedEvent;
+          });
+        });
+
+        page.querySelector("[data-phase-configuration-close]")?.addEventListener("click", () => {
+          phaseConfigurationMode = null;
+          render();
+        });
+        page.querySelector("[data-phase-configuration-backdrop]")?.addEventListener("click", (clickEvent) => {
+          if (clickEvent.target !== clickEvent.currentTarget) return;
+          phaseConfigurationMode = null;
+          render();
+        });
+        page.querySelector("[data-structure-configuration-close]")?.addEventListener("click", () => {
+          structureConfigurationModalOpen = false;
+          editingStructureId = null;
+          render();
+        });
+        page.querySelector("[data-structure-configuration-backdrop]")?.addEventListener("click", (clickEvent) => {
+          if (clickEvent.target !== clickEvent.currentTarget) return;
+          structureConfigurationModalOpen = false;
+          editingStructureId = null;
+          render();
+        });
+
+        page.querySelector("[data-save-competition-phase]")?.addEventListener("submit", (submitEvent) => {
+          submitEvent.preventDefault();
+          const form = submitEvent.currentTarget;
+          const name = form.elements.phaseName.value;
+          const matchSystem = form.elements.phaseMatchSystem.value;
+          const phaseId = selectedWorkspacePhaseId || createCompetitionConfigurationId("phase");
+          runCompetitionSetupChange(async () => {
+            const updatedEvent = await saveCompetitionPhaseConfiguration({
+              tournamentId,
+              eventId,
+              event,
+              phaseId,
+              name,
+              matchSystemMode: matchSystem ? "CUSTOM" : "INHERIT",
+              matchSystem: matchSystem || null
+            });
+            phaseConfigurationMode = null;
+            return updatedEvent;
+          });
+        });
+
+        page.querySelector("[data-create-competition-phase]")?.addEventListener("submit", (submitEvent) => {
+          submitEvent.preventDefault();
+          const form = submitEvent.currentTarget;
+          const name = form.elements.phaseName.value;
+          const matchSystem = form.elements.phaseMatchSystem.value;
+          const phaseId = createCompetitionConfigurationId("phase");
+          runCompetitionSetupChange(async () => {
+            const updatedEvent = await saveCompetitionPhaseConfiguration({
+              tournamentId,
+              eventId,
+              event,
+              phaseId,
+              name,
+              matchSystemMode: matchSystem ? "CUSTOM" : "INHERIT",
+              matchSystem: matchSystem || null
+            });
+            selectedWorkspacePhaseId = phaseId;
+            selectedWorkspaceStructureId = null;
+            selectedWorkspaceRoundId = null;
+            selectedWorkspaceMatchId = null;
+            phaseConfigurationMode = null;
+            return updatedEvent;
+          });
+        });
+
+        page.querySelectorAll("[data-move-competition-phase]").forEach((button) => {
+          button.addEventListener("click", () => runCompetitionSetupChange(() => moveCompetitionPhaseConfiguration({
+            tournamentId,
+            eventId,
+            event,
+            phaseId: selectedWorkspacePhaseId,
+            direction: button.dataset.moveCompetitionPhase
+          })));
+        });
+
+        page.querySelector("[data-save-competition-structure]")?.addEventListener("submit", (submitEvent) => {
+          submitEvent.preventDefault();
+          const form = submitEvent.currentTarget;
+          const name = form.elements.structureName.value;
+          const type = form.elements.structureType.value;
+          const structureId = editingStructureId || createCompetitionConfigurationId("structure");
+          runCompetitionSetupChange(async () => {
+            const updatedEvent = await saveCompetitionStructureConfiguration({
+              tournamentId,
+              eventId,
+              event,
+              phaseId: selectedWorkspacePhaseId,
+              structureId,
+              name,
+              type
+            });
+            selectedWorkspaceStructureId = structureId;
+            selectedWorkspaceRoundId = null;
+            selectedWorkspaceMatchId = null;
+            structureConfigurationModalOpen = false;
+            editingStructureId = null;
+            return updatedEvent;
+          });
+        });
+
+        page.querySelectorAll("[data-move-competition-structure]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const structureId = editingStructureId;
+            runCompetitionSetupChange(() => moveCompetitionStructureConfiguration({
+              tournamentId,
+              eventId,
+              event,
+              phaseId: selectedWorkspacePhaseId,
+              structureId,
+              direction: button.dataset.moveCompetitionStructure
+            }));
+          });
         });
 
         page.querySelectorAll("[data-competition-view]").forEach((button) => {
@@ -2238,6 +2800,17 @@ export function TournamentPro() {
 
       const handleModalKeydown = (event) => {
         if (event.key !== "Escape") return;
+        if (structureConfigurationModalOpen) {
+          structureConfigurationModalOpen = false;
+          editingStructureId = null;
+          render();
+          return;
+        }
+        if (phaseConfigurationMode) {
+          phaseConfigurationMode = null;
+          render();
+          return;
+        }
         if (finalizationModalOpen) {
           finalizationModalOpen = false;
           render();

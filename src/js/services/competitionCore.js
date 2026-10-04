@@ -1070,7 +1070,7 @@ function getBlueprintRounds(event = {}, structure, options = {}) {
     });
 }
 
-function getEliminationRoundSpecs(structureType, bracketSize) {
+export function getCompetitionEliminationRoundSpecs(structureType, bracketSize) {
   if (!Number.isInteger(bracketSize) || bracketSize < 2 || (bracketSize & (bracketSize - 1)) !== 0) {
     return null;
   }
@@ -1291,7 +1291,7 @@ export function generateCompetitionBracketBlueprint(event = {}, options = {}) {
     phaseGroupId: placementOptions.phaseGroupId,
     structureId: structure.id
   });
-  const specs = getEliminationRoundSpecs(structure.type, declaredSlots.length);
+  const specs = getCompetitionEliminationRoundSpecs(structure.type, declaredSlots.length);
 
   if (!specs) reasonCodes.push("BRACKET_SIZE_NOT_POWER_OF_TWO");
 
