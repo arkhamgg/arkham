@@ -78,6 +78,7 @@ export function normalizePhase(phase = {}, { competitionId = null, order = 1 } =
     ? phase.structures
         .map((structure, index) => normalizeStructure(structure, {
           phaseId: id,
+          phaseGroups,
           order: index + 1
         }))
         .filter(Boolean)
@@ -1468,7 +1469,11 @@ export const STRUCTURE_TYPES = {
  * objects; the existing Single/Double Elimination engine remains the source
  * of bracket generation.
  */
-export function normalizeStructure(structure = {}, { phaseId = null, order = 1 } = {}) {
+export function normalizeStructure(structure = {}, {
+  phaseId = null,
+  phaseGroups = [],
+  order = 1
+} = {}) {
   if (!structure || typeof structure !== "object") {
     return null;
   }
@@ -1479,6 +1484,13 @@ export function normalizeStructure(structure = {}, { phaseId = null, order = 1 }
     ? structure.id.trim()
     : null;
   const resolvedPhaseId = structure.phaseId ?? phaseId ?? null;
+
+  const phaseGroupIds = Array.isArray(phaseGroups)
+    ? phaseGroups
+        .filter((group) => group?.structureId === id)
+        .map((group) => group.id)
+        .filter(Boolean)
+    : [];
 
   const rounds = Array.isArray(structure.rounds)
     ? structure.rounds
@@ -1517,7 +1529,8 @@ export function normalizeStructure(structure = {}, { phaseId = null, order = 1 }
     rounds,
     slots,
     slotIds: slots.map((slot) => slot.id),
-    slotCount: slots.length
+    slotCount: slots.length,
+    phaseGroupIds
   };
 }
 
@@ -1537,6 +1550,7 @@ export function getCompetitionStructures(event = {}) {
     phaseStructures.forEach((structure, structureIndex) => {
       const normalized = normalizeStructure(structure, {
         phaseId: phase?.id || null,
+        phaseGroups: Array.isArray(phase?.phaseGroups) ? phase.phaseGroups : [],
         order: structureIndex + 1
       });
 
@@ -1704,7 +1718,7 @@ function getMatchRoundFromCompetition(event, match, {
   return explicitRound;
 }
 
-function getMatchPhaseGroup(event, match, phase = null) {
+function getMatchPhaseGroup(event, match, phase = null, structure = null) {
   const explicitPhaseGroupId = match?.phaseGroupId || null;
   if (!phase || !Array.isArray(phase.phaseGroups)) {
     return {
@@ -1721,10 +1735,12 @@ function getMatchPhaseGroup(event, match, phase = null) {
     };
   }
 
+  const effectiveStructureId = match?.structureId || structure?.id || null;
+
   const phaseGroup = phase.phaseGroups.find((group) =>
     group?.structureId &&
-    match?.structureId &&
-    group.structureId === match.structureId
+    effectiveStructureId &&
+    group.structureId === effectiveStructureId
   ) || null;
 
   return {
@@ -1934,7 +1950,7 @@ export function normalizeMatch(event = {}, match = {}) {
 
   const phase = getMatchPhase(event, match);
   const structure = getMatchStructure(event, match);
-  const phaseGroupContext = getMatchPhaseGroup(event, match, phase);
+  const phaseGroupContext = getMatchPhaseGroup(event, match, phase, structure);
   const phaseGroup = phaseGroupContext.phaseGroup;
   const round = getMatchRoundFromCompetition(event, match, {
     phaseId: match.phaseId ?? phase?.id ?? null,
@@ -2305,12 +2321,12 @@ export function getMatchCompetitionContext(event = {}, match = {}) {
 
   const phase = getMatchPhase(event, match);
   const structure = getMatchStructure(event, match);
+  const phaseGroup = getMatchPhaseGroup(event, match, phase, structure);
   const round = getMatchRoundFromCompetition(event, match, {
     phaseId: match.phaseId ?? phase?.id ?? null,
     phaseGroupId: match.phaseGroupId ?? phaseGroup?.id ?? null,
     structureId: match.structureId ?? structure?.id ?? null
   });
-  const phaseGroup = getMatchPhaseGroup(event, match, phase);
   const bracket = getMatchBracketSegment(match);
 
   return {
