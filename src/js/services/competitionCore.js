@@ -1938,6 +1938,48 @@ export function getCompetitionGame(event = {}, gameId = null) {
  * Games, or change Tournament Pro operations. Legacy participant IDs and
  * `matchSystem` values remain available alongside the new domain fields.
  */
+
+/**
+ * Builds the stable Competition Core identity for a Match.
+ *
+ * `id` remains the legacy operational identifier during the migration seam.
+ * `displayId` is the human-readable bracket label (for example W-R1-M1).
+ * `competitionMatchId` is the structural identity that prevents collisions
+ * between different Structures that may legitimately reuse the same displayId.
+ */
+export function buildCompetitionMatchId({
+  competitionId = null,
+  phaseId = null,
+  phaseGroupId = null,
+  structureId = null,
+  roundId = null,
+  displayId = null
+} = {}) {
+  const normalizePart = (value, fallback = "unknown") => {
+    const normalized = String(value ?? "")
+      .trim()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-zA-Z0-9._:-]/g, "_");
+
+    return normalized || fallback;
+  };
+
+  return [
+    "competition",
+    normalizePart(competitionId),
+    "phase",
+    normalizePart(phaseId),
+    "group",
+    normalizePart(phaseGroupId, "none"),
+    "structure",
+    normalizePart(structureId),
+    "round",
+    normalizePart(roundId),
+    "match",
+    normalizePart(displayId)
+  ].join(":");
+}
+
 export function normalizeMatch(event = {}, match = {}) {
   if (!match || typeof match !== "object") return null;
 
@@ -1963,8 +2005,26 @@ export function normalizeMatch(event = {}, match = {}) {
   const lifecycle = match.status ? getMatchLifecycle(match) : null;
   const result = normalizeMatchResult(match);
 
+  const displayId = match.displayId || match.id || null;
+  const resolvedPhaseId = match.phaseId ?? phase?.id ?? null;
+  const resolvedPhaseGroupId = match.phaseGroupId ?? phaseGroup?.id ?? null;
+  const resolvedStructureId = match.structureId ?? structure?.id ?? null;
+  const resolvedRoundId = match.roundId ?? round?.id ?? null;
+
+  const competitionMatchId = buildCompetitionMatchId({
+    competitionId,
+    phaseId: resolvedPhaseId,
+    phaseGroupId: resolvedPhaseGroupId,
+    structureId: resolvedStructureId,
+    roundId: resolvedRoundId,
+    displayId
+  });
+
   return {
     id: match.id || null,
+    competitionMatchId,
+    legacyMatchId: match.legacyMatchId || match.id || null,
+    displayId,
     competitionId,
     phaseId: match.phaseId ?? phase?.id ?? null,
     phaseGroupId: match.phaseGroupId ?? phaseGroup?.id ?? null,
@@ -2025,7 +2085,11 @@ export function getCompetitionMatch(event = {}, matchId = null) {
   if (!matchId) return null;
 
   return getCompetitionMatches(event)
-    .find((match) => match.id === matchId) || null;
+    .find((match) =>
+      match.id === matchId ||
+      match.legacyMatchId === matchId ||
+      match.competitionMatchId === matchId
+    ) || null;
 }
 
 /**
