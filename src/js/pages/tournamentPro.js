@@ -47,6 +47,7 @@ import {
   COMPETITION_CONFIGURATION_STATUS
 } from "../services/competitionConfiguration.js";
 import { getGameMatchSystems } from "../services/gameCatalog.js";
+import { getMatchLifecycle, MATCH_LIFECYCLE } from "../services/competitionMatchLifecycle.js";
 
 export function TournamentPro() {
   const page = document.createElement("main");
@@ -75,8 +76,7 @@ export function TournamentPro() {
   const params = new URLSearchParams(window.location.search);
   const tournamentId = params.get("tournamentId");
   const eventId = params.get("eventId");
-  const workspaceViewIds = new Set(["dashboard", "competition", "operations", "results"]);
-  const checkInViewIds = new Set(["setup", "checkin"]);
+  const workspaceViewIds = new Set(["dashboard", "participants", "competition", "checkin", "results"]);
   const isPhoneDevice = () => {
     const userAgent = String(navigator.userAgent || "");
     const mobileUserAgent = /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(userAgent);
@@ -103,20 +103,6 @@ export function TournamentPro() {
   const getWorkspaceView = () => {
     const value = new URLSearchParams(window.location.search).get("proView");
     return workspaceViewIds.has(value) ? value : "dashboard";
-  };
-  const getCheckInView = () => {
-    const value = new URLSearchParams(window.location.search).get("proCheckIn");
-    if (value === "checkin") return "checkin";
-    return "setup";
-  };
-  const navigateCheckIn = (view, { replace = false } = {}) => {
-    const nextView = checkInViewIds.has(view) ? view : "requests";
-    const url = new URL(window.location.href);
-    url.searchParams.set("proView", "operations");
-    if (nextView === "requests") url.searchParams.delete("proCheckIn");
-    else url.searchParams.set("proCheckIn", nextView);
-    window.history[replace ? "replaceState" : "pushState"]({}, "", `${url.pathname}${url.search}${url.hash}`);
-    if (typeof renderWorkspace === "function") renderWorkspace();
   };
 
   const competitionViewIds = new Set(["structure", "bracket", "matches"]);
@@ -508,6 +494,8 @@ export function TournamentPro() {
         const participantBId = match.participantBId || slotB?.participantId || null;
         const hasBoth = Boolean(participantAId && participantBId);
         const matchSystemValue = match.matchSystem || pro.matchSystem || null;
+        const matchLifecycle = getMatchLifecycle(match);
+        const isCalledMatch = matchLifecycle === MATCH_LIFECYCLE.CALLED;
         const deliveryMode = getCompetitionDeliveryMode(event);
         const stations = getCompetitionStations(event);
         const matchStation = stations.find((station) => station.currentMatchId === match.id) || null;
@@ -519,7 +507,7 @@ export function TournamentPro() {
           <article class="tournament-pro-page__match tournament-pro-page__match--${escapeAttr(match.status || "pending")} ${hasBoth ? "is-ready" : ""}" data-match-id="${escapeAttr(match.id)}">
             <div class="tournament-pro-page__match-top">
               <span class="tournament-pro-page__match-id">${escapeHtml(match.id)}</span>
-              <span class="tournament-pro-page__match-status">${escapeHtml(matchStatusLabel(match.status))}</span>
+              <span class="tournament-pro-page__match-status">${escapeHtml(isCalledMatch ? "ASIGNADO" : matchStatusLabel(match.status))}</span>
             </div>
             ${matchSystemValue ? `<div class="tournament-pro-page__match-system">${escapeHtml(matchSystemValue)}</div>` : ""}
             <div class="tournament-pro-page__match-player ${match.winnerId === participantAId ? "is-winner" : ""}">
@@ -597,8 +585,9 @@ export function TournamentPro() {
         const competitionView = getCompetitionView();
         const viewMeta = {
           dashboard: { title: game, subtitle: "" },
+          participants: { title: "PARTICIPANTES", subtitle: "Administra solicitudes y completa la lista de participantes" },
           competition: { title: "COMPETITION", subtitle: "Estructura competitiva" },
-          operations: { title: "CHECK-IN", subtitle: "Preparación de participantes y asistencia" },
+          checkin: { title: "CHECK-IN", subtitle: "Confirma asistencia y prepara el inicio del torneo" },
           results: { title: "RESULTS", subtitle: "Resultados oficiales" }
         }[currentView];
         const titleElement = page.querySelector(".tournament-pro-page__header h1");
@@ -637,7 +626,6 @@ export function TournamentPro() {
           officialResults = [];
         }
         const canFinalize = eventLive && openMatches.length === 0 && officialResults.length > 0;
-        const canStart = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && assigned >= 2;
         const canAddParticipant = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && assigned < Number(capacity || 0);
         const selectedSlot = slots.find((slot) => slot.seed && `seed-${slot.seed}` === selectedSlotId);
         const selectedParticipantName = selectedSlot?.participantId
@@ -713,7 +701,7 @@ export function TournamentPro() {
             );
           })
           .sort((a, b) => String(a.displayName || "").localeCompare(String(b.displayName || ""), "es"));
-        const matchSelectionPool = competitionView === "structure"
+        const matchSelectionPool = competitionView === "structure" && currentView !== "operations"
           ? selectedWorkspaceMatches
           : allCompetitionMatches.map((item) => item.match);
         const competitionStations = getCompetitionStations(event);
@@ -725,9 +713,13 @@ export function TournamentPro() {
           selectedOperationalStationId = null;
         }
         const selectedOperationalStation = operationsModel.stations.find((station) => station.id === selectedOperationalStationId) || null;
-        const selectedOperationalMatch = selectedOperationalStation?.currentMatchId
-          ? allCompetitionMatches.find((item) => item.match?.id === selectedOperationalStation.currentMatchId)?.match || null
+        const selectedOperationalCalledEntry = selectedOperationalStation?.currentMatchId
+          ? operationsModel.called.find((item) => item.matchId === selectedOperationalStation.currentMatchId) || null
           : null;
+        const selectedOperationalMatch = selectedOperationalCalledEntry?.match
+          || (selectedOperationalStation?.currentMatchId
+            ? allCompetitionMatches.find((item) => item.match?.id === selectedOperationalStation.currentMatchId)?.match || null
+            : null);
         const selectedOperationalMatchGameSummary = getMatchGameSummary(selectedOperationalMatch);
         const selectedOperationalMatchPending = isMatchOperationPending(selectedOperationalMatch?.id);
         const operationalAssignableMatches = operationsModel.readyUnassigned;
@@ -851,11 +843,11 @@ export function TournamentPro() {
                 <span class="tournament-pro-page__eyebrow">WORKSPACES</span>
               </div>
               <div class="tournament-pro-page__workspace-grid--v5">
-                <button type="button" class="tournament-pro-page__workspace-entry tournament-pro-page__workspace-entry--primary" data-workspace-view="operations">
+                <button type="button" class="tournament-pro-page__workspace-entry tournament-pro-page__workspace-entry--primary" data-workspace-view="participants">
                   <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
                   <span>
-                    <strong>Check-in</strong>
-                    <small>Solicitudes, participantes, asistencia y preparación.</small>
+                    <strong>Participantes</strong>
+                    <small>Solicitudes, participantes y preparación de la lista.</small>
                   </span>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
@@ -865,6 +857,15 @@ export function TournamentPro() {
                   <span>
                     <strong>Competition / Bracket</strong>
                     <small>Fases, estructuras, rounds y cuadro competitivo.</small>
+                  </span>
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
+
+                <button type="button" class="tournament-pro-page__workspace-entry tournament-pro-page__workspace-entry--checkin" data-open-checkin>
+                  <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
+                  <span>
+                    <strong>Check-in</strong>
+                    <small>${checkInCompleted ? `${present} presentes · Check-in completado.` : checkInOpen ? `${present} / ${assigned} presentes · Check-in en curso.` : assigned >= Number(capacity || 0) ? "Confirma asistencia antes de iniciar el torneo." : `Completa ${Math.max(Number(capacity || 0) - assigned, 0)} asiento(s) para abrirlo.`}</small>
                   </span>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
@@ -1028,6 +1029,11 @@ export function TournamentPro() {
                   <strong>${escapeHtml(selectedWorkspacePhase?.name || "Sin fase")}</strong>
                   ${selectedWorkspaceStructure ? `<i class="fa-solid fa-chevron-right" aria-hidden="true"></i><strong>${escapeHtml(selectedWorkspaceStructure.name)}</strong>` : ""}
                 </div>
+                ${assigned >= Number(capacity || 0) && !checkInOpen && !checkInCompleted && !eventLive && !eventFinished ? `
+                  <button type="button" class="tournament-pro-page__primary-action" data-open-checkin>
+                    <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Abrir check-in
+                  </button>
+                ` : ""}
                 <button type="button" class="tournament-pro-page__primary-action" data-open-phase-configuration="add" ${competitionSetupLocked ? "disabled" : ""}>
                   <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar fase
                 </button>
@@ -1385,20 +1391,17 @@ export function TournamentPro() {
 
         `;
 
-        const currentCheckInView = checkInOpen || checkInCompleted ? "checkin" : getCheckInView();
         const capacityValue = Number(capacity || 0);
         const pendingCheckIn = Math.max(assigned - present - noShows, 0);
         const seatsRemaining = Math.max(capacityValue - assigned, 0);
-        const canOpenCheckIn = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && capacityValue >= 2 && assigned >= capacityValue;
-        const checkInStepLabel = currentCheckInView === "checkin" ? "Confirma asistencia y prepara el inicio" : "Completa los participantes para abrir el check-in";
-
+        const participantsComplete = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && capacityValue >= 2 && assigned >= capacityValue;
         const participantListMarkup = `
           <section class="tournament-pro-page__checkin-panel tournament-pro-page__checkin-panel--participants">
             <div class="tournament-pro-page__checkin-panel-header">
               <div>
                 <span class="tournament-pro-page__eyebrow">PASO 1 · PARTICIPANTES</span>
                 <h3>Completa los asientos</h3>
-                <p>Agrega jugadores o equipos manualmente y asigna las solicitudes aceptadas. El check-in se abre cuando los asientos están completos.</p>
+                <p>Agrega jugadores o equipos manualmente y asigna las solicitudes aceptadas. Completar los asientos solo habilita el siguiente paso de configuración.</p>
               </div>
               <div class="tournament-pro-page__checkin-panel-actions">
                 <div class="tournament-pro-page__checkin-metrics">
@@ -1420,7 +1423,6 @@ export function TournamentPro() {
                     </div>
                     <div class="tournament-pro-page__participant-status">
                       <span class="tournament-pro-page__registration-badge">Asignado</span>
-                      ${!eventLive && !eventFinished && !checkInOpen && !checkInCompleted ? `<button type="button" data-replace="${escapeAttr(participant.id)}">Reemplazar</button>` : ""}
                     </div>
                   </article>
                 `;
@@ -1503,11 +1505,11 @@ export function TournamentPro() {
           <div class="tournament-pro-page__checkin-next-step">
             <div>
               <span class="tournament-pro-page__eyebrow">SIGUIENTE PASO</span>
-              <strong>${canOpenCheckIn ? "Todos los asientos están ocupados" : `Faltan ${seatsRemaining} asientos por asignar`}</strong>
-              <p>${canOpenCheckIn ? "Ya puedes abrir el check-in y confirmar quién está presente." : "Acepta solicitudes o agrega participantes manualmente hasta completar la capacidad."}</p>
+              <strong>${participantsComplete ? "Todos los asientos están ocupados" : `Faltan ${seatsRemaining} asientos por asignar`}</strong>
+              <p>${participantsComplete ? "La lista de participantes está completa. Continúa con la configuración de fases, estructuras y progresión antes de abrir el check-in." : "Acepta solicitudes o agrega participantes manualmente hasta completar la capacidad."}</p>
             </div>
-            <button type="button" data-action="start-tournament" ${canOpenCheckIn ? "" : "disabled"}>
-              <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Abrir check-in
+            <button type="button" data-workspace-view="competition" ${participantsComplete ? "" : "disabled"}>
+              <i class="fa-solid fa-code-branch" aria-hidden="true"></i> Seguir configurando
             </button>
           </div>
         `;
@@ -1516,9 +1518,9 @@ export function TournamentPro() {
           <section class="tournament-pro-page__checkin-workspace">
             <header class="tournament-pro-page__checkin-workspace-header">
               <div>
-                <span class="tournament-pro-page__eyebrow">CHECK-IN</span>
-                <h2>${currentCheckInView === "checkin" ? "Confirmar asistencia" : "Preparar participantes"}</h2>
-                <p>${currentCheckInView === "checkin" ? "Revisa la asistencia final antes de iniciar el torneo." : "Primero completa los participantes. Después abrirás el check-in para confirmar asistencia."}</p>
+                <span class="tournament-pro-page__eyebrow">PARTICIPANTES</span>
+                <h2>Preparar participantes</h2>
+                <p>Completa la lista de participantes. Después configurarás la competencia y abrirás el check-in real.</p>
               </div>
               <span class="tournament-pro-page__status">${escapeHtml(statusLabel)}</span>
             </header>
@@ -1544,7 +1546,7 @@ export function TournamentPro() {
               <div class="tournament-pro-page__operation-bar"><div><strong>Torneo finalizado</strong><span>La información histórica permanece disponible.</span></div></div>
             ` : ""}
 
-            ${currentCheckInView === "checkin" ? checkInListMarkup : preparationMarkup}
+            ${preparationMarkup}
           </section>
 
           ${modalOpen && selectedSlot ? `
@@ -1608,9 +1610,13 @@ export function TournamentPro() {
           </section>
         `;
 
-        const selectedMatchStation = selectedWorkspaceMatch
-          ? competitionStations.find((station) => station.currentMatchId === selectedWorkspaceMatch.id) || null
+        const selectedMatchCalledEntry = selectedWorkspaceMatch
+          ? operationsModel.called.find((item) => item.matchId === selectedWorkspaceMatch.id) || null
           : null;
+        const selectedMatchStation = selectedMatchCalledEntry?.station
+          || (selectedWorkspaceMatch
+            ? competitionStations.find((station) => station.currentMatchId === selectedWorkspaceMatch.id) || null
+            : null);
 
         const competitionMatchesMarkup = `
           <section class="tournament-pro-page__card tournament-pro-page__card--wide tournament-pro-page__competition-workspace">
@@ -1630,6 +1636,7 @@ export function TournamentPro() {
 
             <div class="tournament-pro-page__operations-summary">
               <div><span>EN JUEGO</span><strong>${operationsModel.summary.activeMatches}</strong></div>
+              <div><span>ASIGNADOS</span><strong>${operationsModel.summary.calledMatches}</strong></div>
               <div><span>LISTOS</span><strong>${operationsModel.summary.readyMatches}</strong></div>
               <div><span>ESPERANDO</span><strong>${operationsModel.summary.waitingMatches}</strong></div>
               <div><span>LIBRES</span><strong>${operationsModel.summary.freeStations}</strong></div>
@@ -1646,9 +1653,13 @@ export function TournamentPro() {
               ${operationsModel.stations.length ? `
                 <div class="tournament-pro-page__operations-stations">
                   ${operationsModel.stations.map((station) => {
-                    const stationMatch = station.currentMatchId
-                      ? allCompetitionMatches.find((item) => item.match?.id === station.currentMatchId)?.match || null
+                    const calledStationEntry = station.currentMatchId
+                      ? operationsModel.called.find((item) => item.matchId === station.currentMatchId) || null
                       : null;
+                    const stationMatch = calledStationEntry?.match
+                      || (station.currentMatchId
+                        ? allCompetitionMatches.find((item) => item.match?.id === station.currentMatchId)?.match || null
+                        : null);
                     const operationalStatus = stationMatch?.status === "live" ? "EN JUEGO" : stationMatch ? "ASIGNADA" : "LIBRE";
                     return `
                       <button type="button" class="tournament-pro-page__operation-station ${stationMatch ? "is-occupied" : "is-free"} ${stationMatch?.status === "live" ? "is-live" : ""}" data-operational-station="${escapeAttr(station.id)}">
@@ -1673,6 +1684,33 @@ export function TournamentPro() {
                 </div>
               ` : `
                 <div class="tournament-pro-page__workspace-empty">Añade ${competitionResourceLabel} para comenzar a operar el evento.</div>
+              `}
+            </section>
+
+            <section class="tournament-pro-page__resource-panel tournament-pro-page__resource-panel--operations">
+              <div class="tournament-pro-page__resource-panel-header">
+                <div>
+                  <span class="tournament-pro-page__eyebrow">CALLED</span>
+                  <h3>Matches asignados a un lobby</h3>
+                </div>
+                <span class="tournament-pro-page__workspace-count">${operationsModel.called.length} asignados</span>
+              </div>
+              ${operationsModel.called.length ? `
+                <div class="tournament-pro-page__operations-list">
+                  ${operationsModel.called.slice(0, 8).map(({ match, stage, station }) => `
+                    <button type="button" class="tournament-pro-page__operation-match" data-open-operation-match="${escapeAttr(match.id)}">
+                      <span class="tournament-pro-page__operation-match-id">${escapeHtml(match.id)}</span>
+                      <span class="tournament-pro-page__operation-match-players">
+                        <strong>${escapeHtml(getParticipantName(match.participantAId))}</strong>
+                        <span>VS</span>
+                        <strong>${escapeHtml(getParticipantName(match.participantBId))}</strong>
+                      </span>
+                      <small>${escapeHtml(station?.name || "Lobby no resuelto")} · ${escapeHtml(stage?.bracket === "grand_final" ? "Grand Final" : formatLabel(stage?.bracket || "Winners"))} · Round ${escapeHtml(String(stage?.number || "—"))}</small>
+                    </button>
+                  `).join("")}
+                </div>
+              ` : `
+                <div class="tournament-pro-page__workspace-empty">No hay matches asignados a un lobby.</div>
               `}
             </section>
 
@@ -1820,9 +1858,9 @@ export function TournamentPro() {
                           <div>
                             <span class="tournament-pro-page__eyebrow">CONTROL DEL MATCH</span>
                             <strong>${escapeHtml(selectedOperationalMatch.id)}</strong>
-                            <small>${escapeHtml(selectedOperationalMatch.status === "pending" ? "Listo para iniciar" : matchStatusLabel(selectedOperationalMatch.status))}</small>
+                            <small>${escapeHtml(getMatchLifecycle(selectedOperationalMatch) === MATCH_LIFECYCLE.CALLED ? "Asignado · listo para iniciar" : selectedOperationalMatch.status === "pending" ? "Listo para iniciar" : matchStatusLabel(selectedOperationalMatch.status))}</small>
                           </div>
-                          <span class="tournament-pro-page__match-workspace-status">${escapeHtml(matchStatusLabel(selectedOperationalMatch.status))}</span>
+                          <span class="tournament-pro-page__match-workspace-status">${escapeHtml(getMatchLifecycle(selectedOperationalMatch) === MATCH_LIFECYCLE.CALLED ? "ASIGNADO" : matchStatusLabel(selectedOperationalMatch.status))}</span>
                         </div>
 
                         <div class="tournament-pro-page__match-workspace-players">
@@ -1937,6 +1975,57 @@ export function TournamentPro() {
             ` : ""}
           </section>
         `;
+        const checkInWorkspaceMarkup = `
+          <section class="tournament-pro-page__checkin-workspace tournament-pro-page__checkin-workspace--first-class">
+            <header class="tournament-pro-page__checkin-workspace-header">
+              <div>
+                <span class="tournament-pro-page__eyebrow">CHECK-IN</span>
+                <h2>Confirmar asistencia</h2>
+                <p>Marca quién llegó, libera el asiento de quien no asistió o reemplázalo antes de iniciar el torneo.</p>
+              </div>
+              <span class="tournament-pro-page__status">${escapeHtml(statusLabel)}</span>
+            </header>
+
+            <div class="tournament-pro-page__checkin-summary-grid">
+              <div><span>PARTICIPANTES</span><strong>${assigned} / ${escapeHtml(capacity)}</strong></div>
+              <div><span>SOLICITUDES</span><strong>${registrationCount}</strong></div>
+              <div><span>ASISTENCIA</span><strong>${present} / ${assigned}</strong></div>
+              <div><span>ESTADO</span><strong>${checkInOpen ? "En curso" : checkInCompleted ? "Completado" : eventLive ? "En vivo" : "Preparación"}</strong></div>
+            </div>
+
+            ${checkInCompleted && !eventLive && !eventFinished ? `
+              <div class="tournament-pro-page__operation-bar">
+                <div><strong>Todo listo para comenzar</strong><span>${present} participantes confirmados. El bracket puede iniciar.</span></div>
+                <button type="button" data-action="live" ${present >= 2 ? "" : "disabled"}><i class="fa-solid fa-play" aria-hidden="true"></i> Iniciar torneo</button>
+              </div>
+            ` : eventLive ? `
+              <div class="tournament-pro-page__operation-bar">
+                <div><strong>Competencia en vivo</strong><span>La preparación terminó. Los cambios de participantes están protegidos.</span></div>
+                <button type="button" data-workspace-view="competition"><i class="fa-solid fa-code-branch" aria-hidden="true"></i> Abrir bracket</button>
+              </div>
+            ` : eventFinished ? `
+              <div class="tournament-pro-page__operation-bar"><div><strong>Torneo finalizado</strong><span>La información histórica permanece disponible.</span></div></div>
+            ` : !checkInOpen && !checkInCompleted ? `
+              <div class="tournament-pro-page__operation-bar">
+                <div><strong>Check-in todavía no abierto</strong><span>Completa la lista y termina la configuración de la competencia antes de abrirlo.</span></div>
+                <button type="button" class="tournament-pro-page__primary-action" data-open-checkin ${assigned >= capacityValue && capacityValue >= 2 ? "" : "disabled"}><i class="fa-solid fa-lock-open" aria-hidden="true"></i> Abrir check-in</button>
+              </div>
+            ` : ""}
+
+            ${checkInOpen || checkInCompleted ? checkInListMarkup : `
+              <div class="tournament-pro-page__checkin-panel">
+                <div class="tournament-pro-page__checkin-panel-header">
+                  <div>
+                    <span class="tournament-pro-page__eyebrow">ESPERANDO APERTURA</span>
+                    <h3>El check-in aún no está activo</h3>
+                    <p>Cuando abras el check-in, aquí aparecerán Presente, Liberar asiento y Reemplazar.</p>
+                  </div>
+                </div>
+              </div>
+            `}
+          </section>
+        `;
+
         const competitionMarkup = `
           <div class="tournament-pro-page__competition-workspace">
             ${import.meta.env.DEV ? competitionCoreAuditMarkup : ""}
@@ -1976,7 +2065,7 @@ export function TournamentPro() {
                   <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
                   <strong>Resultados todavía no disponibles</strong>
                   <span>Completa los matches desde Competition para generar el resultado oficial.</span>
-                  <button type="button" data-workspace-view="operations">Ir a Check-in</button>
+                  <button type="button" data-workspace-view="participants">Ir a Check-in</button>
                 </div>
               `}
             </div>
@@ -2018,12 +2107,14 @@ export function TournamentPro() {
 
         if (currentView === "dashboard") {
           content.innerHTML = dashboardMarkup;
+        } else if (currentView === "participants") {
+          content.innerHTML = operationsMarkup;
         } else if (currentView === "competition") {
           content.innerHTML = competitionMarkup;
-        } else if (currentView === "results") {
-          content.innerHTML = resultsMarkup;
+        } else if (currentView === "checkin") {
+          content.innerHTML = checkInWorkspaceMarkup;
         } else {
-          content.innerHTML = operationsMarkup;
+          content.innerHTML = resultsMarkup;
         }
 
         bind();
@@ -2483,8 +2574,30 @@ export function TournamentPro() {
           });
         });
 
-        page.querySelectorAll("[data-checkin-view]").forEach((button) => {
-          button.addEventListener("click", () => navigateCheckIn(button.dataset.checkinView || "requests"));
+        page.querySelectorAll("[data-open-checkin]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const currentCheckInOpen = pro.checkIn?.status === "open";
+            const currentCheckInCompleted = pro.checkIn?.status === "completed";
+            if (currentCheckInOpen || currentCheckInCompleted) {
+              return navigateWorkspace("checkin");
+            }
+
+            const currentSlots = Object.values(pro.bracket?.slots || {});
+            const currentAssigned = currentSlots.filter((slot) => slot?.participantId).length;
+            const currentCapacity = Number(event.capacity?.value ?? event.capacity ?? 0);
+
+            if (currentAssigned < currentCapacity || currentCapacity < 2) {
+              return window.alert("Completa los participantes antes de abrir el check-in.");
+            }
+
+            await runOperation(() => setCheckInOpen({
+              tournamentId,
+              eventId,
+              event,
+              open: true
+            }));
+            navigateWorkspace("checkin", { replace: true });
+          });
         });
 
         page.querySelectorAll("[data-workspace-phase]").forEach((button) => {
@@ -2556,7 +2669,9 @@ export function TournamentPro() {
         page.querySelectorAll("[data-open-operation-match]").forEach((button) => {
           button.addEventListener("click", () => {
             const matchId = button.dataset.openOperationMatch;
+            const calledEntry = operationsModel.called.find((item) => item.matchId === matchId) || null;
             selectedWorkspaceMatchId = matchId || null;
+            selectedOperationalStationId = calledEntry?.station?.id || null;
             render();
           });
         });
@@ -2628,7 +2743,6 @@ export function TournamentPro() {
             render();
             return requestAnimationFrame(() => page.querySelector("[data-slot-search-form] input")?.focus());
           }
-          if (action === "start-tournament") return runOperation(() => setCheckInOpen({ tournamentId, eventId, event, open: true }));
           if (action === "complete-checkin") return runOperation(() => completeCheckIn({ tournamentId, eventId, event }));
           if (action === "live") return runOperation(() => setEventStatus({ tournamentId, eventId, event, status: "live" }));
           if (action === "open-finalization") {

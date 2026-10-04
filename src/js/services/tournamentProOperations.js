@@ -991,10 +991,97 @@ export async function searchTournamentEntities(type, term = "") {
 
 function ensureStationState(pro, event) {
   const stations = getCompetitionStations({ ...event, pro });
-  pro.stations = stations.map((station, index) => normalizeStation(station, {
+  const normalizedStations = stations.map((station, index) => normalizeStation(station, {
     mode: getCompetitionDeliveryMode(event),
     order: index + 1
   }));
+
+  const matches = (pro?.bracket?.stages || [])
+    .flatMap((stage) => Array.isArray(stage?.matches) ? stage.matches : []);
+
+  const matchesById = new Map(
+    matches
+      .filter((match) => match?.id)
+      .map((match) => [match.id, match])
+  );
+
+  const assignedMatchIds = new Set();
+
+  normalizedStations.forEach((station) => {
+    const matchId = station.currentMatchId || null;
+
+    if (!matchId) {
+      station.currentMatchId = null;
+      station.status = STATION_STATUS.AVAILABLE;
+      return;
+    }
+
+    const match = matchesById.get(matchId);
+
+    // A station may never keep a reference to a Match that no longer exists
+    // in the operational bracket, nor to a completed/BYE Match.
+    if (
+      !match ||
+      [MATCH_STATUS.COMPLETED, MATCH_STATUS.BYE].includes(match.status) ||
+      assignedMatchIds.has(matchId)
+    ) {
+      station.currentMatchId = null;
+      station.status = STATION_STATUS.AVAILABLE;
+      return;
+    }
+
+    // A Match can occupy only one station. The first normalized station wins;
+    // duplicate references are released deterministically.
+    assignedMatchIds.add(matchId);
+
+    if (match.status === MATCH_STATUS.PENDING) {
+      const lifecycle = getMatchLifecycle(match);
+
+      // A pending Match with a station is operationally CALLED. Recover the
+      // lifecycle if the station survived persistence but calledAt did not.
+      if (lifecycle === MATCH_LIFECYCLE.READY) {
+        const calledMatch = callMatchLifecycle(match);
+        Object.assign(match, {
+          calledAt: calledMatch.calledAt
+        });
+      } else if (lifecycle !== MATCH_LIFECYCLE.CALLED) {
+        station.currentMatchId = null;
+        station.status = STATION_STATUS.AVAILABLE;
+        assignedMatchIds.delete(matchId);
+        return;
+      }
+
+      station.status = STATION_STATUS.ASSIGNED;
+      return;
+    }
+
+    if (match.status === MATCH_STATUS.LIVE) {
+      station.status = STATION_STATUS.IN_PROGRESS;
+      return;
+    }
+
+    station.currentMatchId = null;
+    station.status = STATION_STATUS.AVAILABLE;
+    assignedMatchIds.delete(matchId);
+  });
+
+  // A CALLED Match without a real station cannot remain invisible in the
+  // READY queue. Revert it to READY so the organizer can assign it again.
+  matches.forEach((match) => {
+    if (
+      match?.status === MATCH_STATUS.PENDING &&
+      getMatchLifecycle(match) === MATCH_LIFECYCLE.CALLED &&
+      !assignedMatchIds.has(match.id)
+    ) {
+      const readyMatch = uncallMatchLifecycle(match);
+      Object.keys(match).forEach((key) => {
+        if (!(key in readyMatch)) delete match[key];
+      });
+      Object.assign(match, readyMatch);
+    }
+  });
+
+  pro.stations = normalizedStations;
   return pro.stations;
 }
 
@@ -1060,9 +1147,11 @@ function assignStationInMemory(pro, matchId, stationId) {
 
 function releaseStationInMemory(pro, matchId) {
   const station = getMatchWithStation(pro, matchId);
-  if (!station) return null;
-
   const match = findMatch(pro.bracket, matchId);
+
+  // Releasing the operational resource also clears CALLED when the Match is
+  // still pending. This keeps the queue authoritative: no station means the
+  // Match must be visible as READY again.
   if (match && getMatchLifecycle(match) === MATCH_LIFECYCLE.CALLED) {
     const readyMatch = uncallMatchLifecycle(match);
     Object.keys(match).forEach((key) => {
@@ -1070,6 +1159,8 @@ function releaseStationInMemory(pro, matchId) {
     });
     Object.assign(match, readyMatch);
   }
+
+  if (!station) return null;
 
   station.currentMatchId = null;
   station.status = STATION_STATUS.AVAILABLE;

@@ -3506,6 +3506,10 @@
   background: linear-gradient(145deg, rgba(123, 63, 242, .10), $color-950 65%) !important;
 }
 
+.tournament-pro-page__workspace-entry--checkin {
+  border-color: rgba(123, 63, 242, .38) !important;
+}
+
 .tournament-pro-page__workspace-entry-icon {
   display: grid;
   width: 42px;
