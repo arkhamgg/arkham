@@ -1190,7 +1190,17 @@ function materializeCompetitionStructureMatches({ event, pro, phases, phase, str
     ...event,
     pro: { ...pro, phases }
   }, { phaseId: phase.id, structureId: structure.id });
-  if (generated.status !== "READY" || generated.matches.length === 0) {
+
+  // Preparing a declarative Structure is allowed before all participant
+  // placements are resolved. In that state the generated Matches are a
+  // pending operational projection, not yet a fully executable bracket.
+  // Conflicts and invalid placements remain hard blockers.
+  const blockingStatuses = new Set(["CONFLICT", "INVALID", "UNSUPPORTED"]);
+  if (
+    blockingStatuses.has(String(generated.status || "").toUpperCase()) ||
+    !Array.isArray(generated.matches) ||
+    generated.matches.length === 0
+  ) {
     throw new Error(`No se pudo materializar el cuadro: ${(generated.reasonCodes || []).join(", ") || generated.status}.`);
   }
 
@@ -1360,7 +1370,19 @@ export async function assignCompetitionEntryToStructureSlot({
   slot.participantId = normalizedEntryId ? participantId : null;
   slot.type = normalizedEntryId ? "ENTRY" : "EMPTY";
   slot.status = normalizedEntryId ? "ASSIGNED" : "EMPTY";
+  // Slot position is structural; seed is a separate Seeding-domain assignment.
+  // Do not synthesize a seed from the position here, otherwise Competition Core
+  // correctly reports SEED_NOT_FOUND and blocks placement resolution.
+  slot.seed = normalizedEntryId ? (slot.seed ?? null) : null;
   slot.updatedAt = new Date().toISOString();
+
+  if (participant) {
+    participant.seed = slot.seed;
+    participant.slotIds = normalizedEntryId ? [slot.id] : [];
+    participant.updatedAt = new Date().toISOString();
+    entry.seed = slot.seed;
+    entry.status = mapParticipantStatusToEntryStatus(participant.status);
+  }
   materializeCompetitionStructureMatches({ event, pro, phases, phase, structure });
 
   return persistCompetitionPhasesSafely({
@@ -2276,6 +2298,142 @@ export async function approveParticipationRequest({
   return savePro(tournamentId, eventId, event, pro);
 }
 
+function getPrimaryPreparedCompetitionStructure(pro) {
+  const phases = Array.isArray(pro?.phases)
+    ? pro.phases
+        .filter((phase) => phase?.legacy !== true)
+        .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))
+    : [];
+  const phase = phases[0] || null;
+  const structures = Array.isArray(phase?.structures)
+    ? phase.structures
+        .filter((structure) => structure?.legacy !== true)
+        .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))
+    : [];
+  const structure = structures[0] || null;
+
+  return { phase, structure };
+}
+
+function getCompetitionPlacementReadiness(pro, event) {
+  const capacity = Number(
+    pro?.capacity?.value ??
+    pro?.capacity ??
+    event?.capacity?.value ??
+    event?.capacity ??
+    0
+  );
+  const activeParticipants = Object.values(pro?.participants || {})
+    .filter((participant) => ![
+      PARTICIPANT_STATUS.REJECTED,
+      PARTICIPANT_STATUS.WITHDRAWN,
+      PARTICIPANT_STATUS.NO_SHOW
+    ].includes(participant?.status));
+  const { phase, structure } = getPrimaryPreparedCompetitionStructure(pro);
+  const slots = Array.isArray(structure?.slots) ? structure.slots : [];
+  const prepared = Boolean(
+    phase &&
+    structure &&
+    Array.isArray(structure.rounds) &&
+    structure.rounds.length > 0 &&
+    slots.length > 0
+  );
+  const assignedParticipantIds = new Set(
+    slots
+      .filter((slot) => slot?.participantId)
+      .map((slot) => slot.participantId)
+  );
+  const placedCount = assignedParticipantIds.size;
+  const participantCount = activeParticipants.length;
+  const capacityComplete = capacity >= 2 && participantCount >= capacity;
+  const placementComplete = prepared && placedCount === participantCount && participantCount > 0;
+
+  return {
+    capacity,
+    participantCount,
+    placedCount,
+    prepared,
+    placementComplete,
+    capacityComplete,
+    ready: capacityComplete && placementComplete,
+    phase,
+    structure,
+    slots
+  };
+}
+
+function ensureLegacyOperationalBracketFromCompetitionStructure(pro, event) {
+  const readiness = getCompetitionPlacementReadiness(pro, event);
+  if (!readiness.ready) {
+    throw new Error(
+      "La competencia todavía no está lista para abrir el check-in: completa participantes, estructura y colocación."
+    );
+  }
+
+  if (pro.bracket?.generated) {
+    return;
+  }
+
+  const participants = Object.values(pro.participants || {})
+    .filter((participant) => ![
+      PARTICIPANT_STATUS.REJECTED,
+      PARTICIPANT_STATUS.WITHDRAWN,
+      PARTICIPANT_STATUS.NO_SHOW
+    ].includes(participant?.status))
+    .sort((a, b) => Number(a?.seed || 0) - Number(b?.seed || 0));
+
+  if (participants.length < 2) {
+    throw new Error("Se necesitan al menos 2 participantes para abrir el check-in.");
+  }
+
+  pro.bracket = buildBracket(
+    participants,
+    readiness.capacity,
+    pro.format || event?.format,
+    pro.matchSystem || event?.matchSystem || null
+  );
+
+  Object.values(pro.participants || {}).forEach((participant) => {
+    ensurePersistentEntry(pro, participant, { competitionId: event?.id || null });
+  });
+  syncBracketSlotsWithEntries(pro);
+
+  const declarativeAssignments = readiness.slots
+    .filter((slot) => slot?.participantId)
+    .map((slot) => ({
+      seed: Number(slot?.seed || slot?.position || 0),
+      participantId: slot.participantId,
+      entryId: slot.entryId || null
+    }))
+    .filter((assignment) => assignment.seed > 0 && assignment.participantId);
+
+  Object.values(pro.bracket.slots || {}).forEach((slot) => {
+    slot.participantId = null;
+    slot.entryId = null;
+  });
+
+  declarativeAssignments.forEach((assignment) => {
+    const legacySlot = Object.values(pro.bracket.slots || {})
+      .find((slot) => Number(slot?.seed) === assignment.seed);
+    if (!legacySlot) return;
+    legacySlot.participantId = assignment.participantId;
+    legacySlot.entryId = assignment.entryId || Object.values(pro.entries || {})
+      .find((entry) => entry?.legacyParticipantId === assignment.participantId)?.id || null;
+  });
+
+  Object.values(pro.participants || {}).forEach((participant) => {
+    const slot = Object.values(pro.bracket.slots || {})
+      .find((candidate) => candidate?.participantId === participant.id);
+    participant.seed = slot?.seed || participant.seed || null;
+    participant.slotIds = slot ? [`seed-${slot.seed}`] : [];
+    participant.updatedAt = new Date().toISOString();
+  });
+
+  pro.bracket.generatedAt = new Date().toISOString();
+  syncFirstRoundFromSlots(pro);
+  ensureStationState(pro, event);
+}
+
 export async function setCheckInOpen({
   tournamentId,
   eventId,
@@ -2286,15 +2444,21 @@ export async function setCheckInOpen({
   const nextOpen = Boolean(open);
 
   if (nextOpen) {
-    if (!pro.bracket.generated) {
-      throw new Error("Prepara el bracket antes de abrir el check-in.");
-    }
-
     if (
       pro.status === TOURNAMENT_EVENT_STATUS.LIVE ||
       pro.status === TOURNAMENT_EVENT_STATUS.FINISHED
     ) {
       throw new Error("El check-in no puede abrirse en este estado del torneo.");
+    }
+
+    const readiness = getCompetitionPlacementReadiness(pro, event);
+    if (readiness.structure) {
+      if (!readiness.ready) {
+        throw new Error("Completa participantes, estructura y colocación antes de abrir el check-in.");
+      }
+      ensureLegacyOperationalBracketFromCompetitionStructure(pro, event);
+    } else if (!pro.bracket?.generated) {
+      throw new Error("Prepara el bracket antes de abrir el check-in.");
     }
 
     pro.checkIn.status = "open";
@@ -2325,6 +2489,17 @@ export async function completeCheckIn({
 
   if (!pro.checkIn.opened) {
     throw new Error("El check-in todavía no está abierto.");
+  }
+
+  const readiness = getCompetitionPlacementReadiness(pro, event);
+  if (readiness.structure && !readiness.prepared) {
+    throw new Error("La estructura competitiva ya no está preparada para cerrar el check-in.");
+  }
+
+  const presentParticipants = Object.values(pro.participants || {})
+    .filter((participant) => participant?.checkIn === true && participant?.status !== PARTICIPANT_STATUS.NO_SHOW && participant?.status !== PARTICIPANT_STATUS.WITHDRAWN);
+  if (presentParticipants.length < 2) {
+    throw new Error("Se necesitan al menos 2 participantes presentes para cerrar el check-in.");
   }
 
   completeCheckInState(pro);
@@ -2459,6 +2634,11 @@ export async function setEventStatus({
       throw new Error(
         `El formato "${event?.format || "seleccionado"}" todavía no está disponible para iniciar este torneo.`
       );
+    }
+
+    const readiness = getCompetitionPlacementReadiness(pro, event);
+    if (readiness.structure && !readiness.ready) {
+      throw new Error("La competencia no puede iniciar: revisa participantes, estructura y colocación antes de iniciar el torneo.");
     }
 
     validateCanStartEvent(pro);

@@ -6,6 +6,7 @@ import {
   getTournamentProEvent,
   searchTournamentEntities,
   prepareBracket,
+  addParticipant,
   addParticipantToSlot,
   replaceParticipantInSlot,
   setParticipantCheckIn,
@@ -467,21 +468,7 @@ export function TournamentPro() {
                 rounds: operationalRounds.length ? operationalRounds : declaredRounds
               };
             });
-            const normalizedStructures = (normalizedDeclaredStructures.length
-              ? normalizedDeclaredStructures
-              : phaseStages.length
-                ? [{
-                    id: `${phase.id}-derived`,
-                    name: "Main Structure",
-                    type: legacyType,
-                    order: 0,
-                    legacy: true,
-                    // Compatibility projection only when the phase has no
-                    // declarative Structure of its own.
-                    rounds: phaseStages
-                  }]
-                : []
-            ).map((structure, structureIndex) => ({
+            const normalizedStructures = normalizedDeclaredStructures.map((structure, structureIndex) => ({
               ...structure,
               order: structure.legacy ? 0 : structureIndex + 1
             }));
@@ -634,7 +621,7 @@ export function TournamentPro() {
         const competitionSection = getCompetitionSection();
         const viewMeta = {
           dashboard: { title: game, subtitle: "" },
-          participants: { title: "PARTICIPANTES", subtitle: "Administra solicitudes y participantes de la competición" },
+          participants: { title: "PARTICIPANTES", subtitle: "Administra solicitudes y completa la lista de participantes" },
           configuration: { title: "CONFIGURACIÓN", subtitle: "Fases, estructuras y pools de la competición" },
           bracket: { title: "BRACKET", subtitle: "Visualiza el cuadro competitivo y sus rutas" },
           matches: { title: "MATCHES", subtitle: "Administra los matches y su operación" },
@@ -649,7 +636,14 @@ export function TournamentPro() {
         const backButton = page.querySelector("[data-pro-back]");
         if (backButton) backButton.hidden = currentView === "dashboard";
 
-        const stages = pro.bracket?.stages || [];
+        const legacyStages = Array.isArray(pro.bracket?.stages) ? pro.bracket.stages : [];
+        const declarativeStages = workspacePhases
+          .filter((phase) => phase?.legacy !== true)
+          .flatMap((phase) => (Array.isArray(phase?.structures) ? phase.structures : [])
+            .filter((structure) => structure?.legacy !== true)
+            .flatMap((structure) => Array.isArray(structure?.rounds) ? structure.rounds : []))
+          .filter((round) => round && Array.isArray(round.matches));
+        const stages = declarativeStages.length ? declarativeStages : legacyStages;
         const allCompetitionMatches = stages.flatMap((stage, stageIndex) =>
           (stage.matches || []).map((match, matchIndex) => ({
             match,
@@ -659,20 +653,9 @@ export function TournamentPro() {
             roundName: stage.bracket === "grand_final" ? "Grand Final" : (stage.name || `Round ${stage.number || stageIndex + 1}`)
           }))
         );
-        const slots = Object.values(pro.bracket?.slots || {}).sort((a, b) => a.seed - b.seed);
+        const legacySlots = Object.values(pro.bracket?.slots || {}).sort((a, b) => Number(a.seed || 0) - Number(b.seed || 0));
         const participants = Object.values(pro.participants || {});
-        const activeParticipantStatuses = new Set(["approved", "checked_in", "present", "active", "playing"]);
-        const registeredParticipants = participants.filter((participant) => {
-          const status = String(participant?.status || "").toLowerCase();
-          return !["rejected", "withdrawn", "dq", "no_show", "eliminated"].includes(status) &&
-            (participant?.status ? activeParticipantStatuses.has(status) : true);
-        });
-        const assigned = registeredParticipants.length;
-        const structurePrepared = Boolean(pro.bracket?.generated);
-        const structureCapacity = Number(capacity);
-        const participantCapacity = Number.isFinite(structureCapacity) && structureCapacity > 0
-          ? structureCapacity
-          : null;
+        const activeParticipants = participants.filter((participant) => !["rejected", "withdrawn", "no_show"].includes(String(participant?.status || "").toLowerCase()));
         const present = participants.filter((participant) => participant.checkIn === true).length;
         const noShows = participants.filter((participant) => participant.status === "no_show").length;
         const checkInOpen = pro.checkIn?.status === "open";
@@ -689,15 +672,6 @@ export function TournamentPro() {
           officialResults = [];
         }
         const canFinalize = eventLive && openMatches.length === 0 && officialResults.length > 0;
-        const canAddParticipant = !eventLive &&
-          !eventFinished &&
-          !checkInOpen &&
-          !checkInCompleted &&
-          (participantCapacity === null || assigned < participantCapacity);
-        const selectedSlot = slots.find((slot) => slot.seed && `seed-${slot.seed}` === selectedSlotId);
-        const selectedParticipantName = selectedSlot?.participantId
-          ? getParticipantName(selectedSlot.participantId)
-          : "";
 
         const workspacePhases = getCompetitionWorkspaceModel();
         const normalizedPhaseSearch = String(phaseSearchQuery || "").trim().toLocaleLowerCase("es");
@@ -726,6 +700,40 @@ export function TournamentPro() {
         const modalEditingPhaseGroup = declaredPhaseGroups.find((group) => group?.id === editingPhaseGroupId) || null;
         const selectedDeclaredStructure = declaredStructures.find((structure) => structure?.id === selectedWorkspaceStructure?.id) || null;
         const modalEditingStructure = declaredStructures.find((structure) => structure?.id === editingStructureId) || null;
+
+        const primaryDeclaredPhase = [...workspacePhases]
+          .filter((phase) => phase?.legacy !== true)
+          .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))[0] || null;
+        const primaryDeclaredStructure = [...(primaryDeclaredPhase?.structures || [])]
+          .filter((structure) => structure?.legacy !== true)
+          .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))[0] || null;
+        const declaredStructureSlots = Array.isArray(primaryDeclaredStructure?.slots)
+          ? primaryDeclaredStructure.slots
+          : [];
+        const declaredAssignedSlots = declaredStructureSlots.filter((slot) => slot?.participantId);
+        const declaredAssignedParticipantIds = new Set(declaredAssignedSlots.map((slot) => slot.participantId));
+        const hasPreparedDeclaredStructure = Boolean(
+          primaryDeclaredStructure &&
+          Array.isArray(primaryDeclaredStructure.rounds) && primaryDeclaredStructure.rounds.length > 0 &&
+          declaredStructureSlots.length > 0
+        );
+        const assigned = hasPreparedDeclaredStructure
+          ? declaredAssignedParticipantIds.size
+          : legacySlots.filter((slot) => slot?.participantId).length;
+        const registered = activeParticipants.length;
+        const placementComplete = hasPreparedDeclaredStructure
+          ? declaredAssignedParticipantIds.size === registered && registered > 0
+          : legacySlots.filter((slot) => slot?.participantId).length === registered && registered > 0;
+        const selectedSlot = hasPreparedDeclaredStructure
+          ? declaredStructureSlots.find((slot) =>
+              String(slot?.id) === String(selectedSlotId) ||
+              (slot?.seed && `seed-${slot.seed}` === selectedSlotId)
+            ) || null
+          : legacySlots.find((slot) => slot.seed && `seed-${slot.seed}` === selectedSlotId) || null;
+        const selectedParticipantName = selectedSlot?.participantId
+          ? getParticipantName(selectedSlot.participantId)
+          : "";
+        const canAddParticipant = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && registered < Number(capacity || 0);
         const competitionSetupLocked = Boolean(
           eventLive || eventFinished || checkInOpen || checkInCompleted ||
           ["live", "check_in", "finished", "archived", "completed"].includes(String(event.status || pro.status || "").toLowerCase()) ||
@@ -890,12 +898,6 @@ export function TournamentPro() {
         const totalRounds = workspaceRoundsCount(stages, workspacePhases);
         const primaryStructure = workspacePhases[0]?.structures?.[0] || null;
         const primaryStructureLabel = primaryStructure?.name || formatLabel(pro.bracket?.type || event.format || "Competition");
-        const competitionStructureStateLabel = structurePrepared
-          ? "ESTRUCTURA PREPARADA"
-          : "ESTRUCTURA CONFIGURADA";
-        const competitionStructureStateDescription = structurePrepared
-          ? "La estructura operativa está materializada. Puedes continuar trabajando con participantes y la operación."
-          : "La estructura está definida, pero todavía no ha sido materializada. Prepárala desde Configuración cuando quieras convertirla en una estructura operativa.";
 
         const mobileExperienceModalMarkup = shouldShowMobileNotice() ? `
           <div class="tournament-pro-page__mobile-modal-backdrop" data-mobile-experience-modal>
@@ -918,11 +920,10 @@ export function TournamentPro() {
               <div>
                 <span class="tournament-pro-page__eyebrow">TOURNAMENT OVERVIEW</span>
                 <h2>${escapeHtml(game)}</h2>
-                <span class="tournament-pro-page__dashboard-context">${escapeHtml(primaryStructureLabel)} · ${escapeHtml(competitionStructureStateLabel.toLowerCase())} · ${totalRounds} rounds · ${totalMatches} matches</span>
+                <span class="tournament-pro-page__dashboard-context">${escapeHtml(primaryStructureLabel)} · ${totalRounds} rounds · ${totalMatches} matches</span>
               </div>
               <span class="tournament-pro-page__dashboard-status">${escapeHtml(statusLabel)}</span>
             </div>
-            <p class="tournament-pro-page__dashboard-state">${escapeHtml(competitionStructureStateDescription)}</p>
 
             <section class="tournament-pro-page__dashboard-workspaces tournament-pro-page__dashboard-workspaces--v5">
               <div class="tournament-pro-page__dashboard-section-heading">
@@ -969,7 +970,7 @@ export function TournamentPro() {
                   <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
                   <span>
                     <strong>Check-in</strong>
-                    <small>${checkInCompleted ? `${present} presentes · Check-in completado.` : checkInOpen ? `${present} / ${assigned} participantes presentes · Check-in en curso.` : participantCapacity !== null && assigned >= participantCapacity ? "Confirma asistencia antes de iniciar el torneo." : participantCapacity !== null ? `${assigned} / ${participantCapacity} participantes configurados.` : `${assigned} participantes configurados.`}</small>
+                    <small>${checkInCompleted ? `${present} presentes · Check-in completado.` : checkInOpen ? `${present} / ${assigned} presentes · Check-in en curso.` : assigned >= Number(capacity || 0) ? "Confirma asistencia antes de iniciar el torneo." : `Completa ${Math.max(Number(capacity || 0) - assigned, 0)} asiento(s) para abrirlo.`}</small>
                   </span>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
@@ -1549,18 +1550,18 @@ export function TournamentPro() {
         const capacityValue = Number(capacity || 0);
         const pendingCheckIn = Math.max(assigned - present - noShows, 0);
         const seatsRemaining = Math.max(capacityValue - assigned, 0);
-        const participantsComplete = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && capacityValue >= 2 && assigned >= capacityValue;
+        const participantsComplete = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && capacityValue >= 2 && registered >= capacityValue && placementComplete;
         const participantListMarkup = `
           <section class="tournament-pro-page__checkin-panel tournament-pro-page__checkin-panel--participants">
             <div class="tournament-pro-page__checkin-panel-header">
               <div>
                 <span class="tournament-pro-page__eyebrow">PASO 1 · PARTICIPANTES</span>
                 <h3>Completa los asientos</h3>
-                <p>Agrega jugadores o equipos manualmente y asigna las solicitudes aceptadas. Completar los asientos solo habilita el siguiente paso de configuración.</p>
+                <p>Define quién participa. Si la estructura ya está preparada, ARKHAM puede colocar automáticamente los participantes en la primera estructura disponible.</p>
               </div>
               <div class="tournament-pro-page__checkin-panel-actions">
                 <div class="tournament-pro-page__checkin-metrics">
-                  <strong>${assigned} / ${escapeHtml(capacity)}</strong><span>asientos ocupados</span>
+                  <strong>${registered} / ${escapeHtml(capacity)}</strong><span>participantes registrados</span>
                 </div>
                 <button type="button" class="tournament-pro-page__primary-action tournament-pro-page__participant-add-action" data-late-add ${canAddParticipant ? "" : "disabled"}>
                   <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Agregar participante
@@ -1569,7 +1570,8 @@ export function TournamentPro() {
             </div>
             <div class="tournament-pro-page__participant-list">
               ${participants.map((participant) => {
-                const slot = Object.values(pro.bracket?.slots || {}).find((item) => item.participantId === participant.id);
+                const slot = declaredStructureSlots.find((item) => item?.participantId === participant.id)
+                  || legacySlots.find((item) => item?.participantId === participant.id);
                 return `
                   <article class="tournament-pro-page__participant">
                     <div class="tournament-pro-page__participant-main">
@@ -1577,7 +1579,7 @@ export function TournamentPro() {
                       <span>${escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team ARKHAM"))}${slot ? ` · Seed ${escapeHtml(String(slot.seed))}` : ""}</span>
                     </div>
                     <div class="tournament-pro-page__participant-status">
-                      <span class="tournament-pro-page__registration-badge">Asignado</span>
+                      <span class="tournament-pro-page__registration-badge">${declaredAssignedParticipantIds.has(participant.id) || legacySlots.some((slot) => slot?.participantId === participant.id) ? "Asignado" : "Registrado"}</span>
                     </div>
                   </article>
                 `;
@@ -1659,12 +1661,12 @@ export function TournamentPro() {
           </div>
           <div class="tournament-pro-page__checkin-next-step">
             <div>
-              <span class="tournament-pro-page__eyebrow">ESTADO DE CONFIGURACIÓN</span>
-              <strong>${participantsComplete ? "Todos los asientos están ocupados" : `Faltan ${seatsRemaining} asientos por asignar`}</strong>
-              <p>${participantsComplete ? "La lista de participantes está completa. Continúa con la configuración de fases, estructuras y progresión antes de abrir el check-in." : "Acepta solicitudes o agrega participantes manualmente hasta completar la capacidad."}</p>
+              <span class="tournament-pro-page__eyebrow">SIGUIENTE PASO</span>
+              <strong>${participantsComplete ? "Participantes y estructura listos" : registered >= capacityValue ? "Falta completar la colocación en la estructura" : `Faltan ${Math.max(capacityValue - registered, 0)} participantes por registrar`}</strong>
+              <p>${participantsComplete ? "La competencia ya tiene la lista completa y los participantes están colocados en la estructura operativa." : "Puedes seguir registrando participantes y volver a Configuración cuando quieras preparar o ajustar la estructura."}</p>
             </div>
-            <button type="button" data-workspace-view="configuration" ${participantsComplete ? "" : "disabled"}>
-              <i class="fa-solid fa-code-branch" aria-hidden="true"></i> Seguir configurando
+            <button type="button" data-workspace-view="configuration">
+              <i class="fa-solid fa-code-branch" aria-hidden="true"></i> Abrir configuración
             </button>
           </div>
         `;
@@ -1675,7 +1677,7 @@ export function TournamentPro() {
               <div>
                 <span class="tournament-pro-page__eyebrow">PARTICIPANTES</span>
                 <h2>Preparar participantes</h2>
-                <p>Administra los participantes de la competición. La configuración puede revisarse y ampliarse en cualquier momento antes de iniciar el torneo.</p>
+                <p>Registra participantes aquí. La configuración de la competencia puede prepararse antes, después o en paralelo; cada acción se habilita según sus prerrequisitos.</p>
               </div>
               <span class="tournament-pro-page__status">${escapeHtml(statusLabel)}</span>
             </header>
@@ -1704,14 +1706,14 @@ export function TournamentPro() {
             ${preparationMarkup}
           </section>
 
-          ${modalOpen && selectedSlot ? `
+          ${modalOpen ? `
             <div class="tournament-pro-page__modal-backdrop" data-slot-modal-backdrop>
               <section class="tournament-pro-page__modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-slot-modal-title">
                 <header class="tournament-pro-page__modal-header">
                   <div>
                     <span class="tournament-pro-page__eyebrow">${replacementParticipantId ? "REEMPLAZAR PARTICIPANTE" : "ASIGNAR PARTICIPANTE"}</span>
-                    <h2 id="tournament-pro-slot-modal-title">Seed ${escapeHtml(selectedSlot.seed)}</h2>
-                    <p>${replacementParticipantId ? `Reemplazando: ${escapeHtml(selectedParticipantName)}` : selectedParticipantName ? `Actualmente: ${escapeHtml(selectedParticipantName)}` : "Esta posición está disponible."}</p>
+                    <h2 id="tournament-pro-slot-modal-title">${selectedSlot ? `Seed ${escapeHtml(String(selectedSlot.seed ?? selectedSlot.position ?? ""))}` : "Agregar participante"}</h2>
+                    <p>${replacementParticipantId ? `Reemplazando: ${escapeHtml(selectedParticipantName)}` : selectedSlot ? (selectedParticipantName ? `Actualmente: ${escapeHtml(selectedParticipantName)}` : "Esta posición está disponible.") : "Registra al participante. Si existe una única estructura preparada, ARKHAM intentará colocarlo automáticamente."}</p>
                   </div>
                   <button type="button" class="tournament-pro-page__modal-close" data-slot-modal-close aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                 </header>
@@ -2165,7 +2167,7 @@ export function TournamentPro() {
             ` : !checkInOpen && !checkInCompleted ? `
               <div class="tournament-pro-page__operation-bar">
                 <div><strong>Check-in todavía no abierto</strong><span>Completa la lista y termina la configuración de la competencia antes de abrirlo.</span></div>
-                <button type="button" class="tournament-pro-page__primary-action" data-open-checkin ${assigned >= capacityValue && capacityValue >= 2 ? "" : "disabled"}><i class="fa-solid fa-lock-open" aria-hidden="true"></i> Abrir check-in</button>
+                <button type="button" class="tournament-pro-page__primary-action" data-open-checkin ${participantsComplete ? "" : "disabled"}><i class="fa-solid fa-lock-open" aria-hidden="true"></i> Abrir check-in</button>
               </div>
             ` : ""}
 
@@ -2851,12 +2853,27 @@ export function TournamentPro() {
               return navigateWorkspace("checkin");
             }
 
-            const currentSlots = Object.values(pro.bracket?.slots || {});
-            const currentAssigned = currentSlots.filter((slot) => slot?.participantId).length;
             const currentCapacity = Number(event.capacity?.value ?? event.capacity ?? 0);
+            const currentRegistered = Object.values(pro.participants || {})
+              .filter((participant) => !["rejected", "withdrawn", "no_show"].includes(String(participant?.status || "").toLowerCase()))
+              .length;
+            const currentPrimaryPhase = [...(pro.phases || [])]
+              .filter((phase) => phase?.legacy !== true)
+              .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))[0] || null;
+            const currentPrimaryStructure = [...(currentPrimaryPhase?.structures || [])]
+              .filter((structure) => structure?.legacy !== true)
+              .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))[0] || null;
+            const currentStructureSlots = Array.isArray(currentPrimaryStructure?.slots) ? currentPrimaryStructure.slots : [];
+            const currentPlaced = new Set(currentStructureSlots.filter((slot) => slot?.participantId).map((slot) => slot.participantId)).size;
+            const currentStructurePrepared = Boolean(currentPrimaryStructure && (currentPrimaryStructure.rounds || []).length && currentStructureSlots.length);
+            const currentReady = currentStructurePrepared
+              ? currentCapacity >= 2 && currentRegistered >= currentCapacity && currentPlaced === currentRegistered
+              : currentCapacity >= 2 && currentRegistered >= currentCapacity && Object.values(pro.bracket?.slots || {}).filter((slot) => slot?.participantId).length >= currentRegistered && pro.bracket?.generated;
 
-            if (currentAssigned < currentCapacity || currentCapacity < 2) {
-              return window.alert("Completa los participantes antes de abrir el check-in.");
+            if (!currentReady) {
+              return window.alert(currentStructurePrepared
+                ? "Completa los participantes y colócalos en la estructura antes de abrir el check-in."
+                : "Primero prepara la estructura y completa los participantes antes de abrir el check-in.");
             }
 
             await runOperation(() => setCheckInOpen({
@@ -3006,11 +3023,7 @@ export function TournamentPro() {
             }));
           }
           if (action === "add-participant") {
-            const emptySlot = Object.values(pro.bracket?.slots || {})
-              .filter((slot) => !slot.participantId)
-              .sort((a, b) => Number(a.seed) - Number(b.seed))[0];
-            if (!emptySlot) return window.alert("No hay posiciones disponibles en el bracket.");
-            selectedSlotId = `seed-${emptySlot.seed}`;
+            selectedSlotId = null;
             replacementParticipantId = null;
             modalOpen = true;
             render();
@@ -3089,11 +3102,7 @@ export function TournamentPro() {
         });
 
         page.querySelector("[data-late-add]")?.addEventListener("click", () => {
-          const empty = Object.values(pro.bracket?.slots || {})
-            .filter((slot) => !slot.participantId)
-            .sort((a, b) => Number(a.seed) - Number(b.seed))[0];
-          if (!empty) return window.alert("No hay un asiento liberado disponible.");
-          selectedSlotId = `seed-${empty.seed}`;
+          selectedSlotId = null;
           replacementParticipantId = null;
           modalOpen = true;
           render();
@@ -3147,10 +3156,8 @@ export function TournamentPro() {
       };
 
       const assignParticipant = async ({ entityType, entityId = null, displayName, manual = false }) => {
-        if (!selectedSlotId) return;
-
         try {
-          if (replacementParticipantId) {
+          if (replacementParticipantId && selectedSlotId) {
             event = await replaceParticipantInSlot({
               tournamentId,
               eventId,
@@ -3162,7 +3169,43 @@ export function TournamentPro() {
               displayName,
               manual
             });
-          } else {
+          } else if (selectedSlotId && hasPreparedDeclaredStructure) {
+            const participantIdsBefore = new Set(Object.keys(pro.participants || {}));
+            event = await addParticipant({
+              tournamentId,
+              eventId,
+              event,
+              entityType,
+              entityId,
+              displayName,
+              manual
+            });
+            pro = ensureTournamentProState(event);
+            const createdParticipant = Object.values(pro.participants || {})
+              .find((item) => !participantIdsBefore.has(item.id));
+            const targetSlot = declaredStructureSlots.find((slot) =>
+              String(slot?.id) === String(selectedSlotId) ||
+              (slot?.seed && `seed-${slot.seed}` === selectedSlotId)
+            );
+            const entry = createdParticipant
+              ? Object.values(pro.entries || {}).find((item) => item?.legacyParticipantId === createdParticipant.id)
+              : null;
+            if (!targetSlot || targetSlot.participantId) {
+              throw new Error("La posición seleccionada ya no está disponible.");
+            }
+            if (!entry) {
+              throw new Error("No se pudo crear la entrada competitiva del participante.");
+            }
+            event = await assignCompetitionEntryToStructureSlot({
+              tournamentId,
+              eventId,
+              event,
+              phaseId: primaryDeclaredPhase.id,
+              structureId: primaryDeclaredStructure.id,
+              slotId: targetSlot.id,
+              entryId: entry.id
+            });
+          } else if (selectedSlotId) {
             event = await addParticipantToSlot({
               tournamentId,
               eventId,
@@ -3173,6 +3216,47 @@ export function TournamentPro() {
               displayName,
               manual
             });
+          } else {
+            const participantIdsBefore = new Set(Object.keys(pro.participants || {}));
+            event = await addParticipant({
+              tournamentId,
+              eventId,
+              event,
+              entityType,
+              entityId,
+              displayName,
+              manual
+            });
+
+            pro = ensureTournamentProState(event);
+            const createdParticipant = Object.values(pro.participants || {})
+              .find((item) => !participantIdsBefore.has(item.id));
+            const preparedStructures = (pro.phases || [])
+              .filter((phase) => phase?.legacy !== true)
+              .flatMap((phase) => (phase?.structures || []).map((structure) => ({ phase, structure })))
+              .filter(({ structure }) => (structure?.rounds || []).length && Array.isArray(structure?.slots) && structure.slots.length);
+
+            if (preparedStructures.length === 1) {
+              const [{ phase, structure }] = preparedStructures;
+              const emptySlot = structure.slots
+                .filter((slot) => !slot?.participantId)
+                .sort((a, b) => Number(a?.position || 0) - Number(b?.position || 0))[0];
+              const entry = createdParticipant
+                ? Object.values(pro.entries || {}).find((item) => item?.legacyParticipantId === createdParticipant.id)
+                : null;
+
+              if (emptySlot && entry) {
+                event = await assignCompetitionEntryToStructureSlot({
+                  tournamentId,
+                  eventId,
+                  event,
+                  phaseId: phase.id,
+                  structureId: structure.id,
+                  slotId: emptySlot.id,
+                  entryId: entry.id
+                });
+              }
+            }
           }
 
           pro = ensureTournamentProState(event);
