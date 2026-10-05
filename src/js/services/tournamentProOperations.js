@@ -694,6 +694,358 @@ export async function saveCompetitionStructureConfiguration({
   });
 }
 
+
+/**
+ * ========================================
+ * COMPETITION PHASE GROUPS / POOLS
+ * ========================================
+ *
+ * C.4.0
+ *
+ * Phase Groups are first-class domain entities that live inside a Phase and
+ * belong to a Structure. They are NOT Structures themselves.
+ *
+ * Domain boundary:
+ *   Phase -> Structure -> Phase Group / Pool -> Rounds -> Matches
+ *
+ * This milestone only formalizes configuration/persistence. It does not
+ * generate Round Robin schedules, standings, tiebreakers, qualifiers,
+ * seeding, or cross-phase advancement.
+ */
+
+function normalizePhaseGroupRulesValue(value, fallback = {}) {
+  if (value === null || value === undefined) {
+    return cloneValue(fallback || {});
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Las reglas del pool deben ser un objeto válido.");
+  }
+
+  return cloneValue(value);
+}
+
+function countPhaseGroupParticipants(phaseGroup) {
+  if (Array.isArray(phaseGroup?.participants)) {
+    return phaseGroup.participants.length;
+  }
+
+  if (phaseGroup?.participants && typeof phaseGroup.participants === "object") {
+    return Object.keys(phaseGroup.participants).length;
+  }
+
+  return 0;
+}
+
+function assertCompetitionPhaseStructure(
+  phases,
+  phaseId,
+  structureId,
+  { required = true } = {}
+) {
+  const phase = phases.find((item) => item?.id === phaseId);
+
+  if (!phase) {
+    throw new Error("No se encontró la fase seleccionada.");
+  }
+
+  const structure = Array.isArray(phase.structures)
+    ? phase.structures.find((item) => item?.id === structureId)
+    : null;
+
+  if (!structure && required) {
+    throw new Error("No se encontró la estructura seleccionada dentro de esta fase.");
+  }
+
+  return { phase, structure: structure || null };
+}
+
+function normalizePhaseGroupStructureAssociation({
+  phase,
+  structure,
+  phaseGroupId
+}) {
+  if (!structure?.id) {
+    throw new Error("Un pool debe pertenecer a una estructura válida de su fase.");
+  }
+
+  const structurePhaseId = String(structure.phaseId || phase?.id || "").trim();
+  if (structurePhaseId !== String(phase?.id || "").trim()) {
+    throw new Error("La estructura seleccionada no pertenece a esta fase.");
+  }
+
+  const normalizedGroupId = String(phaseGroupId || "").trim();
+  if (!normalizedGroupId) {
+    throw new Error("No se pudo identificar el pool.");
+  }
+
+  return {
+    phaseId: phase.id,
+    structureId: structure.id,
+    phaseGroupId: normalizedGroupId
+  };
+}
+
+export async function saveCompetitionPhaseGroupConfiguration({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  phaseGroupId,
+  name,
+  structureId = null,
+  rules = null,
+  status = null
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = (pro.phases || []).map((phase) => ({
+    ...phase,
+    phaseGroups: Array.isArray(phase?.phaseGroups)
+      ? phase.phaseGroups.map((group) => ({ ...group }))
+      : [],
+    structures: Array.isArray(phase?.structures)
+      ? phase.structures.map((structure) => ({ ...structure }))
+      : []
+  }));
+
+  preserveLegacyMainCompetition(phases, { eventId, event, pro });
+
+  const phase = phases.find((item) => item?.id === phaseId);
+  if (!phase) {
+    throw new Error("Guarda una fase antes de configurar sus pools.");
+  }
+
+  const groups = Array.isArray(phase.phaseGroups)
+    ? phase.phaseGroups
+    : [];
+
+  const id = String(phaseGroupId || "").trim();
+  if (!id) {
+    throw new Error("No se pudo identificar el pool.");
+  }
+
+  const normalizedName = normalizeCompetitionSetupName(name, "el pool");
+
+  if (
+    groups.some(
+      (group) =>
+        group?.id !== id &&
+        String(group?.name || "").trim().toLowerCase() === normalizedName.toLowerCase()
+    )
+  ) {
+    throw new Error("Ya existe un pool con ese nombre en esta fase.");
+  }
+
+  const groupIndex = groups.findIndex((group) => group?.id === id);
+  const existing = groupIndex >= 0 ? groups[groupIndex] : null;
+
+  const requestedStructureId = String(
+    structureId ?? existing?.structureId ?? ""
+  ).trim();
+
+  const { structure } = assertCompetitionPhaseStructure(
+    phases,
+    phaseId,
+    requestedStructureId
+  );
+
+  const association = normalizePhaseGroupStructureAssociation({
+    phase,
+    structure,
+    phaseGroupId: id
+  });
+
+  const nextGroup = {
+    ...(existing || {}),
+    id: association.phaseGroupId,
+    phaseId: association.phaseId,
+    structureId: association.structureId,
+    name: normalizedName,
+    order: existing?.order || groups.length + 1,
+    participants: Array.isArray(existing?.participants)
+      ? existing.participants
+      : (existing?.participants && typeof existing.participants === "object"
+        ? existing.participants
+        : []),
+    rules: normalizePhaseGroupRulesValue(
+      rules,
+      existing?.rules || {}
+    ),
+    status: String(status || existing?.status || "configured")
+  };
+
+  if (groupIndex >= 0) {
+    groups[groupIndex] = nextGroup;
+  } else {
+    groups.push(nextGroup);
+  }
+
+  groups.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+
+  phase.phaseGroups = groups.map((group, index) => ({
+    ...group,
+    phaseId: phase.id,
+    order: index + 1
+  }));
+
+  pro.phases = phases;
+
+  return persistCompetitionPhasesSafely({
+    tournamentId,
+    eventId,
+    expectedPhases,
+    nextPhases: pro.phases
+  });
+}
+
+export async function moveCompetitionPhaseGroupConfiguration({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  phaseGroupId,
+  direction
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = (pro.phases || []).map((phase) => ({
+    ...phase,
+    phaseGroups: Array.isArray(phase?.phaseGroups)
+      ? [...phase.phaseGroups]
+      : [],
+    structures: Array.isArray(phase?.structures)
+      ? [...phase.structures]
+      : []
+  }));
+
+  const phase = phases.find((item) => item?.id === phaseId);
+  if (!phase) {
+    throw new Error("Fase no encontrada.");
+  }
+
+  const groups = Array.isArray(phase.phaseGroups)
+    ? [...phase.phaseGroups]
+    : [];
+
+  const index = groups.findIndex((group) => group?.id === phaseGroupId);
+  const target =
+    index +
+    (
+      direction === "up"
+        ? -1
+        : direction === "down"
+          ? 1
+          : 0
+    );
+
+  if (
+    index < 0 ||
+    target < 0 ||
+    target >= groups.length ||
+    target === index
+  ) {
+    return { ...event, pro };
+  }
+
+  [groups[index], groups[target]] = [groups[target], groups[index]];
+
+  phase.phaseGroups = groups.map((group, groupIndex) => ({
+    ...group,
+    phaseId: phase.id,
+    order: groupIndex + 1
+  }));
+
+  pro.phases = phases;
+
+  return persistCompetitionPhasesSafely({
+    tournamentId,
+    eventId,
+    expectedPhases,
+    nextPhases: pro.phases
+  });
+}
+
+export async function deleteCompetitionPhaseGroupConfiguration({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  phaseGroupId
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = (pro.phases || []).map((phase) => ({
+    ...phase,
+    phaseGroups: Array.isArray(phase?.phaseGroups)
+      ? phase.phaseGroups.map((group) => ({ ...group }))
+      : [],
+    structures: Array.isArray(phase?.structures)
+      ? phase.structures.map((structure) => ({ ...structure }))
+      : []
+  }));
+
+  const phase = phases.find((item) => item?.id === phaseId);
+  if (!phase) {
+    throw new Error("Fase no encontrada.");
+  }
+
+  const groups = Array.isArray(phase.phaseGroups)
+    ? phase.phaseGroups
+    : [];
+
+  const groupIndex = groups.findIndex((group) => group?.id === phaseGroupId);
+  if (groupIndex < 0) {
+    throw new Error("Pool no encontrado.");
+  }
+
+  const group = groups[groupIndex];
+
+  if (countPhaseGroupParticipants(group) > 0) {
+    throw new Error("No puedes eliminar un pool que todavía tiene participantes asignados.");
+  }
+
+  const referencedByStructure = (phase.structures || []).some((structure) => {
+    if (Array.isArray(structure?.phaseGroupIds) && structure.phaseGroupIds.includes(phaseGroupId)) {
+      return true;
+    }
+
+    if (Array.isArray(structure?.slots)) {
+      return structure.slots.some((slot) => slot?.phaseGroupId === phaseGroupId);
+    }
+
+    return false;
+  });
+
+  if (referencedByStructure) {
+    throw new Error("No puedes eliminar un pool que todavía está referenciado por la estructura.");
+  }
+
+  phase.phaseGroups = groups
+    .filter((candidate) => candidate?.id !== phaseGroupId)
+    .map((candidate, index) => ({
+      ...candidate,
+      phaseId: phase.id,
+      order: index + 1
+    }));
+
+  pro.phases = phases;
+
+  return persistCompetitionPhasesSafely({
+    tournamentId,
+    eventId,
+    expectedPhases,
+    nextPhases: pro.phases
+  });
+}
+
+
 /**
  * Materializes the operational Match projection from the declarative
  * Competition Structure.
