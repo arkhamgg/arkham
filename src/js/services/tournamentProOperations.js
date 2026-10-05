@@ -694,13 +694,32 @@ export async function saveCompetitionStructureConfiguration({
   });
 }
 
-function refreshPreparedStructureMatches({ event, pro, phases, phase, structure }) {
+/**
+ * Materializes the operational Match projection from the declarative
+ * Competition Structure.
+ *
+ * Architectural boundary:
+ *   Structure definition -> Competition Core blueprint -> materialized Matches
+ *
+ * The Structure remains authoritative for rounds, slots and configuration.
+ * The generated Matches stored inside round.matches are a compatibility /
+ * operational projection used by the current Tournament Pro UI and legacy
+ * runtime. They must never be treated as the source of truth for building
+ * or editing the Structure.
+ *
+ * This function intentionally remains local to Operations in C.3:
+ * - it does not move Match persistence to another module yet;
+ * - it does not change the existing SE/DE generator;
+ * - it does not alter legacy bracket operations, lobbies or results;
+ * - it keeps the current persisted round.matches projection synchronized.
+ */
+function materializeCompetitionStructureMatches({ event, pro, phases, phase, structure }) {
   const generated = generateCompetitionBracket({
     ...event,
     pro: { ...pro, phases }
   }, { phaseId: phase.id, structureId: structure.id });
   if (generated.status !== "READY" || generated.matches.length === 0) {
-    throw new Error(`No se pudo actualizar el cuadro: ${(generated.reasonCodes || []).join(", ") || generated.status}.`);
+    throw new Error(`No se pudo materializar el cuadro: ${(generated.reasonCodes || []).join(", ") || generated.status}.`);
   }
 
   const matchesByRoundId = new Map();
@@ -730,7 +749,8 @@ function refreshPreparedStructureMatches({ event, pro, phases, phase, structure 
       matches,
       matchCount: matches.length,
       matchIds: matches.map((match) => match.id),
-      source: "competition-core"
+      source: "competition-core",
+      materialization: "BLUEPRINT"
     };
   });
   phase.structures = phase.structures.map((item) => item.id === structure.id ? structure : item);
@@ -808,7 +828,7 @@ export async function prepareCompetitionStructureBracket({
   structure.rounds = rounds;
   structure.slots = slots;
   phase.structures = phase.structures.map((item) => item.id === structureId ? structure : item);
-  refreshPreparedStructureMatches({ event, pro, phases, phase, structure });
+  materializeCompetitionStructureMatches({ event, pro, phases, phase, structure });
 
   return persistCompetitionPhasesSafely({
     tournamentId,
@@ -869,7 +889,7 @@ export async function assignCompetitionEntryToStructureSlot({
   slot.type = normalizedEntryId ? "ENTRY" : "EMPTY";
   slot.status = normalizedEntryId ? "ASSIGNED" : "EMPTY";
   slot.updatedAt = new Date().toISOString();
-  refreshPreparedStructureMatches({ event, pro, phases, phase, structure });
+  materializeCompetitionStructureMatches({ event, pro, phases, phase, structure });
 
   return persistCompetitionPhasesSafely({
     tournamentId,
