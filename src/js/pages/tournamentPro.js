@@ -468,7 +468,20 @@ export function TournamentPro() {
                 rounds: operationalRounds.length ? operationalRounds : declaredRounds
               };
             });
-            const normalizedStructures = normalizedDeclaredStructures.map((structure, structureIndex) => ({
+            const normalizedStructures = (shouldShowLegacyMain && phase.id === "legacy-main"
+              ? normalizedDeclaredStructures
+              : [{
+                  id: `${phase.id}-derived`,
+                  name: "Main Structure",
+                  type: legacyType,
+                  order: 0,
+                  legacy: true,
+                  // Keep the compatibility structure visible when declarative structures
+                  // are added. It is a read-model projection, not a persisted structure.
+                  // Unassigned legacy rounds remain attached only to the first configured phase.
+                  rounds: phaseStages
+                }, ...normalizedDeclaredStructures]
+            ).map((structure, structureIndex) => ({
               ...structure,
               order: structure.legacy ? 0 : structureIndex + 1
             }));
@@ -636,6 +649,7 @@ export function TournamentPro() {
         const backButton = page.querySelector("[data-pro-back]");
         if (backButton) backButton.hidden = currentView === "dashboard";
 
+        const workspacePhases = getCompetitionWorkspaceModel();
         const legacyStages = Array.isArray(pro.bracket?.stages) ? pro.bracket.stages : [];
         const declarativeStages = workspacePhases
           .filter((phase) => phase?.legacy !== true)
@@ -673,7 +687,6 @@ export function TournamentPro() {
         }
         const canFinalize = eventLive && openMatches.length === 0 && officialResults.length > 0;
 
-        const workspacePhases = getCompetitionWorkspaceModel();
         const normalizedPhaseSearch = String(phaseSearchQuery || "").trim().toLocaleLowerCase("es");
         const visibleWorkspacePhases = normalizedPhaseSearch
           ? workspacePhases.filter((phase) => String(phase?.name || "").toLocaleLowerCase("es").includes(normalizedPhaseSearch))
@@ -1576,7 +1589,7 @@ export function TournamentPro() {
                   <article class="tournament-pro-page__participant">
                     <div class="tournament-pro-page__participant-main">
                       <strong>${escapeHtml(participant.displayName || participant.id)}</strong>
-                      <span>${escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team ARKHAM"))}${slot ? ` · Seed ${escapeHtml(String(slot.seed))}` : ""}</span>
+                      <span>${escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team ARKHAM"))}${slot ? ` · ${slot.seed != null ? `Seed ${escapeHtml(String(slot.seed))}` : `Posición ${escapeHtml(String(slot.position || "—"))}`}` : ""}</span>
                     </div>
                     <div class="tournament-pro-page__participant-status">
                       <span class="tournament-pro-page__registration-badge">${declaredAssignedParticipantIds.has(participant.id) || legacySlots.some((slot) => slot?.participantId === participant.id) ? "Asignado" : "Registrado"}</span>
@@ -3102,6 +3115,7 @@ export function TournamentPro() {
         });
 
         page.querySelector("[data-late-add]")?.addEventListener("click", () => {
+          if (!canAddParticipant) return;
           selectedSlotId = null;
           replacementParticipantId = null;
           modalOpen = true;

@@ -1190,17 +1190,7 @@ function materializeCompetitionStructureMatches({ event, pro, phases, phase, str
     ...event,
     pro: { ...pro, phases }
   }, { phaseId: phase.id, structureId: structure.id });
-
-  // Preparing a declarative Structure is allowed before all participant
-  // placements are resolved. In that state the generated Matches are a
-  // pending operational projection, not yet a fully executable bracket.
-  // Conflicts and invalid placements remain hard blockers.
-  const blockingStatuses = new Set(["CONFLICT", "INVALID", "UNSUPPORTED"]);
-  if (
-    blockingStatuses.has(String(generated.status || "").toUpperCase()) ||
-    !Array.isArray(generated.matches) ||
-    generated.matches.length === 0
-  ) {
+  if (generated.status !== "READY" || generated.matches.length === 0) {
     throw new Error(`No se pudo materializar el cuadro: ${(generated.reasonCodes || []).join(", ") || generated.status}.`);
   }
 
@@ -1309,8 +1299,57 @@ export async function prepareCompetitionStructureBracket({
 
   structure.rounds = rounds;
   structure.slots = slots;
+
+  // Prepare Structure creates only the declarative competition topology.
+  // It deliberately does not generate Matches yet: Entries may not exist,
+  // and Placement/Blueprint resolution is a separate domain step.
+  const activeParticipants = Object.values(pro.participants || {})
+    .filter((participant) => ![
+      PARTICIPANT_STATUS.REJECTED,
+      PARTICIPANT_STATUS.WITHDRAWN,
+      PARTICIPANT_STATUS.NO_SHOW
+    ].includes(participant?.status));
+
+  // If participants were registered before the Structure was prepared, place
+  // them deterministically by structural position. This is Placement, not
+  // Seeding: no seed is synthesized from the position.
+  activeParticipants
+    .slice(0, slots.length)
+    .forEach((participant, index) => {
+      const slot = slots[index];
+      const entry = ensurePersistentEntry(pro, participant, { competitionId: eventId });
+      if (!entry || !slot) return;
+
+      slot.entryId = entry.id;
+      slot.participantId = participant.id;
+      slot.type = "ENTRY";
+      slot.status = "ASSIGNED";
+      participant.slotIds = [slot.id];
+      participant.seed = null;
+      participant.updatedAt = new Date().toISOString();
+      entry.seed = null;
+      entry.status = mapParticipantStatusToEntryStatus(participant.status);
+    });
+
   phase.structures = phase.structures.map((item) => item.id === structureId ? structure : item);
-  materializeCompetitionStructureMatches({ event, pro, phases, phase, structure });
+
+  // If the participant list was already complete before preparation, the
+  // default Placement above may already resolve every Slot. Only now do we
+  // cross the Blueprint -> Materialization boundary.
+  const allSlotsPlaced = structure.slots.length > 0 &&
+    structure.slots.every((candidate) => candidate?.entryId || candidate?.status === "BYE");
+  if (allSlotsPlaced) {
+    const generated = generateCompetitionBracket({
+      ...event,
+      pro: { ...pro, phases }
+    }, { phaseId: phase.id, structureId: structure.id });
+
+    if (generated.status === "READY") {
+      materializeCompetitionStructureMatches({ event, pro, phases, phase, structure });
+    } else if (["CONFLICT", "INVALID", "UNSUPPORTED"].includes(String(generated.status || "").toUpperCase())) {
+      throw new Error(`No se pudo resolver el Blueprint de la estructura: ${(generated.reasonCodes || []).join(", ") || generated.status}.`);
+    }
+  }
 
   return persistCompetitionPhasesSafely({
     tournamentId,
@@ -1370,9 +1409,8 @@ export async function assignCompetitionEntryToStructureSlot({
   slot.participantId = normalizedEntryId ? participantId : null;
   slot.type = normalizedEntryId ? "ENTRY" : "EMPTY";
   slot.status = normalizedEntryId ? "ASSIGNED" : "EMPTY";
-  // Slot position is structural; seed is a separate Seeding-domain assignment.
-  // Do not synthesize a seed from the position here, otherwise Competition Core
-  // correctly reports SEED_NOT_FOUND and blocks placement resolution.
+  // Position and seed are different domains. Placement only associates the
+  // Entry with the Slot; a future Seeding operation may assign slot.seed.
   slot.seed = normalizedEntryId ? (slot.seed ?? null) : null;
   slot.updatedAt = new Date().toISOString();
 
@@ -1383,7 +1421,24 @@ export async function assignCompetitionEntryToStructureSlot({
     entry.seed = slot.seed;
     entry.status = mapParticipantStatusToEntryStatus(participant.status);
   }
-  materializeCompetitionStructureMatches({ event, pro, phases, phase, structure });
+
+  // Placement is complete only when every declared Slot resolves to an Entry.
+  // At that boundary Competition Core can produce a READY Blueprint, which is
+  // then materialized into the current operational round.matches projection.
+  const allSlotsPlaced = structure.slots.length > 0 &&
+    structure.slots.every((candidate) => candidate?.entryId || candidate?.status === "BYE");
+  if (allSlotsPlaced) {
+    const generated = generateCompetitionBracket({
+      ...event,
+      pro: { ...pro, phases }
+    }, { phaseId: phase.id, structureId: structure.id });
+
+    if (generated.status === "READY") {
+      materializeCompetitionStructureMatches({ event, pro, phases, phase, structure });
+    } else if (["CONFLICT", "INVALID", "UNSUPPORTED"].includes(String(generated.status || "").toUpperCase())) {
+      throw new Error(`No se pudo resolver el Blueprint de la estructura: ${(generated.reasonCodes || []).join(", ") || generated.status}.`);
+    }
+  }
 
   return persistCompetitionPhasesSafely({
     tournamentId,
@@ -2089,6 +2144,25 @@ export async function updateParticipantStatus({
   return savePro(tournamentId, eventId, event, pro);
 }
 
+function releaseParticipantFromCompetitionStructures(pro, participantId) {
+  const phases = Array.isArray(pro?.phases) ? pro.phases : [];
+  phases.forEach((phase) => {
+    if (phase?.legacy === true || !Array.isArray(phase.structures)) return;
+    phase.structures.forEach((structure) => {
+      if (!Array.isArray(structure?.slots)) return;
+      structure.slots.forEach((slot) => {
+        if (slot?.participantId !== participantId) return;
+        slot.entryId = null;
+        slot.participantId = null;
+        slot.seed = null;
+        slot.type = "EMPTY";
+        slot.status = "EMPTY";
+        slot.updatedAt = new Date().toISOString();
+      });
+    });
+  });
+}
+
 export async function setParticipantCheckIn({
   tournamentId,
   eventId,
@@ -2125,6 +2199,10 @@ export async function setParticipantCheckIn({
     : PARTICIPANT_STATUS.NO_SHOW;
 
   participant.updatedAt = new Date().toISOString();
+
+  if (!present) {
+    releaseParticipantFromCompetitionStructures(pro, participantId);
+  }
 
   if (!present && pro.bracket?.generated) {
     releaseNoShowFromBracket(pro.bracket, participantId);
