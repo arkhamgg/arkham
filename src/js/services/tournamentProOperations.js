@@ -713,16 +713,136 @@ export async function saveCompetitionStructureConfiguration({
  * seeding, or cross-phase advancement.
  */
 
-function normalizePhaseGroupRulesValue(value, fallback = {}) {
-  if (value === null || value === undefined) {
-    return cloneValue(fallback || {});
+const DEFAULT_PHASE_GROUP_RULES = Object.freeze({
+  version: 1,
+  competition: Object.freeze({
+    rounds: 1
+  }),
+  scoring: Object.freeze({
+    win: 3,
+    draw: 1,
+    loss: 0
+  }),
+  standings: Object.freeze({
+    enabled: true
+  }),
+  tiebreakers: Object.freeze([]),
+  qualification: null
+});
+
+function isPlainObject(value) {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  );
+}
+
+function requireFiniteNumber(value, label, { integer = false, min = null } = {}) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${label} debe ser un número válido.`);
   }
 
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (integer && !Number.isInteger(value)) {
+    throw new Error(`${label} debe ser un número entero.`);
+  }
+
+  if (min !== null && value < min) {
+    throw new Error(`${label} debe ser mayor o igual a ${min}.`);
+  }
+
+  return value;
+}
+
+function normalizePhaseGroupRulesValue(value, fallback = {}) {
+  const source = value === null || value === undefined
+    ? fallback
+    : value;
+
+  if (!isPlainObject(source)) {
     throw new Error("Las reglas del pool deben ser un objeto válido.");
   }
 
-  return cloneValue(value);
+  const competition = source.competition === undefined
+    ? {}
+    : source.competition;
+  const scoring = source.scoring === undefined
+    ? {}
+    : source.scoring;
+  const standings = source.standings === undefined
+    ? {}
+    : source.standings;
+
+  if (!isPlainObject(competition)) {
+    throw new Error("competition debe ser un objeto válido.");
+  }
+  if (!isPlainObject(scoring)) {
+    throw new Error("scoring debe ser un objeto válido.");
+  }
+  if (!isPlainObject(standings)) {
+    throw new Error("standings debe ser un objeto válido.");
+  }
+
+  const version = source.version === undefined
+    ? DEFAULT_PHASE_GROUP_RULES.version
+    : requireFiniteNumber(source.version, "version", { integer: true, min: 1 });
+
+  const rounds = competition.rounds === undefined
+    ? DEFAULT_PHASE_GROUP_RULES.competition.rounds
+    : requireFiniteNumber(competition.rounds, "competition.rounds", { integer: true, min: 1 });
+
+  if (![1, 2].includes(rounds)) {
+    throw new Error("Las reglas del pool solo permiten 1 o 2 rondas de Round Robin.");
+  }
+
+  const win = scoring.win === undefined
+    ? DEFAULT_PHASE_GROUP_RULES.scoring.win
+    : requireFiniteNumber(scoring.win, "scoring.win", { min: 0 });
+  const draw = scoring.draw === undefined
+    ? DEFAULT_PHASE_GROUP_RULES.scoring.draw
+    : requireFiniteNumber(scoring.draw, "scoring.draw", { min: 0 });
+  const loss = scoring.loss === undefined
+    ? DEFAULT_PHASE_GROUP_RULES.scoring.loss
+    : requireFiniteNumber(scoring.loss, "scoring.loss", { min: 0 });
+
+  if (standings.enabled !== undefined && typeof standings.enabled !== "boolean") {
+    throw new Error("standings.enabled debe ser booleano.");
+  }
+
+  const tiebreakers = source.tiebreakers === undefined
+    ? [...DEFAULT_PHASE_GROUP_RULES.tiebreakers]
+    : source.tiebreakers;
+
+  if (!Array.isArray(tiebreakers)) {
+    throw new Error("tiebreakers debe ser un arreglo.");
+  }
+
+  const qualification = source.qualification === undefined
+    ? DEFAULT_PHASE_GROUP_RULES.qualification
+    : source.qualification;
+
+  if (qualification !== null && !isPlainObject(qualification)) {
+    throw new Error("qualification debe ser un objeto o null.");
+  }
+
+  return {
+    version,
+    competition: {
+      rounds
+    },
+    scoring: {
+      win,
+      draw,
+      loss
+    },
+    standings: {
+      enabled: standings.enabled === undefined
+        ? DEFAULT_PHASE_GROUP_RULES.standings.enabled
+        : standings.enabled
+    },
+    tiebreakers: cloneValue(tiebreakers),
+    qualification: cloneValue(qualification)
+  };
 }
 
 function countPhaseGroupParticipants(phaseGroup) {
