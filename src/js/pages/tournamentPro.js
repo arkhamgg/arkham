@@ -677,7 +677,12 @@ export function TournamentPro() {
           ? getParticipantName(selectedSlot.participantId)
           : "";
 
-        const workspacePhases = getCompetitionWorkspaceModel();
+        // The legacy Main Competition is an operational compatibility projection.
+        // Declarative configuration must only expose persisted, non-legacy phases.
+        const workspaceModelPhases = getCompetitionWorkspaceModel();
+        const workspacePhases = Array.isArray(pro.phases)
+          ? pro.phases.filter((phase) => phase && phase.legacy !== true)
+          : [];
         const normalizedPhaseSearch = String(phaseSearchQuery || "").trim().toLocaleLowerCase("es");
         const visibleWorkspacePhases = normalizedPhaseSearch
           ? workspacePhases.filter((phase) => String(phase?.name || "").toLocaleLowerCase("es").includes(normalizedPhaseSearch))
@@ -865,8 +870,8 @@ export function TournamentPro() {
         };
 
         const totalMatches = stages.reduce((sum, stage) => sum + (stage.matches?.length || 0), 0);
-        const totalRounds = workspaceRoundsCount(stages, workspacePhases);
-        const primaryStructure = workspacePhases[0]?.structures?.[0] || null;
+        const totalRounds = workspaceRoundsCount(stages, workspaceModelPhases);
+        const primaryStructure = workspaceModelPhases[0]?.structures?.[0] || null;
         const primaryStructureLabel = primaryStructure?.name || formatLabel(pro.bracket?.type || event.format || "Competition");
 
         const mobileExperienceModalMarkup = shouldShowMobileNotice() ? `
