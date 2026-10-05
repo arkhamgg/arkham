@@ -467,19 +467,20 @@ export function TournamentPro() {
                 rounds: operationalRounds.length ? operationalRounds : declaredRounds
               };
             });
-            const normalizedStructures = (shouldShowLegacyMain && phase.id === "legacy-main"
+            const normalizedStructures = (normalizedDeclaredStructures.length
               ? normalizedDeclaredStructures
-              : [{
-                  id: `${phase.id}-derived`,
-                  name: "Main Structure",
-                  type: legacyType,
-                  order: 0,
-                  legacy: true,
-                  // Keep the compatibility structure visible when declarative structures
-                  // are added. It is a read-model projection, not a persisted structure.
-                  // Unassigned legacy rounds remain attached only to the first configured phase.
-                  rounds: phaseStages
-                }, ...normalizedDeclaredStructures]
+              : phaseStages.length
+                ? [{
+                    id: `${phase.id}-derived`,
+                    name: "Main Structure",
+                    type: legacyType,
+                    order: 0,
+                    legacy: true,
+                    // Compatibility projection only when the phase has no
+                    // declarative Structure of its own.
+                    rounds: phaseStages
+                  }]
+                : []
             ).map((structure, structureIndex) => ({
               ...structure,
               order: structure.legacy ? 0 : structureIndex + 1
@@ -633,7 +634,7 @@ export function TournamentPro() {
         const competitionSection = getCompetitionSection();
         const viewMeta = {
           dashboard: { title: game, subtitle: "" },
-          participants: { title: "PARTICIPANTES", subtitle: "Administra solicitudes y completa la lista de participantes" },
+          participants: { title: "PARTICIPANTES", subtitle: "Administra solicitudes y participantes de la competición" },
           configuration: { title: "CONFIGURACIÓN", subtitle: "Fases, estructuras y pools de la competición" },
           bracket: { title: "BRACKET", subtitle: "Visualiza el cuadro competitivo y sus rutas" },
           matches: { title: "MATCHES", subtitle: "Administra los matches y su operación" },
@@ -660,7 +661,18 @@ export function TournamentPro() {
         );
         const slots = Object.values(pro.bracket?.slots || {}).sort((a, b) => a.seed - b.seed);
         const participants = Object.values(pro.participants || {});
-        const assigned = slots.filter((slot) => slot.participantId).length;
+        const activeParticipantStatuses = new Set(["approved", "checked_in", "present", "active", "playing"]);
+        const registeredParticipants = participants.filter((participant) => {
+          const status = String(participant?.status || "").toLowerCase();
+          return !["rejected", "withdrawn", "dq", "no_show", "eliminated"].includes(status) &&
+            (participant?.status ? activeParticipantStatuses.has(status) : true);
+        });
+        const assigned = registeredParticipants.length;
+        const structurePrepared = Boolean(pro.bracket?.generated);
+        const structureCapacity = Number(capacity);
+        const participantCapacity = Number.isFinite(structureCapacity) && structureCapacity > 0
+          ? structureCapacity
+          : null;
         const present = participants.filter((participant) => participant.checkIn === true).length;
         const noShows = participants.filter((participant) => participant.status === "no_show").length;
         const checkInOpen = pro.checkIn?.status === "open";
@@ -677,18 +689,17 @@ export function TournamentPro() {
           officialResults = [];
         }
         const canFinalize = eventLive && openMatches.length === 0 && officialResults.length > 0;
-        const canAddParticipant = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && assigned < Number(capacity || 0);
+        const canAddParticipant = !eventLive &&
+          !eventFinished &&
+          !checkInOpen &&
+          !checkInCompleted &&
+          (participantCapacity === null || assigned < participantCapacity);
         const selectedSlot = slots.find((slot) => slot.seed && `seed-${slot.seed}` === selectedSlotId);
         const selectedParticipantName = selectedSlot?.participantId
           ? getParticipantName(selectedSlot.participantId)
           : "";
 
-        // The complete workspace model may contain a legacy compatibility projection.
-        // Declarative configuration must expose only persisted, non-legacy phases.
-        const workspaceModelPhases = getCompetitionWorkspaceModel();
-        const workspacePhases = Array.isArray(pro.phases)
-          ? pro.phases.filter((phase) => phase && phase.legacy !== true)
-          : [];
+        const workspacePhases = getCompetitionWorkspaceModel();
         const normalizedPhaseSearch = String(phaseSearchQuery || "").trim().toLocaleLowerCase("es");
         const visibleWorkspacePhases = normalizedPhaseSearch
           ? workspacePhases.filter((phase) => String(phase?.name || "").toLocaleLowerCase("es").includes(normalizedPhaseSearch))
@@ -876,9 +887,15 @@ export function TournamentPro() {
         };
 
         const totalMatches = stages.reduce((sum, stage) => sum + (stage.matches?.length || 0), 0);
-        const totalRounds = workspaceRoundsCount(stages, workspaceModelPhases);
-        const primaryStructure = workspaceModelPhases[0]?.structures?.[0] || null;
+        const totalRounds = workspaceRoundsCount(stages, workspacePhases);
+        const primaryStructure = workspacePhases[0]?.structures?.[0] || null;
         const primaryStructureLabel = primaryStructure?.name || formatLabel(pro.bracket?.type || event.format || "Competition");
+        const competitionStructureStateLabel = structurePrepared
+          ? "ESTRUCTURA PREPARADA"
+          : "ESTRUCTURA CONFIGURADA";
+        const competitionStructureStateDescription = structurePrepared
+          ? "La estructura operativa está materializada. Puedes continuar trabajando con participantes y la operación."
+          : "La estructura está definida, pero todavía no ha sido materializada. Prepárala desde Configuración cuando quieras convertirla en una estructura operativa.";
 
         const mobileExperienceModalMarkup = shouldShowMobileNotice() ? `
           <div class="tournament-pro-page__mobile-modal-backdrop" data-mobile-experience-modal>
@@ -901,30 +918,31 @@ export function TournamentPro() {
               <div>
                 <span class="tournament-pro-page__eyebrow">TOURNAMENT OVERVIEW</span>
                 <h2>${escapeHtml(game)}</h2>
-                <span class="tournament-pro-page__dashboard-context">${escapeHtml(primaryStructureLabel)} · ${totalRounds} rounds · ${totalMatches} matches</span>
+                <span class="tournament-pro-page__dashboard-context">${escapeHtml(primaryStructureLabel)} · ${escapeHtml(competitionStructureStateLabel.toLowerCase())} · ${totalRounds} rounds · ${totalMatches} matches</span>
               </div>
               <span class="tournament-pro-page__dashboard-status">${escapeHtml(statusLabel)}</span>
             </div>
+            <p class="tournament-pro-page__dashboard-state">${escapeHtml(competitionStructureStateDescription)}</p>
 
             <section class="tournament-pro-page__dashboard-workspaces tournament-pro-page__dashboard-workspaces--v5">
               <div class="tournament-pro-page__dashboard-section-heading">
                 <span class="tournament-pro-page__eyebrow">WORKSPACES</span>
               </div>
               <div class="tournament-pro-page__workspace-grid--v5">
-                <button type="button" class="tournament-pro-page__workspace-entry tournament-pro-page__workspace-entry--primary" data-workspace-view="participants">
-                  <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
-                  <span>
-                    <strong>Participantes</strong>
-                    <small>Solicitudes, participantes y preparación de la lista.</small>
-                  </span>
-                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                </button>
-
                 <button type="button" class="tournament-pro-page__workspace-entry tournament-pro-page__workspace-entry--configuration" data-workspace-view="configuration">
                   <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-sitemap" aria-hidden="true"></i></span>
                   <span>
                     <strong>Configuración</strong>
                     <small>Fases, estructuras, pools y reglas de la competición.</small>
+                  </span>
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
+
+                <button type="button" class="tournament-pro-page__workspace-entry tournament-pro-page__workspace-entry--primary" data-workspace-view="participants">
+                  <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
+                  <span>
+                    <strong>Participantes</strong>
+                    <small>Solicitudes, participantes y preparación de la lista.</small>
                   </span>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
@@ -951,7 +969,7 @@ export function TournamentPro() {
                   <span class="tournament-pro-page__workspace-entry-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
                   <span>
                     <strong>Check-in</strong>
-                    <small>${checkInCompleted ? `${present} presentes · Check-in completado.` : checkInOpen ? `${present} / ${assigned} presentes · Check-in en curso.` : assigned >= Number(capacity || 0) ? "Confirma asistencia antes de iniciar el torneo." : `Completa ${Math.max(Number(capacity || 0) - assigned, 0)} asiento(s) para abrirlo.`}</small>
+                    <small>${checkInCompleted ? `${present} presentes · Check-in completado.` : checkInOpen ? `${present} / ${assigned} participantes presentes · Check-in en curso.` : participantCapacity !== null && assigned >= participantCapacity ? "Confirma asistencia antes de iniciar el torneo." : participantCapacity !== null ? `${assigned} / ${participantCapacity} participantes configurados.` : `${assigned} participantes configurados.`}</small>
                   </span>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
@@ -1101,6 +1119,26 @@ export function TournamentPro() {
           </section>
         `;
 
+        const isDoubleEliminationStructure = selectedWorkspaceStructure?.type === "DOUBLE_ELIMINATION";
+        const workspaceRoundGroups = isDoubleEliminationStructure
+          ? [
+              { key: "winners", label: "WINNERS", rounds: workspaceRounds.filter((round) => round.bracket === "winners") },
+              { key: "losers", label: "LOSERS", rounds: workspaceRounds.filter((round) => round.bracket === "losers") },
+              { key: "grand_final", label: "GRAND FINAL", rounds: workspaceRounds.filter((round) => round.bracket === "grand_final") }
+            ].filter((group) => group.rounds.length)
+          : [{ key: "structure", label: null, rounds: workspaceRounds }];
+
+        const selectedWorkspaceRoundGroup = workspaceRoundGroups.find((group) =>
+          group.rounds.some((round) => round.id === selectedWorkspaceRound?.id)
+        );
+        const selectedWorkspaceRoundLabel = selectedWorkspaceRound?.bracket === "grand_final"
+          ? "GRAND FINAL"
+          : selectedWorkspaceRound?.bracket === "losers"
+            ? `LOSERS · RONDA ${selectedWorkspaceRound?.number || 1}`
+            : selectedWorkspaceRound
+              ? `WINNERS · RONDA ${selectedWorkspaceRound?.number || 1}`
+              : "RONDA";
+
         const round_block = selectedWorkspaceStructure ? `
           <section class="tournament-pro-page__controller-section-panel tournament-pro-page__rounds-panel">
             <div class="tournament-pro-page__section-heading">
@@ -1112,31 +1150,45 @@ export function TournamentPro() {
             </div>
 
             ${workspaceRounds.length ? `
-              <div class="tournament-pro-page__round-selector" role="tablist" aria-label="Rondas de la estructura">
-                ${workspaceRounds.map((round, index) => `
-                  <button
-                    type="button"
-                    class="tournament-pro-page__round-selector-item ${round.id === selectedWorkspaceRound?.id ? "is-active" : ""}"
-                    data-workspace-round="${escapeAttr(round.id)}"
-                    role="tab"
-                    aria-selected="${round.id === selectedWorkspaceRound?.id}"
-                  >
-                    <span class="tournament-pro-page__round-selector-index">${String(index + 1).padStart(2, "0")}</span>
-                    <span>
-                      <strong>${escapeHtml(round.name || `Ronda ${index + 1}`)}</strong>
-                      <small>${Array.isArray(round.matches) ? round.matches.length : 0} ${Array.isArray(round.matches) && round.matches.length === 1 ? "match" : "matches"}</small>
-                    </span>
-                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                  </button>
-                `).join("")}
-              </div>
+              ${workspaceRoundGroups.map((group) => `
+                <div class="tournament-pro-page__round-group">
+                  ${group.label ? `
+                    <div class="tournament-pro-page__section-heading">
+                      <div>
+                        <span class="tournament-pro-page__workspace-label">${group.label}</span>
+                        <small>${group.key === "winners" ? "Cuadro principal" : group.key === "losers" ? "Ruta de eliminados" : "Cierre de la competición"}</small>
+                      </div>
+                      <span class="tournament-pro-page__step-count">${group.rounds.length} ${group.rounds.length === 1 ? "ronda" : "rondas"}</span>
+                    </div>
+                  ` : ""}
+
+                  <div class="tournament-pro-page__round-selector" role="tablist" aria-label="${group.label ? `${group.label} de la estructura` : "Rondas de la estructura"}">
+                    ${group.rounds.map((round, index) => `
+                      <button
+                        type="button"
+                        class="tournament-pro-page__round-selector-item ${round.id === selectedWorkspaceRound?.id ? "is-active" : ""}"
+                        data-workspace-round="${escapeAttr(round.id)}"
+                        role="tab"
+                        aria-selected="${round.id === selectedWorkspaceRound?.id}"
+                      >
+                        <span class="tournament-pro-page__round-selector-index">${group.key === "grand_final" ? "GF" : String(round.number || index + 1).padStart(2, "0")}</span>
+                        <span>
+                          <strong>${escapeHtml(group.key === "grand_final" ? (round.name || "Grand Final") : (round.name || `Ronda ${round.number || index + 1}`))}</strong>
+                          <small>${Array.isArray(round.matches) ? round.matches.length : 0} ${Array.isArray(round.matches) && round.matches.length === 1 ? "match" : "matches"}</small>
+                        </span>
+                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                      </button>
+                    `).join("")}
+                  </div>
+                </div>
+              `).join("")}
 
               ${selectedWorkspaceRound ? `
                 <div class="tournament-pro-page__round-detail">
                   <header class="tournament-pro-page__round-detail-header">
                     <div>
-                      <span class="tournament-pro-page__eyebrow">RONDA ${escapeHtml(String(selectedWorkspaceRound.number || workspaceRounds.findIndex((round) => round.id === selectedWorkspaceRound.id) + 1))}</span>
-                      <h3>${escapeHtml(selectedWorkspaceRound.name || `Ronda ${selectedWorkspaceRound.number || 1}`)}</h3>
+                      <span class="tournament-pro-page__eyebrow">${escapeHtml(selectedWorkspaceRoundLabel)}</span>
+                      <h3>${escapeHtml(selectedWorkspaceRound.name || (selectedWorkspaceRound.bracket === "grand_final" ? "Grand Final" : `Ronda ${selectedWorkspaceRound.number || 1}`))}</h3>
                     </div>
                     <span class="tournament-pro-page__step-count">${selectedWorkspaceMatches.length} ${selectedWorkspaceMatches.length === 1 ? "match" : "matches"}</span>
                   </header>
@@ -1607,7 +1659,7 @@ export function TournamentPro() {
           </div>
           <div class="tournament-pro-page__checkin-next-step">
             <div>
-              <span class="tournament-pro-page__eyebrow">SIGUIENTE PASO</span>
+              <span class="tournament-pro-page__eyebrow">ESTADO DE CONFIGURACIÓN</span>
               <strong>${participantsComplete ? "Todos los asientos están ocupados" : `Faltan ${seatsRemaining} asientos por asignar`}</strong>
               <p>${participantsComplete ? "La lista de participantes está completa. Continúa con la configuración de fases, estructuras y progresión antes de abrir el check-in." : "Acepta solicitudes o agrega participantes manualmente hasta completar la capacidad."}</p>
             </div>
@@ -1623,7 +1675,7 @@ export function TournamentPro() {
               <div>
                 <span class="tournament-pro-page__eyebrow">PARTICIPANTES</span>
                 <h2>Preparar participantes</h2>
-                <p>Completa la lista de participantes. Después configurarás la competencia y abrirás el check-in real.</p>
+                <p>Administra los participantes de la competición. La configuración puede revisarse y ampliarse en cualquier momento antes de iniciar el torneo.</p>
               </div>
               <span class="tournament-pro-page__status">${escapeHtml(statusLabel)}</span>
             </header>
