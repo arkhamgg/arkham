@@ -214,7 +214,13 @@ export function TournamentPro() {
       } catch (error) {
         registrationRequestsError = error?.message || "No fue posible cargar las solicitudes.";
       }
+      const hasDeclarativeCompetitionConfiguration = Object.prototype.hasOwnProperty.call(
+        event?.pro || {},
+        "phases"
+      );
+
       if (
+        !hasDeclarativeCompetitionConfiguration &&
         !pro.bracket?.generated &&
         competitionValidation.status !== COMPETITION_CONFIGURATION_STATUS.UNSUPPORTED &&
         competitionValidation.status !== COMPETITION_CONFIGURATION_STATUS.INVALID
@@ -677,8 +683,8 @@ export function TournamentPro() {
           ? getParticipantName(selectedSlot.participantId)
           : "";
 
-        // The legacy Main Competition is an operational compatibility projection.
-        // Declarative configuration must only expose persisted, non-legacy phases.
+        // The complete workspace model may contain a legacy compatibility projection.
+        // Declarative configuration must expose only persisted, non-legacy phases.
         const workspaceModelPhases = getCompetitionWorkspaceModel();
         const workspacePhases = Array.isArray(pro.phases)
           ? pro.phases.filter((phase) => phase && phase.legacy !== true)

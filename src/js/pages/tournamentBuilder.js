@@ -19,6 +19,7 @@ import { hasEffectiveSubscriptionAccess } from "../services/subscription.js";
 import { ensureTournamentProState } from "../services/tournamentPro.js";
 import {
   evaluateCompetitionCompatibility,
+  getCompetitionFormatCapability,
   COMPETITION_CONFIGURATION_STATUS
 } from "../services/competitionConfiguration.js";
 import {
@@ -308,37 +309,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
               data-competition-validation
               aria-live="polite"
             ></div>
-
-            <section class="tournament-builder__phases" data-tournament-phases>
-
-              <div class="tournament-builder__phases-header">
-                <div>
-                  <span class="tournament-builder__card-label">FASES</span>
-                  <h3 class="tournament-builder__phases-title">Configuración por fase</h3>
-                  <p class="tournament-builder__phases-description">
-                    Organiza las etapas de tu competencia. Por ahora, cada fase utiliza
-                    el sistema de partida general seleccionado arriba.
-                  </p>
-                  <div class="tournament-builder__phases-global-system" data-phases-global-system>
-                    <span>SISTEMA GENERAL</span>
-                    <strong data-phases-global-system-value>—</strong>
-                  </div>
-                  <div class="tournament-builder__phase-feedback" data-phase-feedback role="status" aria-live="polite"></div>
-                </div>
-
-                <button
-                  type="button"
-                  class="tournament-builder__phase-add"
-                  data-phase-add
-                >
-                  <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                  AGREGAR FASE
-                </button>
-              </div>
-
-              <div class="tournament-builder__phase-list" data-phase-list></div>
-
-            </section>
 
           </section>
 
@@ -762,22 +732,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     "[data-competition-validation]"
   );
 
-  const phaseListElement = page.querySelector(
-    "[data-phase-list]"
-  );
-
-  const phaseAddButton = page.querySelector(
-    "[data-phase-add]"
-  );
-
-  const phaseFeedbackElement = page.querySelector(
-    "[data-phase-feedback]"
-  );
-
-  let phaseFeedbackTimeout = null;
-  let highlightedPhaseId = null;
-
-
   /*
    * --------------------------------------------------
    * STATUS ELEMENTS
@@ -857,8 +811,15 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   /*
    * --------------------------------------------------
-   * PHASE CONFIGURATION
+   * DECLARATIVE COMPETITION BOOTSTRAP
    * --------------------------------------------------
+   *
+   * The Builder defines the tournament-level competitive inputs.
+   * Phase/Structure configuration is owned by Competition.
+   *
+   * A brand-new Pro event receives one declarative base phase and
+   * one structure derived from the selected format. This does not
+   * materialize rounds, slots, or matches.
    */
 
   function createPhaseId() {
@@ -869,572 +830,69 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     return `phase-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
-  function getPhaseMatchSystems() {
-    return Array.isArray(selectedCompetitiveMode?.matchSystem)
-      ? selectedCompetitiveMode.matchSystem
-      : [];
-  }
-
-  function normalizePhases(phases = []) {
-    return (Array.isArray(phases) ? phases : [])
-      .map((phase, index) => {
-        const mode =
-          phase?.matchSystemMode === "CUSTOM"
-            ? "CUSTOM"
-            : "INHERIT";
-
-        return {
-          ...phase,
-          id: phase?.id || createPhaseId(),
-          name: String(phase?.name || "").trim(),
-          order: Number.isFinite(Number(phase?.order))
-            ? Number(phase.order)
-            : index + 1,
-          matchSystemMode: mode,
-          matchSystem:
-            mode === "CUSTOM"
-              ? (phase?.matchSystem || "")
-              : null
-        };
-      })
-      .sort((a, b) => a.order - b.order)
-      .map((phase, index) => ({
-        ...phase,
-        order: index + 1
-      }));
-  }
-
-  function getEffectivePhaseMatchSystem(phase) {
-    if (phase?.matchSystemMode === "CUSTOM") {
-      return phase.matchSystem || "—";
+  function createStructureId() {
+    if (window.crypto?.randomUUID) {
+      return `structure-${window.crypto.randomUUID()}`;
     }
 
-    return selectedMatchSystem || "—";
+    return `structure-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
-  function getPhaseValidation() {
-    const errors = [];
-    const systems = getPhaseMatchSystems();
+  function normalizeDeclarativeStructureType(format) {
+    const capability =
+      getCompetitionFormatCapability(format);
 
-    selectedPhases.forEach((phase, index) => {
-      if (!phase.name) {
-        errors.push(`La fase ${index + 1} necesita un nombre.`);
-      }
-
-      if (
-        phase.matchSystemMode === "CUSTOM" &&
-        !phase.matchSystem
-      ) {
-        errors.push(
-          `La fase ${index + 1} necesita un sistema de partida personalizado.`
-        );
-      }
-
-      if (
-        phase.matchSystemMode === "CUSTOM" &&
-        phase.matchSystem &&
-        systems.length > 0 &&
-        !systems.includes(phase.matchSystem)
-      ) {
-        errors.push(
-          `El sistema de partida personalizado de la fase ${index + 1} ya no pertenece a las opciones disponibles.`
-        );
-      }
-    });
-
-    return {
-      valid: errors.length === 0,
-      errors
-    };
+    return capability?.engineFormat === "double_elimination"
+      ? "DOUBLE_ELIMINATION"
+      : capability?.engineFormat === "single_elimination"
+        ? "SINGLE_ELIMINATION"
+        : null;
   }
 
-  function showPhaseFeedback(message) {
-    if (!phaseFeedbackElement) return;
+  function createInitialDeclarativeCompetitionPhases({
+    competitionId,
+    format,
+    matchSystem
+  }) {
+    const structureType =
+      normalizeDeclarativeStructureType(format);
 
-    if (phaseFeedbackTimeout) {
-      clearTimeout(phaseFeedbackTimeout);
-    }
-
-    phaseFeedbackElement.innerHTML = `
-      <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-      <span>${message}</span>
-    `;
-
-    phaseFeedbackElement.classList.add("is-visible");
-
-    phaseFeedbackTimeout = window.setTimeout(() => {
-      phaseFeedbackElement.classList.remove("is-visible");
-    }, 3200);
-  }
-
-  function renderPhaseList() {
-    if (!phaseListElement) return;
-
-    const systems = getPhaseMatchSystems();
-    const globalMatchSystem =
-      selectedMatchSystem || systems[0] || "—";
-
-    const globalSystemValue =
-      page.querySelector("[data-phases-global-system-value]");
-
-    if (globalSystemValue) {
-      globalSystemValue.textContent =
-        globalMatchSystem;
-    }
-
-    if (selectedPhases.length === 0) {
-      phaseListElement.innerHTML = `
-        <div class="tournament-builder__phase-empty">
-          No hay fases configuradas. Agrega una fase cuando quieras definir sistemas de partida diferentes por etapa.
-        </div>
-      `;
-
-      return;
-    }
-
-    phaseListElement.innerHTML =
-      selectedPhases.map((phase, index) => {
-        const effectiveSystem =
-          getEffectivePhaseMatchSystem(phase);
-
-        const isCustom =
-          phase.matchSystemMode === "CUSTOM";
-
-        const systemOptions = systems.length
-          ? systems.map((system) => {
-              const safeValue = String(system)
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/"/g, "&quot;");
-
-              return `
-                <option
-                  value="${safeValue}"
-                  ${phase.matchSystem === system ? "selected" : ""}
-                >
-                  ${String(system)
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")}
-                </option>
-              `;
-            }).join("")
-          : `<option value="">No disponible</option>`;
-
-        return `
-          <article
-            class="tournament-builder__phase-row${phase.id === highlightedPhaseId ? " tournament-builder__phase-row--new" : ""}"
-            data-phase-id="${phase.id}"
-          >
-
-            <div class="tournament-builder__phase-order">
-              ${index + 1}
-            </div>
-
-            <div class="tournament-builder__phase-fields">
-
-              <label class="tournament-builder__phase-field tournament-builder__phase-field--name">
-
-                <span>NOMBRE DE LA FASE</span>
-
-                <input
-                  type="text"
-                  value="${phase.name
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/"/g, "&quot;")}"
-                  data-phase-name
-                  maxlength="80"
-                  placeholder="Ej. Winners Round 1"
-                />
-
-              </label>
-
-
-              <div class="tournament-builder__phase-system">
-
-                <span>SISTEMA DE PARTIDA</span>
-
-                <div class="tournament-builder__phase-system-options">
-
-                  <label class="tournament-builder__phase-system-option">
-
-                    <input
-                      type="radio"
-                      name="phase-system-mode-${phase.id}"
-                      value="INHERIT"
-                      data-phase-system-mode
-                      ${!isCustom ? "checked" : ""}
-                    />
-
-                    <span>
-                      <strong>Usar sistema general</strong>
-                      <small>${effectiveSystem}</small>
-                    </span>
-
-                  </label>
-
-
-                  <label class="tournament-builder__phase-system-option">
-
-                    <input
-                      type="radio"
-                      name="phase-system-mode-${phase.id}"
-                      value="CUSTOM"
-                      data-phase-system-mode
-                      ${isCustom ? "checked" : ""}
-                    />
-
-                    <span>
-                      <strong>Personalizar esta fase</strong>
-                      <small>Define un sistema diferente al general</small>
-                    </span>
-
-                  </label>
-
-                </div>
-
-
-                <select
-                  class="tournament-builder__phase-system-select"
-                  data-phase-system-value
-                  ${!isCustom ? "disabled" : ""}
-                >
-                  ${systemOptions}
-                </select>
-
-              </div>
-
-            </div>
-
-
-            <div class="tournament-builder__phase-actions">
-
-              <button
-                type="button"
-                data-phase-up
-                ${index === 0 ? "disabled" : ""}
-                aria-label="Mover fase arriba"
-              >
-                <i
-                  class="fa-solid fa-chevron-up"
-                  aria-hidden="true"
-                ></i>
-              </button>
-
-              <button
-                type="button"
-                data-phase-down
-                ${index === selectedPhases.length - 1 ? "disabled" : ""}
-                aria-label="Mover fase abajo"
-              >
-                <i
-                  class="fa-solid fa-chevron-down"
-                  aria-hidden="true"
-                ></i>
-              </button>
-
-              <button
-                type="button"
-                data-phase-remove
-                aria-label="Eliminar fase"
-              >
-                <i
-                  class="fa-solid fa-trash"
-                  aria-hidden="true"
-                ></i>
-              </button>
-
-            </div>
-
-          </article>
-        `;
-      }).join("");
-
-
-    if (highlightedPhaseId) {
-      const highlightedRow =
-        phaseListElement.querySelector(
-          `[data-phase-id="${highlightedPhaseId}"]`
-        );
-
-      highlightedRow?.addEventListener(
-        "animationend",
-        () => {
-          highlightedRow.classList.remove(
-            "tournament-builder__phase-row--new"
-          );
-        },
-        { once: true }
+    if (!structureType) {
+      throw new Error(
+        "El formato seleccionado todavía no puede convertirse en una estructura competitiva declarativa."
       );
     }
 
+    const phaseId = createPhaseId();
+    const structureId = createStructureId();
+    const structureName =
+      structureType === "DOUBLE_ELIMINATION"
+        ? "Double Elimination"
+        : "Single Elimination";
 
-    phaseListElement
-      .querySelectorAll("[data-phase-name]")
-      .forEach((input) => {
-
-        input.addEventListener(
-          "input",
-          (event) => {
-
-            const row =
-              event.target.closest(
-                "[data-phase-id]"
-              );
-
-            const phase =
-              selectedPhases.find(
-                (item) =>
-                  item.id === row?.dataset.phaseId
-              );
-
-            if (phase) {
-              phase.name =
-                event.target.value;
-            }
-
-            updateNextButton();
-
-          }
-        );
-
-      });
-
-
-    phaseListElement
-      .querySelectorAll("[data-phase-system-mode]")
-      .forEach((input) => {
-
-        input.addEventListener(
-          "change",
-          (event) => {
-
-            const row =
-              event.target.closest(
-                "[data-phase-id]"
-              );
-
-            const phase =
-              selectedPhases.find(
-                (item) =>
-                  item.id === row?.dataset.phaseId
-              );
-
-            if (!phase) return;
-
-            phase.matchSystemMode =
-              event.target.value;
-
-            if (
-              phase.matchSystemMode ===
-              "INHERIT"
-            ) {
-
-              phase.matchSystem =
-                null;
-
-            } else if (!phase.matchSystem) {
-
-              phase.matchSystem =
-                getPhaseMatchSystems()[0] || "";
-
-            }
-
-            renderPhaseList();
-            updateNextButton();
-
-          }
-        );
-
-      });
-
-
-    phaseListElement
-      .querySelectorAll("[data-phase-system-value]")
-      .forEach((select) => {
-
-        select.addEventListener(
-          "change",
-          (event) => {
-
-            const row =
-              event.target.closest(
-                "[data-phase-id]"
-              );
-
-            const phase =
-              selectedPhases.find(
-                (item) =>
-                  item.id === row?.dataset.phaseId
-              );
-
-            if (!phase) return;
-
-            phase.matchSystem =
-              event.target.value || "";
-
-            updateNextButton();
-
-          }
-        );
-
-      });
-
-
-    phaseListElement
-      .querySelectorAll("[data-phase-up]")
-      .forEach((button) => {
-
-        button.addEventListener(
-          "click",
-          () => movePhase(button, -1)
-        );
-
-      });
-
-
-    phaseListElement
-      .querySelectorAll("[data-phase-down]")
-      .forEach((button) => {
-
-        button.addEventListener(
-          "click",
-          () => movePhase(button, 1)
-        );
-
-      });
-
-
-    phaseListElement
-      .querySelectorAll("[data-phase-remove]")
-      .forEach((button) => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            const row =
-              button.closest(
-                "[data-phase-id]"
-              );
-
-            selectedPhases =
-              selectedPhases.filter(
-                (phase) =>
-                  phase.id !==
-                  row?.dataset.phaseId
-              );
-
-            selectedPhases =
-              normalizePhases(
-                selectedPhases
-              );
-
-            renderPhaseList();
-
-          }
-        );
-
-      });
-
+    return [{
+      id: phaseId,
+      competitionId: competitionId || null,
+      name: "Main Competition",
+      order: 1,
+      status: "configured",
+      matchSystemMode: "INHERIT",
+      matchSystem: null,
+      matchFormat: null,
+      phaseGroups: [],
+      structures: [{
+        id: structureId,
+        phaseId,
+        name: structureName,
+        order: 1,
+        type: structureType,
+        status: "configured",
+        matchFormat: matchSystem || null,
+        rounds: [],
+        slots: []
+      }]
+    }];
   }
-
-
-  function movePhase(button, direction) {
-
-    const row =
-      button.closest("[data-phase-id]");
-
-    const index =
-      selectedPhases.findIndex(
-        (phase) =>
-          phase.id ===
-          row?.dataset.phaseId
-      );
-
-    const target =
-      index + direction;
-
-    if (
-      index < 0 ||
-      target < 0 ||
-      target >= selectedPhases.length
-    ) {
-      return;
-    }
-
-    const next =
-      [...selectedPhases];
-
-    [
-      next[index],
-      next[target]
-    ] = [
-      next[target],
-      next[index]
-    ];
-
-    selectedPhases =
-      normalizePhases(next);
-
-    renderPhaseList();
-  }
-
-
-  phaseAddButton?.addEventListener(
-    "click",
-    () => {
-
-      const newPhaseId =
-        createPhaseId();
-
-      selectedPhases =
-        normalizePhases([
-          ...selectedPhases,
-
-          {
-            id: newPhaseId,
-            name: "",
-            order:
-              selectedPhases.length + 1,
-            matchSystemMode:
-              "INHERIT",
-            matchSystem:
-              null
-          }
-
-        ]);
-
-      highlightedPhaseId =
-        newPhaseId;
-
-      renderPhaseList();
-
-      showPhaseFeedback(
-        "Fase agregada. Configura su nombre para continuar."
-      );
-
-      window.setTimeout(
-        () => {
-          highlightedPhaseId =
-            null;
-        },
-        900
-      );
-
-      const newPhaseInput =
-        phaseListElement?.querySelector(
-          `[data-phase-id="${newPhaseId}"] [data-phase-name]`
-        );
-
-      newPhaseInput?.focus();
-
-    }
-  );
-
-
-  renderPhaseList();
-
 
   /*
    * --------------------------------------------------
@@ -1552,15 +1010,11 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         selectedCapacity
       );
 
-    const phaseValidation =
-      getPhaseValidation();
-
     const competitionValidation =
       getCompetitionValidation();
 
     saveButton.disabled =
       !isComplete ||
-      !phaseValidation.valid ||
       !competitionValidation.executable;
 
     renderCompetitionValidation();
@@ -1643,24 +1097,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
         selectedMatchSystem =
           matchSystem;
-
-        selectedPhases =
-          selectedPhases.map(
-            (phase, index) => ({
-              ...phase,
-
-              order:
-                index + 1,
-
-              matchSystem:
-                phase.matchSystemMode ===
-                "CUSTOM"
-                  ? phase.matchSystem
-                  : null
-            })
-          );
-
-        renderPhaseList();
 
         setStatus(
           statusElements.matchSystem,
@@ -1995,8 +1431,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         matchSystemSelector.setSystems(
           availableMatchSystems
         );
-
-        renderPhaseList();
 
         capacitySelector.setParticipationType(
           participationType
@@ -2395,33 +1829,45 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         );
 
 
-      // Si el evento ya tenía estado Pro, se conserva completo incluso si
-      // el acceso actual cambió. Para eventos nuevos, solo se crea Pro cuando
-      // existe entitlement efectivo. Las fases viven exclusivamente dentro de pro.
+      // El Builder solamente define la configuración competitiva global.
+      // Para un evento Pro nuevo se crea una Phase declarativa base con su
+      // Structure correspondiente, pero nunca se generan rounds, slots o matches.
+      // En eventos existentes se preserva exactamente la frontera declarativa
+      // actual; un evento legacy sin `pro.phases` no se migra silenciosamente.
 
       if (
         hasProAccess ||
         existingTournamentPro
       ) {
+        const existingPro = existingTournamentPro || {};
+        const hasDeclarativePhases =
+          Object.prototype.hasOwnProperty.call(
+            existingPro,
+            "phases"
+          );
+
+        const nextPro = {
+          ...existingPro
+        };
+
+        if (!existingTournamentPro) {
+          nextPro.phases =
+            createInitialDeclarativeCompetitionPhases({
+              competitionId: eventId || tournamentId,
+              format: selectedFormat,
+              matchSystem: selectedMatchSystem
+            });
+        } else if (hasDeclarativePhases) {
+          nextPro.phases = Array.isArray(existingPro.phases)
+            ? existingPro.phases
+            : [];
+        }
 
         tournamentConfiguration.pro =
           ensureTournamentProState({
-
             ...tournamentConfiguration,
-
-            pro: {
-
-              ...(existingTournamentPro || {}),
-
-              phases:
-                normalizePhases(
-                  selectedPhases
-                )
-
-            }
-
+            pro: nextPro
           });
-
       }
 
 
@@ -2730,9 +2176,9 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         event.pro || null;
 
       selectedPhases =
-        normalizePhases(
-          event.pro?.phases || []
-        );
+        Array.isArray(event.pro?.phases)
+          ? event.pro.phases
+          : [];
 
 
       selectedGame =
@@ -2920,9 +2366,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         .setValue(
           selectedRegistrationRequirements
         );
-
-
-      renderPhaseList();
 
 
       setStatus(
