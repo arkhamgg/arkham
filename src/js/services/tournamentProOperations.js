@@ -462,9 +462,11 @@ function preserveLegacyMainCompetition(phases, { eventId, event, pro }) {
   const hasUnassignedLegacyBracket = (pro?.bracket?.stages || []).some((stage) =>
     !stage?.phaseId && !(stage?.matches || []).some((match) => match?.phaseId)
   );
-  const shouldPreserve = !hasCompatibilityPhase && (
-    phases.length === 0 || hasUnassignedLegacyBracket
-  );
+  // Declarative phases are authoritative. A legacy compatibility phase must
+  // never be injected beside a Phase/Structure already created by Builder.
+  // Legacy preservation applies only to events that still have no declarative
+  // Competition configuration at all.
+  const shouldPreserve = phases.length === 0 && !hasCompatibilityPhase && hasUnassignedLegacyBracket;
   if (!shouldPreserve) return;
 
   phases.forEach((phase, index) => { phase.order = index + 2; });

@@ -399,103 +399,152 @@ export function TournamentPro() {
         const structures = getCompetitionStructures(event);
         const stages = Array.isArray(pro.bracket?.stages) ? pro.bracket.stages : [];
         const bracketType = String(pro.bracket?.type || event.format || "single_elimination").toLowerCase();
-        const legacyType = bracketType === "double_elimination" ? "DOUBLE_ELIMINATION" : "SINGLE_ELIMINATION";
-        const hasCompatibilityPhase = configuredPhases.some((phase) => phase?.id === "legacy-main" || phase?.legacy === true);
-        const hasUnassignedLegacyBracket = stages.some((stage) =>
-          !stage?.phaseId && !(stage?.matches || []).some((match) => match?.phaseId)
-        );
-        const shouldShowLegacyMain = configuredPhases.length > 0 &&
-          !hasCompatibilityPhase &&
-          hasUnassignedLegacyBracket;
+        const legacyType = bracketType === "double_elimination"
+          ? "DOUBLE_ELIMINATION"
+          : "SINGLE_ELIMINATION";
 
-        if (!configuredPhases.length) {
-          const legacyPhaseId = "legacy-main";
-          return [{
-            id: legacyPhaseId,
-            name: "Main Competition",
-            order: 1,
-            status: pro.status || "configured",
-            matchFormat: pro.matchSystem || event.matchSystem || null,
-            legacy: true,
-            structures: [{
-              id: "legacy-main-structure",
-              name: bracketType === "double_elimination" ? "Double Elimination" : "Single Elimination",
-              type: legacyType,
-              order: 1,
-              legacy: true,
-              rounds: getCompetitionRounds(event, { bracket: null })
-            }]
-          }];
+        // A persisted declarative Competition is authoritative for the workspace.
+        // Once pro.phases exists, Main Competition and its initial Structure are
+        // real domain entities created by Builder. Never inject a synthetic
+        // legacy phase/structure beside them, even if a legacy operational
+        // bracket still exists as a compatibility projection.
+        if (configuredPhases.length > 0) {
+          return configuredPhases
+            .map((phase, phaseIndex) => {
+              const phaseStructures = structures
+                .filter((structure) => structure?.phaseId === phase.id)
+                .sort((a, b) => (Number(a?.order) || 0) - (Number(b?.order) || 0));
+
+              const normalizedStructures = phaseStructures.map((structure, structureIndex) => {
+                const declaredRounds = Array.isArray(structure?.rounds)
+                  ? structure.rounds
+                  : [];
+                const hasLinkedOperationalStages = stages.some((stage) =>
+                  stage?.structureId === structure.id ||
+                  (stage?.matches || []).some((match) => match?.structureId === structure.id)
+                );
+                const operationalRounds = declaredRounds.length && hasLinkedOperationalStages
+                  ? getCompetitionRounds(event, {
+                      structureId: structure.id,
+                      phaseId: phase.id
+                    })
+                  : [];
+
+                return {
+                  ...structure,
+                  order: Number.isFinite(Number(structure?.order))
+                    ? Number(structure.order)
+                    : structureIndex + 1,
+                  rounds: operationalRounds.length
+                    ? operationalRounds
+                    : declaredRounds,
+                  legacy: false
+                };
+              });
+
+              return {
+                ...phase,
+                id: phase.id || `phase-${phaseIndex + 1}`,
+                name: phase.name || `Phase ${phaseIndex + 1}`,
+                order: Number.isFinite(Number(phase.order))
+                  ? Number(phase.order)
+                  : phaseIndex + 1,
+                status: phase.status || "configured",
+                legacy: false,
+                structures: normalizedStructures
+              };
+            })
+            .sort((a, b) => a.order - b.order);
         }
 
-        const phasesToRender = shouldShowLegacyMain ? [{
+        // No declarative phases means this is an old Tournament Pro event.
+        // Only here do we expose the compatibility projection as Main Competition.
+        return [{
           id: "legacy-main",
           name: "Main Competition",
           order: 1,
-          status: pro.status || "draft",
+          status: pro.status || "configured",
           matchFormat: pro.matchSystem || event.matchSystem || null,
           legacy: true,
           structures: [{
             id: "legacy-main-structure",
-            name: bracketType === "double_elimination" ? "Double Elimination" : "Single Elimination",
+            name: bracketType === "double_elimination"
+              ? "Double Elimination"
+              : "Single Elimination",
             type: legacyType,
             order: 1,
             legacy: true,
             rounds: getCompetitionRounds(event, { bracket: null })
           }]
-        }, ...configuredPhases.map((phase, index) => ({ ...phase, order: Number(phase.order) + 1 || index + 2 }))] : configuredPhases;
+        }];
+      };
 
-        return phasesToRender
-          .map((phase, phaseIndex) => {
-            const phaseStructures = shouldShowLegacyMain && phase.id === "legacy-main"
-              ? phase.structures
-              : structures.filter((structure) => structure.phaseId === phase.id);
-            const phaseStages = stages.filter((stage) => {
-              if (stage?.phaseId) return stage.phaseId === phase.id;
-              return !shouldShowLegacyMain && phaseIndex === 0;
-            });
-            const normalizedDeclaredStructures = phaseStructures.map((structure) => {
-              const declaredRounds = Array.isArray(structure.rounds) ? structure.rounds : [];
-              const hasLinkedOperationalStages = stages.some((stage) =>
-                stage?.structureId === structure.id ||
-                (stage?.matches || []).some((match) => match?.structureId === structure.id)
-              );
-              const operationalRounds = declaredRounds.length && hasLinkedOperationalStages
-                ? getCompetitionRounds(event, { structureId: structure.id, phaseId: phase.id })
-                : [];
-              return {
-                ...structure,
-                rounds: operationalRounds.length ? operationalRounds : declaredRounds
-              };
-            });
-            const normalizedStructures = (shouldShowLegacyMain && phase.id === "legacy-main"
-              ? normalizedDeclaredStructures
-              : [{
-                  id: `${phase.id}-derived`,
-                  name: "Main Structure",
-                  type: legacyType,
-                  order: 0,
-                  legacy: true,
-                  // Keep the compatibility structure visible when declarative structures
-                  // are added. It is a read-model projection, not a persisted structure.
-                  // Unassigned legacy rounds remain attached only to the first configured phase.
-                  rounds: phaseStages
-                }, ...normalizedDeclaredStructures]
-            ).map((structure, structureIndex) => ({
-              ...structure,
-              order: structure.legacy ? 0 : structureIndex + 1
-            }));
+      const getParticipantFlowState = () => {
+        const workspacePhases = getCompetitionWorkspaceModel();
+        const legacySlots = Object.values(pro.bracket?.slots || {}).sort(
+          (a, b) => Number(a.seed || 0) - Number(b.seed || 0)
+        );
+        const participants = Object.values(pro.participants || {});
+        const activeParticipants = participants.filter((participant) =>
+          !["rejected", "withdrawn", "no_show"].includes(
+            String(participant?.status || "").toLowerCase()
+          )
+        );
+        const checkInOpen = pro.checkIn?.status === "open";
+        const checkInCompleted = pro.checkIn?.status === "completed";
+        const eventLive = pro.status === "live";
+        const eventFinished = pro.status === "finished";
+        const primaryDeclaredPhase = [...workspacePhases]
+          .filter((phase) => phase?.legacy !== true)
+          .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))[0] || null;
+        const primaryDeclaredStructure = [...(primaryDeclaredPhase?.structures || [])]
+          .filter((structure) => structure?.legacy !== true)
+          .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))[0] || null;
+        const declaredStructureSlots = Array.isArray(primaryDeclaredStructure?.slots)
+          ? primaryDeclaredStructure.slots
+          : [];
+        const declaredAssignedParticipantIds = new Set(
+          declaredStructureSlots
+            .filter((slot) => slot?.participantId)
+            .map((slot) => slot.participantId)
+        );
+        const hasPreparedDeclaredStructure = Boolean(
+          primaryDeclaredStructure &&
+          Array.isArray(primaryDeclaredStructure.rounds) &&
+          primaryDeclaredStructure.rounds.length > 0 &&
+          declaredStructureSlots.length > 0
+        );
+        const registered = activeParticipants.length;
+        const assigned = hasPreparedDeclaredStructure
+          ? declaredAssignedParticipantIds.size
+          : legacySlots.filter((slot) => slot?.participantId).length;
+        const placementComplete = hasPreparedDeclaredStructure
+          ? declaredAssignedParticipantIds.size === registered && registered > 0
+          : legacySlots.filter((slot) => slot?.participantId).length === registered && registered > 0;
+        const canAddParticipant =
+          !eventLive &&
+          !eventFinished &&
+          !checkInOpen &&
+          !checkInCompleted &&
+          registered < Number(capacity || 0);
 
-            return {
-              ...phase,
-              id: phase.id || `phase-${phaseIndex + 1}`,
-              name: phase.name || `Phase ${phaseIndex + 1}`,
-              order: Number.isFinite(Number(phase.order)) ? Number(phase.order) : phaseIndex + 1,
-              status: phase.status || "configured",
-              structures: normalizedStructures
-            };
-          })
-          .sort((a, b) => a.order - b.order);
+        return {
+          workspacePhases,
+          legacySlots,
+          activeParticipants,
+          primaryDeclaredPhase,
+          primaryDeclaredStructure,
+          declaredStructureSlots,
+          hasPreparedDeclaredStructure,
+          registered,
+          assigned,
+          placementComplete,
+          eventLive,
+          eventFinished,
+          checkInOpen,
+          checkInCompleted,
+          canAddParticipant
+        };
       };
 
       const renderSlot = (slot) => {
@@ -714,29 +763,17 @@ export function TournamentPro() {
         const selectedDeclaredStructure = declaredStructures.find((structure) => structure?.id === selectedWorkspaceStructure?.id) || null;
         const modalEditingStructure = declaredStructures.find((structure) => structure?.id === editingStructureId) || null;
 
-        const primaryDeclaredPhase = [...workspacePhases]
-          .filter((phase) => phase?.legacy !== true)
-          .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))[0] || null;
-        const primaryDeclaredStructure = [...(primaryDeclaredPhase?.structures || [])]
-          .filter((structure) => structure?.legacy !== true)
-          .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))[0] || null;
-        const declaredStructureSlots = Array.isArray(primaryDeclaredStructure?.slots)
-          ? primaryDeclaredStructure.slots
-          : [];
-        const declaredAssignedSlots = declaredStructureSlots.filter((slot) => slot?.participantId);
-        const declaredAssignedParticipantIds = new Set(declaredAssignedSlots.map((slot) => slot.participantId));
-        const hasPreparedDeclaredStructure = Boolean(
-          primaryDeclaredStructure &&
-          Array.isArray(primaryDeclaredStructure.rounds) && primaryDeclaredStructure.rounds.length > 0 &&
-          declaredStructureSlots.length > 0
-        );
-        const assigned = hasPreparedDeclaredStructure
-          ? declaredAssignedParticipantIds.size
-          : legacySlots.filter((slot) => slot?.participantId).length;
-        const registered = activeParticipants.length;
-        const placementComplete = hasPreparedDeclaredStructure
-          ? declaredAssignedParticipantIds.size === registered && registered > 0
-          : legacySlots.filter((slot) => slot?.participantId).length === registered && registered > 0;
+        const participantFlowState = getParticipantFlowState();
+        const {
+          primaryDeclaredPhase,
+          primaryDeclaredStructure,
+          declaredStructureSlots,
+          hasPreparedDeclaredStructure,
+          registered,
+          assigned,
+          placementComplete,
+          canAddParticipant
+        } = participantFlowState;
         const selectedSlot = hasPreparedDeclaredStructure
           ? declaredStructureSlots.find((slot) =>
               String(slot?.id) === String(selectedSlotId) ||
@@ -746,7 +783,6 @@ export function TournamentPro() {
         const selectedParticipantName = selectedSlot?.participantId
           ? getParticipantName(selectedSlot.participantId)
           : "";
-        const canAddParticipant = !eventLive && !eventFinished && !checkInOpen && !checkInCompleted && registered < Number(capacity || 0);
         const competitionSetupLocked = Boolean(
           eventLive || eventFinished || checkInOpen || checkInCompleted ||
           ["live", "check_in", "finished", "archived", "completed"].includes(String(event.status || pro.status || "").toLowerCase()) ||
@@ -3115,6 +3151,7 @@ export function TournamentPro() {
         });
 
         page.querySelector("[data-late-add]")?.addEventListener("click", () => {
+          const { canAddParticipant } = getParticipantFlowState();
           if (!canAddParticipant) return;
           selectedSlotId = null;
           replacementParticipantId = null;
@@ -3171,6 +3208,12 @@ export function TournamentPro() {
 
       const assignParticipant = async ({ entityType, entityId = null, displayName, manual = false }) => {
         try {
+          const {
+            primaryDeclaredPhase,
+            primaryDeclaredStructure,
+            declaredStructureSlots,
+            hasPreparedDeclaredStructure
+          } = getParticipantFlowState();
           if (replacementParticipantId && selectedSlotId) {
             event = await replaceParticipantInSlot({
               tournamentId,
