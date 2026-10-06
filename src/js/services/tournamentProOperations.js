@@ -1623,15 +1623,61 @@ export async function moveCompetitionStructureConfiguration({
 }
 
 
+function sanitizeFirestoreValue(value, path = "pro", undefinedPaths = []) {
+  if (value === undefined) {
+    undefinedPaths.push(path);
+    return undefined;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item, index) => {
+      if (item === undefined) {
+        undefinedPaths.push(`${path}[${index}]`);
+        return null;
+      }
+      return sanitizeFirestoreValue(item, `${path}[${index}]`, undefinedPaths);
+    });
+  }
+
+  if (value && typeof value === "object") {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      return value;
+    }
+
+    const sanitized = {};
+    Object.entries(value).forEach(([key, item]) => {
+      if (item === undefined) {
+        undefinedPaths.push(`${path}.${key}`);
+        return;
+      }
+      sanitized[key] = sanitizeFirestoreValue(item, `${path}.${key}`, undefinedPaths);
+    });
+    return sanitized;
+  }
+
+  return value;
+}
+
 async function savePro(tournamentId, eventId, event, pro) {
+  const undefinedPaths = [];
+  const persistedPro = sanitizeFirestoreValue(pro, "pro", undefinedPaths);
+
+  if (undefinedPaths.length) {
+    console.warn(
+      "ARKHAM — Tournament Pro: se eliminaron valores undefined antes de persistir:",
+      undefinedPaths
+    );
+  }
+
   await updateMapEntity(
     "tournaments",
     tournamentId,
     "events",
     eventId,
-    { pro }
+    { pro: persistedPro }
   );
-  return { ...event, pro };
+  return { ...event, pro: persistedPro };
 }
 
 function saveProOptimistic(
@@ -2128,11 +2174,11 @@ function findParticipantDeclaredSlots(pro, participant) {
 
   return (pro?.phases || [])
     .filter((phase) => phase?.legacy !== true)
-    .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
-    .filter((structure) => structure?.legacy !== true)
-    .flatMap((structure) => Array.isArray(structure?.slots)
-      ? structure.slots.map((slot) => ({ phase, structure, slot }))
-      : [])
+    .flatMap((phase) => (Array.isArray(phase?.structures) ? phase.structures : [])
+      .filter((structure) => structure?.legacy !== true)
+      .flatMap((structure) => Array.isArray(structure?.slots)
+        ? structure.slots.map((slot) => ({ phase, structure, slot }))
+        : []))
     .filter(({ slot }) =>
       slot?.participantId === participant.id ||
       slot?.entryId && pro.entries?.[slot.entryId]?.legacyParticipantId === participant.id ||
@@ -2157,11 +2203,11 @@ function restoreParticipantToCompetitionStructures(pro, participant) {
   if (!declaredMatches.length) {
     const fallback = (pro?.phases || [])
       .filter((phase) => phase?.legacy !== true)
-      .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
-      .filter((structure) => structure?.legacy !== true)
-      .flatMap((structure) => Array.isArray(structure?.slots)
-        ? structure.slots.map((slot) => ({ phase, structure, slot }))
-        : [])
+      .flatMap((phase) => (Array.isArray(phase?.structures) ? phase.structures : [])
+        .filter((structure) => structure?.legacy !== true)
+        .flatMap((structure) => Array.isArray(structure?.slots)
+          ? structure.slots.map((slot) => ({ phase, structure, slot }))
+          : []))
       .find(({ slot }) =>
         participant.slotIds?.includes(slot?.id) ||
         (participant.seed != null && Number(slot?.seed) === Number(participant.seed))
@@ -2279,7 +2325,7 @@ export async function replaceParticipantInSlot({
 
   replacement.status = PARTICIPANT_STATUS.APPROVED;
   replacement.checkIn = false;
-  replacement.seed = slot.seed;
+  replacement.seed = slot.seed ?? null;
   replacement.slotIds = [slotId];
   replacement.updatedAt = new Date().toISOString();
 
@@ -2408,6 +2454,13 @@ export async function updateParticipantStatus({
 
   if (isReplacedParticipant(participant) && status !== participant.status) {
     throw new Error("Este participante ya fue reemplazado y está bloqueado.");
+  }
+
+  if (
+    participant.status === PARTICIPANT_STATUS.NO_SHOW &&
+    status !== PARTICIPANT_STATUS.APPROVED
+  ) {
+    throw new Error("Un no-show debe reactivarse como aprobado antes de continuar.");
   }
 
   const wasNoShow = participant.status === PARTICIPANT_STATUS.NO_SHOW;

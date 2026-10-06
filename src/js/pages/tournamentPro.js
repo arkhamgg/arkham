@@ -1674,20 +1674,17 @@ export function TournamentPro() {
               ${participants.map((participant) => {
                 const isPresent = participant.checkIn === true;
                 const isNoShow = participant.status === "no_show";
-                const isReplaced = participant.status === "withdrawn" && Boolean(participant.replacedByParticipantId);
                 const canChange = checkInOpen && !eventLive && !eventFinished;
-                const canChangeParticipant = canChange && !isReplaced;
                 return `
-                  <article class="tournament-pro-page__participant ${isReplaced ? "is-replaced" : isPresent ? "is-present" : isNoShow ? "is-no-show" : ""}">
+                  <article class="tournament-pro-page__participant ${isPresent ? "is-present" : isNoShow ? "is-no-show" : ""}">
                     <div class="tournament-pro-page__participant-main">
                       <strong>${escapeHtml(participant.displayName || participant.id)}</strong>
                       <span>${escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team ARKHAM"))}</span>
                     </div>
                     <div class="tournament-pro-page__inline-actions tournament-pro-page__checkin-actions">
-                      ${canChangeParticipant && !isPresent && !isReplaced ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--present" data-present="${escapeAttr(participant.id)}">Presente</button>` : ""}
-                      ${canChangeParticipant ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--release ${isNoShow ? "is-released" : ""}" data-noshow="${escapeAttr(participant.id)}" ${isNoShow ? "disabled" : ""}>${isNoShow ? "No asistió · asiento libre" : "Liberar asiento"}</button>` : ""}
-                      ${canChangeParticipant ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--replace" data-replace="${escapeAttr(participant.id)}">Reemplazar</button>` : ""}
-                      ${isReplaced ? `<span class="tournament-pro-page__checkin-badge tournament-pro-page__checkin-badge--replaced">Reemplazado · bloqueado</span>` : ""}
+                      ${canChange && !isPresent ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--present" data-present="${escapeAttr(participant.id)}">Presente</button>` : ""}
+                      ${canChange ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--release ${isNoShow ? "is-released" : ""}" data-noshow="${escapeAttr(participant.id)}" ${isNoShow ? "disabled" : ""}>${isNoShow ? "No asistió · asiento libre" : "Liberar asiento"}</button>` : ""}
+                      ${canChange ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--replace" data-replace="${escapeAttr(participant.id)}">Reemplazar</button>` : ""}
                     </div>
                   </article>
                 `;
@@ -1758,12 +1755,7 @@ export function TournamentPro() {
             ${preparationMarkup}
           </section>
 
-
-        `;
-
-
-
-      const slotModalMarkup = modalOpen ? `
+          ${modalOpen ? `
             <div class="tournament-pro-page__modal-backdrop" data-slot-modal-backdrop>
               <section class="tournament-pro-page__modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-slot-modal-title">
                 <header class="tournament-pro-page__modal-header">
@@ -1793,7 +1785,9 @@ export function TournamentPro() {
                 </div>
               </section>
             </div>
-      ` : "";
+          ` : ""}
+        `;
+
 
 
         const competitionBracketStages = {
@@ -2313,18 +2307,17 @@ export function TournamentPro() {
           </section>
         `;
 
-        let workspaceMarkup = dashboardMarkup;
-        if (currentView === "participants") {
-          workspaceMarkup = operationsMarkup;
+        if (currentView === "dashboard") {
+          content.innerHTML = dashboardMarkup;
+        } else if (currentView === "participants") {
+          content.innerHTML = operationsMarkup;
         } else if (["configuration", "bracket", "matches", "competition"].includes(currentView)) {
-          workspaceMarkup = competitionMarkup;
+          content.innerHTML = competitionMarkup;
         } else if (currentView === "checkin") {
-          workspaceMarkup = checkInWorkspaceMarkup;
-        } else if (currentView === "results") {
-          workspaceMarkup = resultsMarkup;
+          content.innerHTML = checkInWorkspaceMarkup;
+        } else {
+          content.innerHTML = resultsMarkup;
         }
-
-        content.innerHTML = `${workspaceMarkup}${slotModalMarkup}`;
 
         bind();
         bindTournamentRegistrationRequests({
@@ -3137,41 +3130,13 @@ export function TournamentPro() {
         page.querySelectorAll("[data-replace]").forEach((button) => {
           button.addEventListener("click", () => {
             const participant = pro.participants?.[button.dataset.replace];
-
-            if (!participant) {
-              return window.alert("No se encontró el participante seleccionado.");
-            }
-
-            const legacySlot = Object.values(pro.bracket?.slots || {})
-              .find((item) => item?.participantId === participant.id);
-
-            const declaredSlot = (pro.phases || [])
-              .filter((phase) => phase?.legacy !== true)
-              .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
-              .filter((structure) => structure?.legacy !== true)
-              .flatMap((structure) => Array.isArray(structure?.slots) ? structure.slots : [])
-              .find((slot) => slot?.participantId === participant.id);
-
-            const fallbackLegacySlot = !legacySlot && participant.seed != null
-              ? Object.values(pro.bracket?.slots || {}).find((item) => Number(item?.seed) === Number(participant.seed))
-              : null;
-            const slot = legacySlot || declaredSlot || fallbackLegacySlot;
-
-            if (!slot) {
-              return window.alert("No se encontró la posición de este participante.");
-            }
-
-            selectedSlotId = legacySlot || fallbackLegacySlot
-              ? `seed-${(legacySlot || fallbackLegacySlot).seed}`
-              : declaredSlot.id;
-
+            const slot = Object.values(pro.bracket?.slots || {}).find((item) => item.participantId === participant?.id);
+            if (!slot) return window.alert("No se encontró la posición de este participante.");
+            selectedSlotId = `seed-${slot.seed}`;
             replacementParticipantId = participant.id;
             modalOpen = true;
             render();
-
-            requestAnimationFrame(() => {
-              page.querySelector("[data-slot-search-form] input")?.focus();
-            });
+            requestAnimationFrame(() => page.querySelector("[data-slot-search-form] input")?.focus());
           });
         });
 
@@ -3405,5 +3370,3 @@ function escapeAttr(value = "") {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 }
-
-console.log("check-in success")
