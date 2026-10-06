@@ -1674,17 +1674,28 @@ export function TournamentPro() {
               ${participants.map((participant) => {
                 const isPresent = participant.checkIn === true;
                 const isNoShow = participant.status === "no_show";
-                const canChange = checkInOpen && !eventLive && !eventFinished;
+                const isReplaced = participant.status === "withdrawn" && Boolean(participant.replacedByParticipantId);
+                const canChange = checkInOpen && !eventLive && !eventFinished && !isReplaced;
                 return `
-                  <article class="tournament-pro-page__participant ${isPresent ? "is-present" : isNoShow ? "is-no-show" : ""}">
+                  <article class="tournament-pro-page__participant ${isReplaced ? "is-replaced" : isPresent ? "is-present" : isNoShow ? "is-no-show" : ""}">
                     <div class="tournament-pro-page__participant-main">
                       <strong>${escapeHtml(participant.displayName || participant.id)}</strong>
                       <span>${escapeHtml(participant.entityId || (participant.manual ? "Participante manual" : "Player/Team ARKHAM"))}</span>
                     </div>
                     <div class="tournament-pro-page__inline-actions tournament-pro-page__checkin-actions">
-                      ${canChange && !isPresent ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--present" data-present="${escapeAttr(participant.id)}">Presente</button>` : ""}
-                      ${canChange ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--release ${isNoShow ? "is-released" : ""}" data-noshow="${escapeAttr(participant.id)}" ${isNoShow ? "disabled" : ""}>${isNoShow ? "No asistió · asiento libre" : "Liberar asiento"}</button>` : ""}
-                      ${canChange ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--replace" data-replace="${escapeAttr(participant.id)}">Reemplazar</button>` : ""}
+                      ${isReplaced
+                        ? `<span class="tournament-pro-page__checkin-replaced-label">Reemplazado · bloqueado</span>`
+                        : [
+                            canChange && !isPresent
+                              ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--present" data-present="${escapeAttr(participant.id)}">Presente</button>`
+                              : "",
+                            canChange
+                              ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--release ${isNoShow ? "is-released" : ""}" data-noshow="${escapeAttr(participant.id)}" ${isNoShow ? "disabled" : ""}>${isNoShow ? "No asistió · asiento libre" : "Liberar asiento"}</button>`
+                              : "",
+                            canChange
+                              ? `<button type="button" class="tournament-pro-page__checkin-choice tournament-pro-page__checkin-choice--replace" data-replace="${escapeAttr(participant.id)}">Reemplazar</button>`
+                              : ""
+                          ].join("")}
                     </div>
                   </article>
                 `;

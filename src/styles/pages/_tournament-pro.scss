@@ -918,6 +918,11 @@
 
 .tournament-pro-page__checkin-card { border-color: $color-700; }
 .tournament-pro-page__participant.is-no-show { opacity: .65; }
+.tournament-pro-page__participant.is-replaced {
+  border-color: $color-red;
+  background: rgba(239, 68, 68, .08);
+}
+.tournament-pro-page__participant.is-replaced strong { color: $color-red-light; }
 .tournament-pro-page__participant.is-present strong { color: $color-success; }
 
 .tournament-pro-page__checkin-badge {
