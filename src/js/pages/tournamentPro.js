@@ -3401,3 +3401,4 @@ function escapeAttr(value = "") {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 }
+console.log("check-in success")
