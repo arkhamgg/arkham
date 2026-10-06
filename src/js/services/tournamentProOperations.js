@@ -2106,6 +2106,111 @@ export async function addParticipantToSlot({
   return savePro(tournamentId, eventId, event, pro);
 }
 
+function isReplacedParticipant(participant) {
+  return Boolean(
+    participant?.status === PARTICIPANT_STATUS.WITHDRAWN &&
+    participant?.replacedByParticipantId
+  );
+}
+
+function findParticipantLegacySlot(pro, participant) {
+  if (!participant) return null;
+
+  const slots = Object.values(pro?.bracket?.slots || {});
+  return slots.find((slot) => slot?.participantId === participant.id)
+    || slots.find((slot) => participant.slotIds?.includes(slot?.id))
+    || slots.find((slot) => participant.seed != null && Number(slot?.seed) === Number(participant.seed))
+    || null;
+}
+
+function findParticipantDeclaredSlots(pro, participant) {
+  if (!participant?.id) return [];
+
+  return (pro?.phases || [])
+    .filter((phase) => phase?.legacy !== true)
+    .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
+    .filter((structure) => structure?.legacy !== true)
+    .flatMap((structure) => Array.isArray(structure?.slots)
+      ? structure.slots.map((slot) => ({ phase, structure, slot }))
+      : [])
+    .filter(({ slot }) =>
+      slot?.participantId === participant.id ||
+      slot?.entryId && pro.entries?.[slot.entryId]?.legacyParticipantId === participant.id ||
+      participant.slotIds?.includes(slot?.id)
+    );
+}
+
+function restoreParticipantToCompetitionStructures(pro, participant) {
+  if (!participant?.id) return false;
+
+  const entry = ensurePersistentEntry(pro, participant);
+  let restored = false;
+
+  const legacySlot = findParticipantLegacySlot(pro, participant);
+  if (legacySlot && !legacySlot.participantId) {
+    legacySlot.participantId = participant.id;
+    legacySlot.entryId = entry?.id || legacySlot.entryId || `entry_${participant.id}`;
+    restored = true;
+  }
+
+  const declaredMatches = findParticipantDeclaredSlots(pro, participant);
+  if (!declaredMatches.length) {
+    const fallback = (pro?.phases || [])
+      .filter((phase) => phase?.legacy !== true)
+      .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
+      .filter((structure) => structure?.legacy !== true)
+      .flatMap((structure) => Array.isArray(structure?.slots)
+        ? structure.slots.map((slot) => ({ phase, structure, slot }))
+        : [])
+      .find(({ slot }) =>
+        participant.slotIds?.includes(slot?.id) ||
+        (participant.seed != null && Number(slot?.seed) === Number(participant.seed))
+      );
+
+    if (fallback && !fallback.slot.participantId) {
+      fallback.slot.participantId = participant.id;
+      fallback.slot.entryId = entry?.id || fallback.slot.entryId || `entry_${participant.id}`;
+      fallback.slot.type = "ENTRY";
+      fallback.slot.status = "ASSIGNED";
+      restored = true;
+    }
+  }
+
+  const restoredSlotIds = new Set(Array.isArray(participant.slotIds) ? participant.slotIds : []);
+  if (legacySlot?.id) restoredSlotIds.add(legacySlot.id);
+  declaredMatches.forEach(({ slot }) => {
+    if (slot?.id) restoredSlotIds.add(slot.id);
+  });
+  if (restoredSlotIds.size) participant.slotIds = [...restoredSlotIds];
+  participant.updatedAt = new Date().toISOString();
+
+  return restored || Boolean(legacySlot || declaredMatches.length);
+}
+
+function rebuildOpenBracketFromSlots(pro) {
+  if (!pro?.bracket?.generated) return;
+
+  const stages = Array.isArray(pro.bracket.stages) ? pro.bracket.stages : [];
+  const firstRound = stages.find((stage) => stage?.bracket === "winners" && Number(stage?.number) === 1);
+
+  stages.forEach((stage) => {
+    (stage?.matches || []).forEach((match) => {
+      if (match.status === MATCH_STATUS.COMPLETED || match.status === MATCH_STATUS.LIVE) return;
+
+      if (stage !== firstRound) {
+        match.participantAId = null;
+        match.participantBId = null;
+        match.winnerId = null;
+        match.loserId = null;
+        match.status = MATCH_STATUS.PENDING;
+      }
+    });
+  });
+
+  syncFirstRoundFromSlots(pro, true);
+  applyBracketByes(pro.bracket);
+}
+
 export async function replaceParticipantInSlot({
   tournamentId,
   eventId,
@@ -2124,47 +2229,38 @@ export async function replaceParticipantInSlot({
     throw new Error("El reemplazo solo puede hacerse mientras el check-in está abierto.");
   }
 
-  const legacySlot = pro.bracket?.slots?.[slotId] ||
-    Object.values(pro.bracket?.slots || {}).find((candidate) =>
-      candidate?.id === slotId ||
-      (slotId && String(slotId).startsWith("seed-") && String(candidate?.seed) === String(slotId).slice(5))
-    ) || null;
-
-  const declaredStructures = Array.isArray(pro.phases)
-    ? pro.phases
-        .filter((phase) => phase?.legacy !== true)
-        .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
-        .filter((structure) => structure?.legacy !== true)
-    : [];
-
-  const declaredSlotMatch = declaredStructures
-    .map((structure) => ({
-      structure,
-      slot: Array.isArray(structure?.slots)
-        ? structure.slots.find((candidate) => String(candidate?.id) === String(slotId))
-        : null
-    }))
-    .find((item) => item.slot) || null;
-
-  const declaredSlot = declaredSlotMatch?.slot || null;
-  const declaredStructure = declaredSlotMatch?.structure || null;
-
   const currentParticipant = pro.participants?.[participantId];
 
   if (!currentParticipant) {
     throw new Error("El participante que será reemplazado no existe.");
   }
 
-  if (!legacySlot && !declaredSlot) {
+  if (isReplacedParticipant(currentParticipant)) {
+    throw new Error("Este participante ya fue reemplazado y está bloqueado.");
+  }
+
+  let slot = pro.bracket?.slots?.[slotId] || null;
+  if (!slot) {
+    const declaredSlotMatch = findParticipantDeclaredSlots(pro, currentParticipant)
+      .find(({ slot: candidate }) => String(candidate?.id) === String(slotId));
+    slot = declaredSlotMatch?.slot || null;
+  }
+  if (!slot) {
+    slot = findParticipantLegacySlot(pro, currentParticipant);
+  }
+
+  if (!slot) {
     throw new Error("La posición seleccionada no existe.");
   }
 
-  if (declaredSlot && declaredSlot.participantId !== participantId) {
-    throw new Error("La posición declarativa ya no corresponde al participante seleccionado.");
+  if (slot.participantId && slot.participantId !== participantId) {
+    throw new Error("La posición ya no corresponde al participante seleccionado.");
   }
 
-  if (legacySlot && legacySlot.participantId && legacySlot.participantId !== participantId) {
-    throw new Error("La posición operacional ya no corresponde al participante seleccionado.");
+  // Un no-show puede haber liberado el slot legacy; el seed sigue siendo la referencia autoritativa.
+  const participantLegacySlot = findParticipantLegacySlot(pro, currentParticipant);
+  if (participantLegacySlot && participantLegacySlot.participantId && participantLegacySlot.participantId !== participantId) {
+    throw new Error("La posición legacy ya no corresponde al participante seleccionado.");
   }
 
   const newParticipantId = `${entityType}_${entityId || crypto.randomUUID()}`;
@@ -2183,15 +2279,11 @@ export async function replaceParticipantInSlot({
 
   replacement.status = PARTICIPANT_STATUS.APPROVED;
   replacement.checkIn = false;
-  replacement.seed = legacySlot?.seed ?? declaredSlot?.seed ?? null;
-  replacement.slotIds = legacySlot?.seed
-    ? [`seed-${legacySlot.seed}`]
-    : (declaredSlot?.id ? [declaredSlot.id] : [slotId]);
+  replacement.seed = slot.seed;
+  replacement.slotIds = [slotId];
   replacement.updatedAt = new Date().toISOString();
 
-  currentParticipant.status = currentParticipant.status === PARTICIPANT_STATUS.NO_SHOW
-    ? PARTICIPANT_STATUS.NO_SHOW
-    : PARTICIPANT_STATUS.WITHDRAWN;
+  currentParticipant.status = PARTICIPANT_STATUS.WITHDRAWN;
 
   currentParticipant.checkIn = false;
   currentParticipant.replacedAt = new Date().toISOString();
@@ -2200,40 +2292,29 @@ export async function replaceParticipantInSlot({
 
   pro.participants[newParticipantId] = replacement;
   const replacementEntry = ensurePersistentEntry(pro, replacement, { competitionId: eventId });
+  const replacementSlotIds = new Set([slotId]);
 
-  if (declaredSlot) {
+  slot.participantId = newParticipantId;
+  slot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
+
+  // Keep the declarative structure and legacy projection synchronized when both exist.
+  findParticipantDeclaredSlots(pro, currentParticipant).forEach(({ slot: declaredSlot }) => {
+    if (declaredSlot?.participantId !== currentParticipant.id) return;
     declaredSlot.participantId = newParticipantId;
     declaredSlot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
     declaredSlot.type = "ENTRY";
     declaredSlot.status = "ASSIGNED";
-    declaredSlot.updatedAt = new Date().toISOString();
+    replacementSlotIds.add(declaredSlot.id);
+  });
+
+  if (participantLegacySlot) {
+    participantLegacySlot.participantId = newParticipantId;
+    participantLegacySlot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
+    replacementSlotIds.add(participantLegacySlot.id);
   }
 
-  if (legacySlot) {
-    legacySlot.participantId = newParticipantId;
-    legacySlot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
-  } else if (declaredSlot) {
-    const declaredPosition = Number(declaredSlot.position || declaredSlot.order || 0);
-    const restoredLegacySlot = declaredPosition > 0
-      ? Object.values(pro.bracket?.slots || {}).find((candidate) => Number(candidate?.seed) === declaredPosition)
-      : null;
-    if (restoredLegacySlot) {
-      restoredLegacySlot.participantId = newParticipantId;
-      restoredLegacySlot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
-    }
-  }
-
-  if (declaredStructure) {
-    const legacyReplacementSlot = Object.values(pro.bracket?.slots || {})
-      .find((candidate) => candidate?.participantId === newParticipantId);
-    if (legacyReplacementSlot) {
-      replacement.seed = legacyReplacementSlot.seed;
-      replacement.slotIds = [`seed-${legacyReplacementSlot.seed}`];
-    }
-  }
-
-  syncFirstRoundFromSlots(pro);
-  applyBracketByes(pro.bracket);
+  replacement.slotIds = [...replacementSlotIds];
+  rebuildOpenBracketFromSlots(pro);
 
   ensurePersistentEntry(pro, currentParticipant, { competitionId: eventId });
   return savePro(tournamentId, eventId, event, pro);
@@ -2325,11 +2406,14 @@ export async function updateParticipantStatus({
     throw new Error("Estado de participante inválido.");
   }
 
-  if (
-    participant.status === PARTICIPANT_STATUS.NO_SHOW &&
-    status !== PARTICIPANT_STATUS.APPROVED
-  ) {
-    throw new Error("Un no-show debe reactivarse como aprobado antes de continuar.");
+  if (isReplacedParticipant(participant) && status !== participant.status) {
+    throw new Error("Este participante ya fue reemplazado y está bloqueado.");
+  }
+
+  const wasNoShow = participant.status === PARTICIPANT_STATUS.NO_SHOW;
+
+  if (status === PARTICIPANT_STATUS.CHECKED_IN && wasNoShow) {
+    restoreParticipantToCompetitionStructures(pro, participant);
   }
 
   participant.status = status;
@@ -2343,11 +2427,13 @@ export async function updateParticipantStatus({
     participant.checkIn = false;
   }
 
-  if (
-    status === PARTICIPANT_STATUS.NO_SHOW &&
-    pro.bracket?.generated
-  ) {
+  if (status === PARTICIPANT_STATUS.NO_SHOW && pro.bracket?.generated) {
     releaseNoShowFromBracket(pro.bracket, participantId);
+    rebuildOpenBracketFromSlots(pro);
+  }
+
+  if (status === PARTICIPANT_STATUS.CHECKED_IN && pro.bracket?.generated) {
+    rebuildOpenBracketFromSlots(pro);
   }
 
   ensurePersistentEntry(pro, participant, { competitionId: eventId });
@@ -2388,7 +2474,15 @@ export async function setParticipantCheckIn({
       PARTICIPANT_STATUS.WITHDRAWN
     ].includes(participant.status)
   ) {
-    throw new Error("Este participante no puede hacer check-in.");
+    throw new Error(
+      isReplacedParticipant(participant)
+        ? "Este participante ya fue reemplazado y está bloqueado."
+        : "Este participante no puede hacer check-in."
+    );
+  }
+
+  if (present && participant.status === PARTICIPANT_STATUS.NO_SHOW) {
+    restoreParticipantToCompetitionStructures(pro, participant);
   }
 
   participant.checkIn = Boolean(present);
@@ -2403,10 +2497,11 @@ export async function setParticipantCheckIn({
     releaseParticipantFromCompetitionStructures(pro, participantId);
   }
 
-  if (!present && pro.bracket?.generated) {
-    releaseNoShowFromBracket(pro.bracket, participantId);
-    syncFirstRoundFromSlots(pro);
-    applyBracketByes(pro.bracket);
+  if (pro.bracket?.generated) {
+    if (!present) {
+      releaseNoShowFromBracket(pro.bracket, participantId);
+    }
+    rebuildOpenBracketFromSlots(pro);
   }
 
   ensurePersistentEntry(pro, participant, { competitionId: eventId });

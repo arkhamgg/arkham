@@ -6425,3 +6425,63 @@
     flex-direction: column;
   }
 }
+
+/* ========================================
+   CHECK-IN — participant state UX
+   Visual state is carried by the full participant card.
+   ======================================== */
+.tournament-pro-page__participant.is-present {
+  border: 1px solid rgba($color-success, .45);
+  border-radius: $radius-md;
+  padding: $space-4;
+  background: rgba($color-success, .07);
+  box-shadow: inset 3px 0 0 $color-success;
+}
+
+.tournament-pro-page__participant.is-present .tournament-pro-page__participant-main strong {
+  color: $color-success;
+}
+
+.tournament-pro-page__participant.is-no-show {
+  opacity: 1;
+  border: 1px solid rgba($color-warning, .45);
+  border-radius: $radius-md;
+  padding: $space-4;
+  background: rgba($color-warning, .07);
+  box-shadow: inset 3px 0 0 $color-warning;
+}
+
+.tournament-pro-page__participant.is-no-show .tournament-pro-page__participant-main strong {
+  color: $color-warning;
+}
+
+.tournament-pro-page__participant.is-replaced {
+  opacity: 1;
+  border: 1px solid rgba($color-red, .5);
+  border-radius: $radius-md;
+  padding: $space-4;
+  background: rgba($color-red, .07);
+  box-shadow: inset 3px 0 0 $color-red;
+}
+
+.tournament-pro-page__participant.is-replaced .tournament-pro-page__participant-main strong {
+  color: $color-red;
+}
+
+.tournament-pro-page__checkin-choice--release.is-released,
+.tournament-pro-page__checkin-choice--release.is-released:disabled {
+  border-color: $color-warning !important;
+  color: $color-warning !important;
+  background: rgba($color-warning, .08) !important;
+  opacity: 1;
+}
+
+.tournament-pro-page__participant.is-replaced .tournament-pro-page__checkin-actions {
+  justify-content: flex-start;
+}
+
+.tournament-pro-page__checkin-badge--replaced {
+  border: 1px solid $color-red;
+  color: $color-red;
+  background: rgba($color-red, .08);
+}
