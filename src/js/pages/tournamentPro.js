@@ -1757,7 +1757,12 @@ export function TournamentPro() {
             ${preparationMarkup}
           </section>
 
-          ${modalOpen ? `
+
+        `;
+
+
+
+      const slotModalMarkup = modalOpen ? `
             <div class="tournament-pro-page__modal-backdrop" data-slot-modal-backdrop>
               <section class="tournament-pro-page__modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-slot-modal-title">
                 <header class="tournament-pro-page__modal-header">
@@ -1787,9 +1792,7 @@ export function TournamentPro() {
                 </div>
               </section>
             </div>
-          ` : ""}
-        `;
-
+      ` : "";
 
 
         const competitionBracketStages = {
@@ -2309,17 +2312,18 @@ export function TournamentPro() {
           </section>
         `;
 
-        if (currentView === "dashboard") {
-          content.innerHTML = dashboardMarkup;
-        } else if (currentView === "participants") {
-          content.innerHTML = operationsMarkup;
+        let workspaceMarkup = dashboardMarkup;
+        if (currentView === "participants") {
+          workspaceMarkup = operationsMarkup;
         } else if (["configuration", "bracket", "matches", "competition"].includes(currentView)) {
-          content.innerHTML = competitionMarkup;
+          workspaceMarkup = competitionMarkup;
         } else if (currentView === "checkin") {
-          content.innerHTML = checkInWorkspaceMarkup;
-        } else {
-          content.innerHTML = resultsMarkup;
+          workspaceMarkup = checkInWorkspaceMarkup;
+        } else if (currentView === "results") {
+          workspaceMarkup = resultsMarkup;
         }
+
+        content.innerHTML = `${workspaceMarkup}${slotModalMarkup}`;
 
         bind();
         bindTournamentRegistrationRequests({
