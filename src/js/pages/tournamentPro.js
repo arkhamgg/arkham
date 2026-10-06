@@ -535,6 +535,7 @@ export function TournamentPro() {
           primaryDeclaredPhase,
           primaryDeclaredStructure,
           declaredStructureSlots,
+          declaredAssignedParticipantIds,
           hasPreparedDeclaredStructure,
           registered,
           assigned,
@@ -768,6 +769,7 @@ export function TournamentPro() {
           primaryDeclaredPhase,
           primaryDeclaredStructure,
           declaredStructureSlots,
+          declaredAssignedParticipantIds,
           hasPreparedDeclaredStructure,
           registered,
           assigned,
@@ -3282,38 +3284,9 @@ export function TournamentPro() {
               entityType,
               entityId,
               displayName,
-              manual
+              manual,
+              autoPlace: true
             });
-
-            pro = ensureTournamentProState(event);
-            const createdParticipant = Object.values(pro.participants || {})
-              .find((item) => !participantIdsBefore.has(item.id));
-            const preparedStructures = (pro.phases || [])
-              .filter((phase) => phase?.legacy !== true)
-              .flatMap((phase) => (phase?.structures || []).map((structure) => ({ phase, structure })))
-              .filter(({ structure }) => (structure?.rounds || []).length && Array.isArray(structure?.slots) && structure.slots.length);
-
-            if (preparedStructures.length === 1) {
-              const [{ phase, structure }] = preparedStructures;
-              const emptySlot = structure.slots
-                .filter((slot) => !slot?.participantId)
-                .sort((a, b) => Number(a?.position || 0) - Number(b?.position || 0))[0];
-              const entry = createdParticipant
-                ? Object.values(pro.entries || {}).find((item) => item?.legacyParticipantId === createdParticipant.id)
-                : null;
-
-              if (emptySlot && entry) {
-                event = await assignCompetitionEntryToStructureSlot({
-                  tournamentId,
-                  eventId,
-                  event,
-                  phaseId: phase.id,
-                  structureId: structure.id,
-                  slotId: emptySlot.id,
-                  entryId: entry.id
-                });
-              }
-            }
           }
 
           pro = ensureTournamentProState(event);

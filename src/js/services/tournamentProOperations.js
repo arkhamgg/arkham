@@ -402,6 +402,122 @@ export async function syncCompetitionDomainStructureFromLegacyBracket({
   return savePro(tournamentId, eventId, event, pro);
 }
 
+function getCompetitionCapacity(pro, event) {
+  return Number(
+    pro?.capacity?.value ??
+    pro?.capacity ??
+    event?.capacity?.value ??
+    event?.capacity ??
+    0
+  );
+}
+
+function isActiveParticipant(participant) {
+  return ![
+    PARTICIPANT_STATUS.REJECTED,
+    PARTICIPANT_STATUS.WITHDRAWN,
+    PARTICIPANT_STATUS.NO_SHOW
+  ].includes(participant?.status);
+}
+
+function getActiveCompetitionParticipants(pro) {
+  return Object.values(pro?.participants || {})
+    .filter((participant) => isActiveParticipant(participant));
+}
+
+function invalidateMaterializedCompetitionProjection(pro, structure) {
+  if (Array.isArray(structure?.rounds)) {
+    structure.rounds = structure.rounds.map((round) => ({
+      ...round,
+      matches: [],
+      matchCount: 0,
+      matchIds: []
+    }));
+  }
+
+  if (pro?.bracket) {
+    pro.bracket.generated = false;
+    pro.bracket.generatedAt = null;
+    pro.bracket.stages = [];
+    pro.bracket.slots = {};
+  }
+}
+
+function getPreparedDeclarativeStructures(pro) {
+  return (pro?.phases || [])
+    .filter((phase) => phase?.legacy !== true)
+    .flatMap((phase) => (phase?.structures || []).map((structure) => ({ phase, structure })))
+    .filter(({ structure }) => (
+      Array.isArray(structure?.rounds) &&
+      structure.rounds.length > 0 &&
+      Array.isArray(structure?.slots) &&
+      structure.slots.length > 0
+    ));
+}
+
+function autoPlaceParticipantInPreparedStructure({ pro, event, participant, competitionId }) {
+  const preparedStructures = getPreparedDeclarativeStructures(pro);
+
+  // Auto-placement is intentionally conservative: when there is exactly one
+  // prepared declarative structure, use its first available structural slot.
+  // With multiple structures, placement must become an explicit progression/
+  // seeding decision rather than an implicit guess.
+  if (preparedStructures.length !== 1 || !participant?.id) {
+    return { placed: false, phase: null, structure: null, slot: null };
+  }
+
+  const [{ phase, structure }] = preparedStructures;
+  const slot = structure.slots
+    .filter((candidate) => !candidate?.entryId && !candidate?.participantId)
+    .sort((a, b) => Number(a?.position || 0) - Number(b?.position || 0))[0] || null;
+
+  if (!slot) {
+    throw new Error("No hay posiciones disponibles en la estructura preparada para este participante.");
+  }
+
+  const entry = ensurePersistentEntry(pro, participant, { competitionId });
+  if (!entry) {
+    throw new Error("No se pudo crear la entrada competitiva del participante.");
+  }
+
+  slot.entryId = entry.id;
+  slot.participantId = participant.id;
+  slot.type = "ENTRY";
+  slot.status = "ASSIGNED";
+  slot.seed = slot.seed ?? null;
+  slot.updatedAt = new Date().toISOString();
+
+  participant.slotIds = [slot.id];
+  participant.seed = slot.seed;
+  participant.updatedAt = new Date().toISOString();
+  entry.seed = slot.seed;
+  entry.status = mapParticipantStatusToEntryStatus(participant.status);
+
+  const allSlotsPlaced = structure.slots.length > 0 &&
+    structure.slots.every((candidate) => candidate?.entryId || candidate?.status === "BYE");
+
+  if (allSlotsPlaced) {
+    const generated = generateCompetitionBracket({
+      ...event,
+      pro: { ...pro, phases: pro.phases }
+    }, { phaseId: phase.id, structureId: structure.id });
+
+    if (generated.status === "READY") {
+      materializeCompetitionStructureMatches({
+        event,
+        pro,
+        phases: pro.phases,
+        phase,
+        structure
+      });
+    } else if (["CONFLICT", "INVALID", "UNSUPPORTED"].includes(String(generated.status || "").toUpperCase())) {
+      throw new Error(`No se pudo resolver el Blueprint de la estructura: ${(generated.reasonCodes || []).join(", ") || generated.status}.`);
+    }
+  }
+
+  return { placed: true, phase, structure, slot };
+}
+
 function assertCompetitionSetupEditable(event, pro) {
   const terminalStatuses = new Set(["live", "check_in", "finished", "archived", "completed"]);
   const eventStatus = String(event?.status || "").toLowerCase();
@@ -1386,6 +1502,9 @@ export async function assignCompetitionEntryToStructureSlot({
   }
 
   const normalizedEntryId = String(entryId || "").trim() || null;
+  const previousEntryId = slot.entryId || null;
+  const previousParticipantId = slot.participantId || null;
+  const previousParticipant = previousParticipantId ? pro.participants?.[previousParticipantId] : null;
   const entry = normalizedEntryId ? pro.entries?.[normalizedEntryId] : null;
   const participantId = entry?.legacyParticipantId || null;
   const participant = participantId ? pro.participants?.[participantId] : null;
@@ -1395,6 +1514,10 @@ export async function assignCompetitionEntryToStructureSlot({
   const inactiveStatuses = new Set(["withdrawn", "eliminated", "dq", "rejected", "no_show"]);
   if (entry && (inactiveStatuses.has(String(entry.status || "").toLowerCase()) || inactiveStatuses.has(String(participant.status || "").toLowerCase()))) {
     throw new Error("Ese participante ya no está activo en la competencia.");
+  }
+
+  if (slot.entryId && slot.entryId !== normalizedEntryId) {
+    throw new Error("Esta posición ya está ocupada. Usa la acción de reemplazo para cambiar al participante.");
   }
 
   if (entry) {
@@ -1407,6 +1530,11 @@ export async function assignCompetitionEntryToStructureSlot({
     if (duplicateSlot) throw new Error("Ese participante ya ocupa otra posición de esta estructura.");
   }
 
+  const placementChanged = previousEntryId !== normalizedEntryId || previousParticipantId !== participantId;
+  if (placementChanged) {
+    invalidateMaterializedCompetitionProjection(pro, structure);
+  }
+
   slot.entryId = normalizedEntryId;
   slot.participantId = normalizedEntryId ? participantId : null;
   slot.type = normalizedEntryId ? "ENTRY" : "EMPTY";
@@ -1415,6 +1543,17 @@ export async function assignCompetitionEntryToStructureSlot({
   // Entry with the Slot; a future Seeding operation may assign slot.seed.
   slot.seed = normalizedEntryId ? (slot.seed ?? null) : null;
   slot.updatedAt = new Date().toISOString();
+
+  if (previousParticipant && previousParticipant.id !== participantId) {
+    previousParticipant.slotIds = (previousParticipant.slotIds || []).filter((id) => id !== slot.id);
+    previousParticipant.updatedAt = new Date().toISOString();
+    const previousEntry = previousEntryId ? pro.entries?.[previousEntryId] : null;
+    if (previousEntry) {
+      previousEntry.seed = null;
+      previousEntry.status = mapParticipantStatusToEntryStatus(previousParticipant.status);
+      previousEntry.updatedAt = new Date().toISOString();
+    }
+  }
 
   if (participant) {
     participant.seed = slot.seed;
@@ -1985,11 +2124,30 @@ export async function replaceParticipantInSlot({
     throw new Error("El reemplazo solo puede hacerse mientras el check-in está abierto.");
   }
 
-  const slot = pro.bracket?.slots?.[slotId];
+  const legacySlot = pro.bracket?.slots?.[slotId] ||
+    Object.values(pro.bracket?.slots || {}).find((candidate) =>
+      candidate?.id === slotId ||
+      (slotId && String(slotId).startsWith("seed-") && String(candidate?.seed) === String(slotId).slice(5))
+    ) || null;
 
-  if (!slot) {
-    throw new Error("La posición seleccionada no existe.");
-  }
+  const declaredStructures = Array.isArray(pro.phases)
+    ? pro.phases
+        .filter((phase) => phase?.legacy !== true)
+        .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
+        .filter((structure) => structure?.legacy !== true)
+    : [];
+
+  const declaredSlotMatch = declaredStructures
+    .map((structure) => ({
+      structure,
+      slot: Array.isArray(structure?.slots)
+        ? structure.slots.find((candidate) => String(candidate?.id) === String(slotId))
+        : null
+    }))
+    .find((item) => item.slot) || null;
+
+  const declaredSlot = declaredSlotMatch?.slot || null;
+  const declaredStructure = declaredSlotMatch?.structure || null;
 
   const currentParticipant = pro.participants?.[participantId];
 
@@ -1997,8 +2155,16 @@ export async function replaceParticipantInSlot({
     throw new Error("El participante que será reemplazado no existe.");
   }
 
-  if (slot.participantId !== participantId) {
-    throw new Error("La posición ya no corresponde al participante seleccionado.");
+  if (!legacySlot && !declaredSlot) {
+    throw new Error("La posición seleccionada no existe.");
+  }
+
+  if (declaredSlot && declaredSlot.participantId !== participantId) {
+    throw new Error("La posición declarativa ya no corresponde al participante seleccionado.");
+  }
+
+  if (legacySlot && legacySlot.participantId && legacySlot.participantId !== participantId) {
+    throw new Error("La posición operacional ya no corresponde al participante seleccionado.");
   }
 
   const newParticipantId = `${entityType}_${entityId || crypto.randomUUID()}`;
@@ -2017,8 +2183,10 @@ export async function replaceParticipantInSlot({
 
   replacement.status = PARTICIPANT_STATUS.APPROVED;
   replacement.checkIn = false;
-  replacement.seed = slot.seed;
-  replacement.slotIds = [slotId];
+  replacement.seed = legacySlot?.seed ?? declaredSlot?.seed ?? null;
+  replacement.slotIds = legacySlot?.seed
+    ? [`seed-${legacySlot.seed}`]
+    : (declaredSlot?.id ? [declaredSlot.id] : [slotId]);
   replacement.updatedAt = new Date().toISOString();
 
   currentParticipant.status = currentParticipant.status === PARTICIPANT_STATUS.NO_SHOW
@@ -2031,9 +2199,39 @@ export async function replaceParticipantInSlot({
   currentParticipant.updatedAt = new Date().toISOString();
 
   pro.participants[newParticipantId] = replacement;
-  slot.participantId = newParticipantId;
   const replacementEntry = ensurePersistentEntry(pro, replacement, { competitionId: eventId });
-  slot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
+
+  if (declaredSlot) {
+    declaredSlot.participantId = newParticipantId;
+    declaredSlot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
+    declaredSlot.type = "ENTRY";
+    declaredSlot.status = "ASSIGNED";
+    declaredSlot.updatedAt = new Date().toISOString();
+  }
+
+  if (legacySlot) {
+    legacySlot.participantId = newParticipantId;
+    legacySlot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
+  } else if (declaredSlot) {
+    const declaredPosition = Number(declaredSlot.position || declaredSlot.order || 0);
+    const restoredLegacySlot = declaredPosition > 0
+      ? Object.values(pro.bracket?.slots || {}).find((candidate) => Number(candidate?.seed) === declaredPosition)
+      : null;
+    if (restoredLegacySlot) {
+      restoredLegacySlot.participantId = newParticipantId;
+      restoredLegacySlot.entryId = replacementEntry?.id || `entry_${newParticipantId}`;
+    }
+  }
+
+  if (declaredStructure) {
+    const legacyReplacementSlot = Object.values(pro.bracket?.slots || {})
+      .find((candidate) => candidate?.participantId === newParticipantId);
+    if (legacyReplacementSlot) {
+      replacement.seed = legacyReplacementSlot.seed;
+      replacement.slotIds = [`seed-${legacyReplacementSlot.seed}`];
+    }
+  }
+
   syncFirstRoundFromSlots(pro);
   applyBracketByes(pro.bracket);
 
@@ -2048,7 +2246,8 @@ export async function addParticipant({
   entityType,
   entityId = null,
   displayName,
-  manual = false
+  manual = false,
+  autoPlace = false
 }) {
   const pro = ensureTournamentProState(event);
 
@@ -2092,6 +2291,15 @@ export async function addParticipant({
   pro.participants[participantId] = participant;
   ensurePersistentEntry(pro, participant, { competitionId: eventId });
   pro.registration.status = "open";
+
+  if (autoPlace) {
+    autoPlaceParticipantInPreparedStructure({
+      pro,
+      event,
+      participant,
+      competitionId: eventId
+    });
+  }
 
   return savePro(tournamentId, eventId, event, pro);
 }
@@ -2147,22 +2355,11 @@ export async function updateParticipantStatus({
 }
 
 function releaseParticipantFromCompetitionStructures(pro, participantId) {
-  const phases = Array.isArray(pro?.phases) ? pro.phases : [];
-  phases.forEach((phase) => {
-    if (phase?.legacy === true || !Array.isArray(phase.structures)) return;
-    phase.structures.forEach((structure) => {
-      if (!Array.isArray(structure?.slots)) return;
-      structure.slots.forEach((slot) => {
-        if (slot?.participantId !== participantId) return;
-        slot.entryId = null;
-        slot.participantId = null;
-        slot.seed = null;
-        slot.type = "EMPTY";
-        slot.status = "EMPTY";
-        slot.updatedAt = new Date().toISOString();
-      });
-    });
-  });
+  // A no-show is an operational state, not a structural deletion. The
+  // declarative Slot must keep its Entry/Participant association so the
+  // configured competition remains authoritative. Legacy bracket release is
+  // handled separately by releaseNoShowFromBracket().
+  return Boolean(pro && participantId);
 }
 
 export async function setParticipantCheckIn({
@@ -2257,6 +2454,14 @@ export async function approveParticipationRequest({
     `request_${requestId}`;
 
   let participant = pro.participants?.[participantId];
+  const capacity = getCompetitionCapacity(pro, event);
+  const activeParticipantsBefore = getActiveCompetitionParticipants(pro);
+  const participantAlreadyActive = Boolean(participant && isActiveParticipant(participant));
+  const projectedActiveCount = activeParticipantsBefore.length + (participantAlreadyActive ? 0 : 1);
+
+  if (capacity > 0 && projectedActiveCount > capacity) {
+    throw new Error("La capacidad del torneo ya está completa. No se puede aprobar esta solicitud.");
+  }
 
   // Si todavía no existe, creamos el participante.
   if (!participant) {
@@ -2274,90 +2479,50 @@ export async function approveParticipationRequest({
   ensurePersistentEntry(pro, participant, { competitionId: eventId });
 
   // ========================================
-  // ASIENTO AUTOMÁTICO EN BRACKET
+  // COLOCACIÓN / PROYECCIÓN
   // ========================================
   //
-  // La aprobación representa un asiento real.
-  //
-  // Si el bracket ya fue generado:
-  //   1. buscamos si ya tiene slot
-  //   2. si no, buscamos el primer slot libre
-  //   3. asignamos participante
-  //   4. sincronizamos primera ronda
-  //
-  // Si el bracket todavía no existe:
-  //   el participante queda aprobado en participants
-  //   y será incluido cuando se genere el bracket.
-  //
+  // New declarative competitions use the same placement policy as manual
+  // registration: when there is exactly one prepared Structure, the newly
+  // approved participant is placed in its first available Slot. With multiple
+  // prepared Structures, placement remains explicit and is handled later by
+  // the competition configuration/progression layer.
 
-  if (pro.bracket?.generated) {
-    const alreadyAssigned = Object.entries(
-      pro.bracket.slots || {}
-    ).find(
-      ([, slot]) => slot?.participantId === participantId
-    );
+  if (pro.phases?.some((phase) => phase?.legacy !== true)) {
+    autoPlaceParticipantInPreparedStructure({
+      pro,
+      event,
+      participant,
+      competitionId: eventId
+    });
+  } else if (pro.bracket?.generated) {
+    const alreadyAssigned = Object.entries(pro.bracket.slots || {})
+      .find(([, slot]) => slot?.participantId === participantId);
 
     if (!alreadyAssigned) {
-      const availableSlot = Object.entries(
-        pro.bracket.slots || {}
-      )
-        .sort(
-          ([, a], [, b]) =>
-            Number(a?.seed || 0) - Number(b?.seed || 0)
-        )
-        .find(
-          ([, slot]) => !slot?.participantId
-        );
+      const availableSlot = Object.entries(pro.bracket.slots || {})
+        .sort(([, a], [, b]) => Number(a?.seed || 0) - Number(b?.seed || 0))
+        .find(([, slot]) => !slot?.participantId);
 
-      // No existe asiento disponible.
-      //
-      // Importante:
-      // no aprobamos la solicitud ni dejamos un participante
-      // aprobado fuera del bracket.
       if (!availableSlot) {
-        if (
-          !request.participantId &&
-          pro.participants[participantId]
-        ) {
-          delete pro.participants[participantId];
-        }
-
-        throw new Error(
-          "No hay asientos disponibles en el bracket para aprobar esta solicitud."
-        );
+        throw new Error("No hay asientos disponibles en el bracket para aprobar esta solicitud.");
       }
 
       const [slotId, slot] = availableSlot;
-
-      slot.participantId = participantId;
       const entry = ensurePersistentEntry(pro, participant, { competitionId: eventId });
+      slot.participantId = participantId;
       slot.entryId = entry?.id || `entry_${participantId}`;
-
       participant.seed = slot.seed;
       participant.slotIds = [slotId];
     } else {
       const [slotId, slot] = alreadyAssigned;
-
       const entry = ensurePersistentEntry(pro, participant, { competitionId: eventId });
       slot.entryId = entry?.id || `entry_${participantId}`;
       participant.seed = slot.seed;
       participant.slotIds = [slotId];
     }
 
-    // Actualizar primera ronda del bracket.
-    // La aprobación NO resuelve BYEs.
-    // Los BYEs se determinan al cerrar el check-in.
-    ensurePersistentEntry(pro, participant, { competitionId: eventId });
     syncFirstRoundFromSlots(pro);
-  } else {
-    // El bracket todavía no existe.
-    //
-    // El participante queda aprobado y sin slot.
-    // generateBracket() lo incluirá posteriormente.
-
-    participant.seed = null;
-    participant.slotIds = [];
-    ensurePersistentEntry(pro, participant, { competitionId: eventId });
   }
 
   // ========================================
@@ -2396,19 +2561,8 @@ function getPrimaryPreparedCompetitionStructure(pro) {
 }
 
 function getCompetitionPlacementReadiness(pro, event) {
-  const capacity = Number(
-    pro?.capacity?.value ??
-    pro?.capacity ??
-    event?.capacity?.value ??
-    event?.capacity ??
-    0
-  );
-  const activeParticipants = Object.values(pro?.participants || {})
-    .filter((participant) => ![
-      PARTICIPANT_STATUS.REJECTED,
-      PARTICIPANT_STATUS.WITHDRAWN,
-      PARTICIPANT_STATUS.NO_SHOW
-    ].includes(participant?.status));
+  const capacity = getCompetitionCapacity(pro, event);
+  const activeParticipants = getActiveCompetitionParticipants(pro);
   const { phase, structure } = getPrimaryPreparedCompetitionStructure(pro);
   const slots = Array.isArray(structure?.slots) ? structure.slots : [];
   const prepared = Boolean(
@@ -2418,24 +2572,33 @@ function getCompetitionPlacementReadiness(pro, event) {
     structure.rounds.length > 0 &&
     slots.length > 0
   );
-  const assignedParticipantIds = new Set(
+  const activeParticipantIds = new Set(activeParticipants.map((participant) => participant.id));
+  const assignedActiveParticipantIds = new Set(
     slots
-      .filter((slot) => slot?.participantId)
+      .filter((slot) => slot?.participantId && activeParticipantIds.has(slot.participantId))
       .map((slot) => slot.participantId)
   );
-  const placedCount = assignedParticipantIds.size;
+  const placedCount = assignedActiveParticipantIds.size;
   const participantCount = activeParticipants.length;
   const capacityComplete = capacity >= 2 && participantCount >= capacity;
   const placementComplete = prepared && placedCount === participantCount && participantCount > 0;
+  const presentCount = Object.values(pro?.participants || {})
+    .filter((participant) => participant?.checkIn === true && isActiveParticipant(participant))
+    .length;
+  const readyForCheckIn = capacityComplete && placementComplete;
+  const readyForStart = placementComplete && presentCount >= 2;
 
   return {
     capacity,
     participantCount,
     placedCount,
+    presentCount,
     prepared,
     placementComplete,
     capacityComplete,
-    ready: capacityComplete && placementComplete,
+    readyForCheckIn,
+    readyForStart,
+    ready: readyForCheckIn,
     phase,
     structure,
     slots
@@ -2444,7 +2607,7 @@ function getCompetitionPlacementReadiness(pro, event) {
 
 function ensureLegacyOperationalBracketFromCompetitionStructure(pro, event) {
   const readiness = getCompetitionPlacementReadiness(pro, event);
-  if (!readiness.ready) {
+  if (!readiness.readyForCheckIn) {
     throw new Error(
       "La competencia todavía no está lista para abrir el check-in: completa participantes, estructura y colocación."
     );
@@ -2533,7 +2696,7 @@ export async function setCheckInOpen({
 
     const readiness = getCompetitionPlacementReadiness(pro, event);
     if (readiness.structure) {
-      if (!readiness.ready) {
+      if (!readiness.readyForCheckIn) {
         throw new Error("Completa participantes, estructura y colocación antes de abrir el check-in.");
       }
       ensureLegacyOperationalBracketFromCompetitionStructure(pro, event);
@@ -2717,8 +2880,8 @@ export async function setEventStatus({
     }
 
     const readiness = getCompetitionPlacementReadiness(pro, event);
-    if (readiness.structure && !readiness.ready) {
-      throw new Error("La competencia no puede iniciar: revisa participantes, estructura y colocación antes de iniciar el torneo.");
+    if (readiness.structure && !readiness.readyForStart) {
+      throw new Error("La competencia no puede iniciar: revisa estructura, colocación y participantes presentes antes de iniciar el torneo.");
     }
 
     validateCanStartEvent(pro);
