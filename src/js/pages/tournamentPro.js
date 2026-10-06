@@ -3132,13 +3132,38 @@ export function TournamentPro() {
         page.querySelectorAll("[data-replace]").forEach((button) => {
           button.addEventListener("click", () => {
             const participant = pro.participants?.[button.dataset.replace];
-            const slot = Object.values(pro.bracket?.slots || {}).find((item) => item.participantId === participant?.id);
-            if (!slot) return window.alert("No se encontró la posición de este participante.");
-            selectedSlotId = `seed-${slot.seed}`;
+
+            if (!participant) {
+              return window.alert("No se encontró el participante seleccionado.");
+            }
+
+            const legacySlot = Object.values(pro.bracket?.slots || {})
+              .find((item) => item?.participantId === participant.id);
+
+            const declaredSlot = (pro.phases || [])
+              .filter((phase) => phase?.legacy !== true)
+              .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
+              .filter((structure) => structure?.legacy !== true)
+              .flatMap((structure) => Array.isArray(structure?.slots) ? structure.slots : [])
+              .find((slot) => slot?.participantId === participant.id);
+
+            const slot = legacySlot || declaredSlot;
+
+            if (!slot) {
+              return window.alert("No se encontró la posición de este participante.");
+            }
+
+            selectedSlotId = legacySlot
+              ? `seed-${legacySlot.seed}`
+              : declaredSlot.id;
+
             replacementParticipantId = participant.id;
             modalOpen = true;
             render();
-            requestAnimationFrame(() => page.querySelector("[data-slot-search-form] input")?.focus());
+
+            requestAnimationFrame(() => {
+              page.querySelector("[data-slot-search-form] input")?.focus();
+            });
           });
         });
 
