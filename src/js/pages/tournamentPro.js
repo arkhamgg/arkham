@@ -3130,9 +3130,25 @@ export function TournamentPro() {
         page.querySelectorAll("[data-replace]").forEach((button) => {
           button.addEventListener("click", () => {
             const participant = pro.participants?.[button.dataset.replace];
-            const slot = Object.values(pro.bracket?.slots || {}).find((item) => item.participantId === participant?.id);
-            if (!slot) return window.alert("No se encontró la posición de este participante.");
-            selectedSlotId = `seed-${slot.seed}`;
+            if (!participant) {
+              return window.alert("No se encontró el participante seleccionado.");
+            }
+
+            const declaredSlot = (pro.phases || [])
+              .flatMap((phase) => Array.isArray(phase?.structures) ? phase.structures : [])
+              .flatMap((structure) => Array.isArray(structure?.slots) ? structure.slots : [])
+              .find((slot) => slot?.participantId === participant.id) || null;
+            const legacySlot = Object.values(pro.bracket?.slots || {})
+              .find((slot) => slot?.participantId === participant.id) || null;
+            const slot = declaredSlot || legacySlot;
+
+            if (!slot) {
+              return window.alert("No se encontró la posición de este participante.");
+            }
+
+            selectedSlotId = declaredSlot?.id
+              ? declaredSlot.id
+              : `seed-${legacySlot.seed}`;
             replacementParticipantId = participant.id;
             modalOpen = true;
             render();
