@@ -1720,6 +1720,40 @@ export function TournamentPro() {
           </div>
         `;
 
+        const slotModalMarkup = `
+          ${modalOpen ? `
+            <div class="tournament-pro-page__modal-backdrop" data-slot-modal-backdrop>
+              <section class="tournament-pro-page__modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-slot-modal-title">
+                <header class="tournament-pro-page__modal-header">
+                  <div>
+                    <span class="tournament-pro-page__eyebrow">${replacementParticipantId ? "REEMPLAZAR PARTICIPANTE" : "ASIGNAR PARTICIPANTE"}</span>
+                    <h2 id="tournament-pro-slot-modal-title">${selectedSlot ? `Seed ${escapeHtml(String(selectedSlot.seed ?? selectedSlot.position ?? ""))}` : "Agregar participante"}</h2>
+                    <p>${replacementParticipantId ? `Reemplazando: ${escapeHtml(selectedParticipantName)}` : selectedSlot ? (selectedParticipantName ? `Actualmente: ${escapeHtml(selectedParticipantName)}` : "Esta posición está disponible.") : "Registra al participante. Si existe una única estructura preparada, ARKHAM intentará colocarlo automáticamente."}</p>
+                  </div>
+                  <button type="button" class="tournament-pro-page__modal-close" data-slot-modal-close aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                </header>
+                <div class="tournament-pro-page__modal-body">
+                  <form data-slot-search-form>
+                    <label class="tournament-pro-page__modal-label">Buscar en ARKHAM</label>
+                    <div class="tournament-pro-page__search-row">
+                      <input name="term" placeholder="Nombre, gamertag o ID" required autofocus>
+                      <select name="type" aria-label="Tipo de participante"><option value="player">Player</option><option value="team">Team</option></select>
+                      <button type="submit"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Buscar</button>
+                    </div>
+                  </form>
+                  <div class="tournament-pro-page__search-results" data-slot-search-results></div>
+                  <div class="tournament-pro-page__modal-divider"><span>o</span></div>
+                  <button type="button" class="tournament-pro-page__manual-option" data-slot-manual>
+                    <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                    <span><strong>Agregar participante manual</strong><small>Úsalo si no tiene perfil en ARKHAM.</small></span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </section>
+            </div>
+          ` : ""}
+        `;
+
         const operationsMarkup = `
           <section class="tournament-pro-page__checkin-workspace">
             <header class="tournament-pro-page__checkin-workspace-header">
@@ -1754,6 +1788,8 @@ export function TournamentPro() {
 
             ${preparationMarkup}
           </section>
+
+          ${slotModalMarkup}
         `;
 
         const competitionBracketStages = {
@@ -2197,44 +2233,17 @@ export function TournamentPro() {
                 </div>
               </div>
             `}
-          ${modalOpen ? `
-            <div class="tournament-pro-page__modal-backdrop" data-slot-modal-backdrop>
-              <section class="tournament-pro-page__modal" role="dialog" aria-modal="true" aria-labelledby="tournament-pro-slot-modal-title">
-                <header class="tournament-pro-page__modal-header">
-                  <div>
-                    <span class="tournament-pro-page__eyebrow">${replacementParticipantId ? "REEMPLAZAR PARTICIPANTE" : "ASIGNAR PARTICIPANTE"}</span>
-                    <h2 id="tournament-pro-slot-modal-title">${selectedSlot ? `Seed ${escapeHtml(String(selectedSlot.seed ?? selectedSlot.position ?? ""))}` : "Agregar participante"}</h2>
-                    <p>${replacementParticipantId ? `Reemplazando: ${escapeHtml(selectedParticipantName)}` : selectedSlot ? (selectedParticipantName ? `Actualmente: ${escapeHtml(selectedParticipantName)}` : "Esta posición está disponible.") : "Registra al participante. Si existe una única estructura preparada, ARKHAM intentará colocarlo automáticamente."}</p>
-                  </div>
-                  <button type="button" class="tournament-pro-page__modal-close" data-slot-modal-close aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-                </header>
-                <div class="tournament-pro-page__modal-body">
-                  <form data-slot-search-form>
-                    <label class="tournament-pro-page__modal-label">Buscar en ARKHAM</label>
-                    <div class="tournament-pro-page__search-row">
-                      <input name="term" placeholder="Nombre, gamertag o ID" required autofocus>
-                      <select name="type" aria-label="Tipo de participante"><option value="player">Player</option><option value="team">Team</option></select>
-                      <button type="submit"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Buscar</button>
-                    </div>
-                  </form>
-                  <div class="tournament-pro-page__search-results" data-slot-search-results></div>
-                  <div class="tournament-pro-page__modal-divider"><span>o</span></div>
-                  <button type="button" class="tournament-pro-page__manual-option" data-slot-manual>
-                    <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
-                    <span><strong>Agregar participante manual</strong><small>Úsalo si no tiene perfil en ARKHAM.</small></span>
-                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                  </button>
-                </div>
-              </section>
-            </div>
-          ` : ""}
+          
           </section>
+
+          ${slotModalMarkup}
         `;
 
         const competitionMarkup = `
           <div class="tournament-pro-page__competition-workspace ${isStandaloneCompetitionWorkspace ? "tournament-pro-page__competition-workspace--standalone" : ""}">
             ${activeCompetitionView === "structure" ? competitionStructureMarkup : activeCompetitionView === "bracket" ? competitionBracketMarkup : competitionMatchesMarkup}
           </div>
+          ${slotModalMarkup}
         `;
 
         const resultsMarkup = `
