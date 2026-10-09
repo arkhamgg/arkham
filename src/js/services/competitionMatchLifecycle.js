@@ -89,6 +89,12 @@ export function getMatchLifecycle(match = {}) {
   // from participant assignment. Read both uppercase values only as a
   // recovery bridge so the test event can load and be rematerialized safely.
   if (status === "READY" || status === "PENDING") {
+    // An operational call is marked by calledAt, including for matches
+    // persisted with uppercase statuses by the Core recovery bridge.
+    if (match.calledAt) {
+      return MATCH_LIFECYCLE.CALLED;
+    }
+
     return hasBothParticipants(match)
       ? MATCH_LIFECYCLE.READY
       : MATCH_LIFECYCLE.SCHEDULED;
