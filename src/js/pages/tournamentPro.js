@@ -854,7 +854,16 @@ export function TournamentPro() {
         const selectedOperationalCalledEntry = selectedOperationalStation?.currentMatchId
           ? operationsModel.called.find((item) => item.matchId === selectedOperationalStation.currentMatchId) || null
           : null;
-        const selectedOperationalMatch = selectedOperationalCalledEntry?.match
+        // The operations modal must read the operational bracket as its source of truth.
+        // Declarative workspace rounds can retain a READY blueprint copy after the
+        // operational match has already transitioned to LIVE, which hides result entry.
+        const selectedOperationalBracketMatch = selectedOperationalStation?.currentMatchId
+          ? legacyStages
+            .flatMap((stage) => Array.isArray(stage?.matches) ? stage.matches : [])
+            .find((match) => match?.id === selectedOperationalStation.currentMatchId) || null
+          : null;
+        const selectedOperationalMatch = selectedOperationalBracketMatch
+          || selectedOperationalCalledEntry?.match
           || (selectedOperationalStation?.currentMatchId
             ? allCompetitionMatches.find((item) => item.match?.id === selectedOperationalStation.currentMatchId)?.match || null
             : null);

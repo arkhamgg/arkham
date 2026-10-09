@@ -1790,7 +1790,10 @@ function ensureStationState(pro, event) {
     // duplicate references are released deterministically.
     assignedMatchIds.add(matchId);
 
-    if (match.status === MATCH_STATUS.PENDING) {
+    // READY/PENDING uppercase values can be present in operational brackets
+    // restored from Competition Core. Keep their station assignment instead
+    // of releasing the lobby before startMatchCommand can transition them.
+    if ([MATCH_STATUS.PENDING, "READY", "PENDING"].includes(match.status)) {
       const lifecycle = getMatchLifecycle(match);
 
       // A pending Match with a station is operationally CALLED. Recover the
