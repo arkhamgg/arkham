@@ -2811,7 +2811,12 @@ export function TournamentPro() {
 
         page.querySelector("[data-save-pool-participants]")?.addEventListener("submit", (submitEvent) => {
           submitEvent.preventDefault();
-          if (!selectedWorkspacePhaseGroup || !selectedWorkspacePhase) return;
+          const currentPhase = (pro.phases || []).find((item) => item?.id === selectedWorkspacePhaseId);
+          const currentPhaseGroups = Array.isArray(currentPhase?.phaseGroups) ? currentPhase.phaseGroups : [];
+          const currentPhaseGroup = currentPhaseGroups.find((group) =>
+            group?.id === selectedWorkspacePhaseGroupId && group?.structureId === selectedWorkspaceStructureId
+          );
+          if (!currentPhase || !currentPhaseGroup) return;
           const form = submitEvent.currentTarget;
           const entryIds = [...form.querySelectorAll('input[name="entryIds"]:checked')].map((input) => input.value);
           runCompetitionSetupChange(async () => {
@@ -2820,8 +2825,8 @@ export function TournamentPro() {
               eventId,
               event,
               phaseId: selectedWorkspacePhaseId,
-              phaseGroupId: selectedWorkspacePhaseGroup.id,
-              name: selectedWorkspacePhaseGroup.name,
+              phaseGroupId: currentPhaseGroup.id,
+              name: currentPhaseGroup.name,
               structureId: selectedWorkspaceStructureId,
               participants: entryIds
             });
