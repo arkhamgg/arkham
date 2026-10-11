@@ -1,0 +1,416 @@
+@use "../abstracts/variables" as *;
+
+// ARKHAM Pools workspace — presentation-only overrides.
+// Keeps the existing markup and actions, but turns the tall sequence of
+// sections into a compact operating surface.
+
+.tournament-pro-page__competition-workspace--standalone {
+  .tournament-pro-page__card--wide {
+    padding: clamp(14px, 1.5vw, 24px);
+  }
+
+  .tournament-pro-page__section-heading {
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .tournament-pro-page__section-heading > div {
+    min-width: 0;
+  }
+
+  .tournament-pro-page__section-heading small {
+    max-width: 620px;
+    line-height: 1.45;
+  }
+
+  .tournament-pro-page__workspace-label {
+    color: $color-300;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .13em;
+  }
+
+  .tournament-pro-page__step-count {
+    white-space: nowrap;
+  }
+
+  // Phase and format are context selectors, not feature-sized cards.
+  .tournament-pro-page__structure-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: 8px;
+    max-height: none;
+    overflow: visible;
+    margin-top: 10px;
+  }
+
+  .tournament-pro-page__structure-card {
+    min-height: 66px;
+    padding: 10px 12px !important;
+    border-radius: $radius-md !important;
+    background: rgba(255, 255, 255, .018) !important;
+  }
+
+  .tournament-pro-page__structure-card-copy strong {
+    font-size: 12px;
+  }
+
+  .tournament-pro-page__structure-card-copy small,
+  .tournament-pro-page__structure-card-copy span {
+    font-size: 9px;
+  }
+
+  .tournament-pro-page__structure-card.is-active {
+    box-shadow: inset 3px 0 0 $color-red, 0 0 0 1px rgba($color-red, .08);
+  }
+
+  .tournament-pro-page__pool-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .tournament-pro-page__pool-card {
+    transition: border-color $transition-fast, background $transition-fast, transform $transition-fast;
+  }
+
+  .tournament-pro-page__pool-card button {
+    min-height: 58px;
+    padding: 8px 10px;
+  }
+
+  .tournament-pro-page__pool-card.is-active {
+    box-shadow: inset 3px 0 0 $color-red;
+  }
+
+  // Main operational area.
+  .tournament-pro-page__pool-operations {
+    display: grid;
+    gap: 14px;
+    margin-top: 18px;
+    padding: clamp(14px, 1.6vw, 22px);
+    border: 1px solid $color-800;
+    border-radius: $radius-xl;
+    background:
+      radial-gradient(ellipse at top left, rgba(123, 63, 242, .085), transparent 44%),
+      linear-gradient(180deg, rgba(18, 15, 25, .98), rgba(12, 12, 16, .98));
+  }
+
+  .tournament-pro-page__pool-operations-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-width: 0;
+    padding-bottom: 14px;
+    border-bottom: 1px solid $color-800;
+  }
+
+  .tournament-pro-page__pool-operations-header > div:first-child {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .tournament-pro-page__pool-operations-header h2 {
+    margin: 0;
+    color: $color-white;
+    font-size: clamp(22px, 2.2vw, 30px);
+    line-height: 1.12;
+  }
+
+  .tournament-pro-page__pool-operations-header p {
+    margin: 2px 0 0;
+    color: $color-300;
+    font-size: 11px;
+  }
+
+  .tournament-pro-page__pool-operations-header .tournament-pro-page__inline-actions {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+  }
+
+  // Horizontal KPI strip; no giant cards or vertical form feel.
+  .tournament-pro-page__pool-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+  }
+
+  .tournament-pro-page__pool-metrics > article {
+    display: grid;
+    align-content: start;
+    gap: 4px;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid $color-800;
+    border-radius: $radius-lg;
+    background: rgba(255, 255, 255, .018);
+  }
+
+  .tournament-pro-page__pool-metrics > article > span {
+    color: $color-500;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .1em;
+  }
+
+  .tournament-pro-page__pool-metrics > article > strong {
+    color: $color-white;
+    font-size: clamp(22px, 2.2vw, 29px);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tournament-pro-page__pool-metrics > article > small {
+    color: $color-500;
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  // The work surface has two distinct columns on desktop and stacks on mobile.
+  .tournament-pro-page__pool-work-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(290px, .88fr);
+    align-items: start;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .tournament-pro-page__pool-work-panel {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid $color-800;
+    border-radius: $radius-lg;
+    background: rgba(6, 6, 9, .45);
+  }
+
+  .tournament-pro-page__pool-work-panel > .tournament-pro-page__section-heading {
+    align-items: flex-start;
+    margin: 0;
+  }
+
+  .tournament-pro-page__pool-work-panel > .tournament-pro-page__section-heading small {
+    max-width: 520px;
+  }
+
+  .tournament-pro-page__pool-assignment-form {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .tournament-pro-page__pool-participant-list {
+    display: grid;
+    gap: 5px;
+    max-height: 340px;
+    overflow: auto;
+    padding-right: 2px;
+  }
+
+  .tournament-pro-page__pool-participant {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 10px 11px;
+    border: 1px solid $color-800;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, .018);
+    cursor: pointer;
+    transition: border-color $transition-fast, background $transition-fast;
+  }
+
+  .tournament-pro-page__pool-participant:hover {
+    border-color: $color-700;
+    background: rgba(255, 255, 255, .035);
+  }
+
+  .tournament-pro-page__pool-participant:has(input:checked) {
+    border-color: rgba($color-red, .62);
+    background: rgba($color-red, .075);
+  }
+
+  .tournament-pro-page__pool-participant > input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: $color-red;
+  }
+
+  .tournament-pro-page__pool-participant > span:nth-of-type(1) {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .tournament-pro-page__pool-participant strong {
+    overflow: hidden;
+    color: $color-100;
+    font-size: 12px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tournament-pro-page__pool-participant small {
+    color: $color-500;
+    font-size: 10px;
+  }
+
+  .tournament-pro-page__pool-assignment-state {
+    color: $color-500;
+    font-size: 9px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .tournament-pro-page__pool-participant:has(input:checked) .tournament-pro-page__pool-assignment-state {
+    color: $color-red-light;
+  }
+
+  .tournament-pro-page__pool-work-panel .tournament-pro-page__setup-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 3px;
+    margin: 0;
+  }
+
+  .tournament-pro-page__pool-work-panel .tournament-pro-page__primary-action {
+    min-height: 40px;
+    padding: 0 16px;
+    font-size: 11px;
+  }
+
+  // Operation rows read like statuses in a control room, not fields in a form.
+  .tournament-pro-page__pool-operation-row {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+    padding: 13px 12px;
+    border: 1px solid $color-800;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, .018);
+  }
+
+  .tournament-pro-page__pool-operation-row > i {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border: 1px solid rgba($color-red, .26);
+    border-radius: $radius-md;
+    background: rgba($color-red, .07);
+    color: $color-red-light;
+    font-size: 14px;
+  }
+
+  .tournament-pro-page__pool-operation-row > div {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .tournament-pro-page__pool-operation-row strong {
+    color: $color-100;
+    font-size: 12px;
+  }
+
+  .tournament-pro-page__pool-operation-row span:not(.tournament-pro-page__status-pill) {
+    color: $color-500;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .tournament-pro-page__status-pill {
+    justify-self: end;
+    padding: 6px 8px;
+    border: 1px solid $color-700;
+    border-radius: $radius-full;
+    color: $color-300;
+    font-size: 9px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .tournament-pro-page__workspace-empty {
+    margin-top: 8px;
+    padding: 16px;
+    border-radius: $radius-md;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 900px) {
+  .tournament-pro-page__competition-workspace--standalone {
+    .tournament-pro-page__pool-work-columns {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tournament-pro-page__pool-participant-list {
+      max-height: 280px;
+    }
+  }
+}
+
+@media (max-width: 620px) {
+  .tournament-pro-page__competition-workspace--standalone {
+    .tournament-pro-page__pool-operations-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .tournament-pro-page__pool-operations-header .tournament-pro-page__inline-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .tournament-pro-page__pool-metrics {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .tournament-pro-page__pool-metrics > article {
+      padding: 10px 8px;
+    }
+
+    .tournament-pro-page__pool-metrics > article > span {
+      font-size: 8px;
+      letter-spacing: .04em;
+    }
+
+    .tournament-pro-page__pool-metrics > article > strong {
+      font-size: 21px;
+    }
+
+    .tournament-pro-page__pool-metrics > article > small {
+      font-size: 9px;
+    }
+
+    .tournament-pro-page__pool-work-panel {
+      padding: 11px;
+    }
+
+    .tournament-pro-page__pool-operation-row {
+      grid-template-columns: 32px minmax(0, 1fr);
+      gap: 9px;
+    }
+
+    .tournament-pro-page__pool-operation-row > i {
+      width: 30px;
+      height: 30px;
+    }
+
+    .tournament-pro-page__pool-operation-row > .tournament-pro-page__status-pill {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+}

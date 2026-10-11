@@ -1038,7 +1038,8 @@ export async function saveCompetitionPhaseGroupConfiguration({
   name,
   structureId = null,
   rules = null,
-  status = null
+  status = null,
+  participants = undefined
 }) {
   const pro = ensureTournamentProState(event);
   assertCompetitionSetupEditable(event, pro);
@@ -1101,6 +1102,41 @@ export async function saveCompetitionPhaseGroupConfiguration({
     phaseGroupId: id
   });
 
+  // Participant assignment is optional for backward compatibility: callers
+  // that only edit a pool's name/rules keep the existing participant list.
+  let nextParticipants = existing?.participants;
+  if (participants !== undefined) {
+    if (!Array.isArray(participants)) {
+      throw new Error("La distribución de participantes debe ser una lista.");
+    }
+
+    nextParticipants = [...new Set(participants.map((value) => String(value || "").trim()).filter(Boolean))];
+    if (nextParticipants.length !== participants.length) {
+      throw new Error("La distribución contiene participantes vacíos o repetidos.");
+    }
+
+    const assignedToSiblingPools = new Set(
+      groups
+        .filter((group) => group?.id !== id && group?.structureId === structure.id)
+        .flatMap((group) => Array.isArray(group?.participants)
+          ? group.participants
+          : (group?.participants && typeof group.participants === "object"
+            ? Object.keys(group.participants)
+            : []))
+        .map((item) => String(typeof item === "string" ? item : (item?.entryId || item?.id || item?.participantId || "")).trim())
+        .filter(Boolean)
+    );
+
+    for (const entryId of nextParticipants) {
+      if (!pro.entries?.[entryId]) {
+        throw new Error("Uno de los participantes seleccionados ya no existe. Recarga el torneo e inténtalo de nuevo.");
+      }
+      if (assignedToSiblingPools.has(entryId)) {
+        throw new Error("Un participante no puede estar asignado a dos pools de la misma estructura.");
+      }
+    }
+  }
+
   const nextGroup = {
     ...(existing || {}),
     id: association.phaseGroupId,
@@ -1108,11 +1144,11 @@ export async function saveCompetitionPhaseGroupConfiguration({
     structureId: association.structureId,
     name: normalizedName,
     order: existing?.order || groups.length + 1,
-    participants: Array.isArray(existing?.participants)
-      ? existing.participants
-      : (existing?.participants && typeof existing.participants === "object"
-        ? existing.participants
-        : []),
+    participants: participants === undefined
+      ? (Array.isArray(nextParticipants)
+        ? nextParticipants
+        : (nextParticipants && typeof nextParticipants === "object" ? nextParticipants : []))
+      : nextParticipants,
     rules: normalizePhaseGroupRulesValue(
       rules,
       existing?.rules || {}
