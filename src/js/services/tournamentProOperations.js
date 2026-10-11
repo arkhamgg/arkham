@@ -73,6 +73,11 @@ import {
 import {
   buildCompetitionBracketReconciliationPlan
 } from "./competitionBracketReconciliation.js";
+import {
+  generateRoundRobinSchedule,
+  calculateRoundRobinStandings,
+  validateRoundRobinResults
+} from "./competitionRoundRobin.js";
 
 function mapParticipantStatusToEntryStatus(status) {
   switch (status) {
@@ -1283,6 +1288,171 @@ export async function deleteCompetitionPhaseGroupConfiguration({
   });
 }
 
+
+
+/**
+ * Generate the Round Robin schedule inside a Phase Group. Pool matches stay
+ * inside pro.phases and are deliberately not copied into the legacy bracket.
+ */
+export async function prepareCompetitionPhaseGroupRoundRobin({
+  tournamentId,
+  eventId,
+  event,
+  phaseId,
+  phaseGroupId
+}) {
+  const pro = ensureTournamentProState(event);
+  assertCompetitionSetupEditable(event, pro);
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = cloneValue(getStoredCompetitionPhases(event) || []);
+  const phase = phases.find((item) => item?.id === phaseId);
+  const group = phase?.phaseGroups?.find((item) => item?.id === phaseGroupId);
+  const structure = phase?.structures?.find((item) => item?.id === group?.structureId);
+  if (!phase || !group || !structure) throw new Error("No se encontró la fase, el pool o su estructura.");
+  if (Array.isArray(group.rounds) && group.rounds.length) {
+    throw new Error("Este pool ya tiene jornadas generadas. No se volverán a crear partidos duplicados.");
+  }
+
+  const rawParticipants = Array.isArray(group.participants)
+    ? group.participants
+    : Object.entries(group.participants || {}).map(([id, value]) => typeof value === "object" ? { id, ...value } : id);
+  const participants = rawParticipants.map((item) => {
+    const id = String(typeof item === "string" ? item : (item?.entryId || item?.id || item?.participantId || "")).trim();
+    const entry = pro.entries?.[id] || Object.values(pro.entries || {}).find((candidate) => candidate?.legacyParticipantId === id);
+    const participantId = typeof item === "object" ? (item.participantId || entry?.legacyParticipantId || entry?.participantId || null) : (entry?.legacyParticipantId || null);
+    const participant = participantId ? pro.participants?.[participantId] : null;
+    return {
+      id: entry?.id || id,
+      participantId,
+      displayName: (typeof item === "object" && (item.displayName || item.name)) || entry?.displayName || entry?.name || participant?.displayName || participant?.name || id
+    };
+  });
+  const rules = normalizePhaseGroupRulesValue(group.rules || {});
+  const generated = generateRoundRobinSchedule({
+    competitionId: eventId,
+    phaseId,
+    phaseGroupId,
+    structureId: structure.id,
+    participants,
+    rounds: rules.competition.rounds,
+    matchFormat: group.matchFormat || structure.matchFormat || phase.matchFormat || phase.matchSystem || pro.matchSystem || event?.matchSystem || null
+  });
+  const matchesByRound = new Map();
+  generated.matches.forEach((match) => {
+    const list = matchesByRound.get(match.roundId) || [];
+    list.push(match);
+    matchesByRound.set(match.roundId, list);
+  });
+  group.rounds = generated.rounds.map((round) => ({
+    ...round,
+    matches: matchesByRound.get(round.id) || [],
+    matchIds: (matchesByRound.get(round.id) || []).map((match) => match.id)
+  }));
+  group.standings = calculateRoundRobinStandings({
+    participants,
+    matches: generated.matches,
+    scoring: rules.scoring,
+    tiebreakers: rules.tiebreakers,
+    qualification: rules.qualification
+  });
+  group.schedule = {
+    format: "ROUND_ROBIN",
+    status: "READY",
+    generatedAt: new Date().toISOString(),
+    participantCount: generated.participantCount,
+    matchCount: generated.matches.length,
+    roundsPerLeg: generated.roundsPerLeg,
+    legs: generated.legs
+  };
+  group.status = "prepared";
+  phase.phaseGroups = phase.phaseGroups.map((candidate) => candidate.id === group.id ? group : candidate);
+
+  return persistCompetitionPhasesSafely({ tournamentId, eventId, expectedPhases, nextPhases: phases });
+}
+
+/** Recompute and return standings for a generated Phase Group schedule. */
+export function getCompetitionPhaseGroupStandings({ event, phaseId, phaseGroupId }) {
+  const pro = ensureTournamentProState(event);
+  const phase = (pro.phases || []).find((item) => item?.id === phaseId);
+  const group = phase?.phaseGroups?.find((item) => item?.id === phaseGroupId);
+  if (!group) throw new Error("No se encontró el pool.");
+  const rules = normalizePhaseGroupRulesValue(group.rules || {});
+  const participants = (Array.isArray(group.participants) ? group.participants : Object.entries(group.participants || {}).map(([id, value]) => typeof value === "object" ? { id, ...value } : id)).map((item) => {
+    const id = String(typeof item === "string" ? item : (item?.entryId || item?.id || item?.participantId || "")).trim();
+    const entry = pro.entries?.[id] || Object.values(pro.entries || {}).find((candidate) => candidate?.legacyParticipantId === id);
+    const participantId = typeof item === "object" ? (item.participantId || entry?.legacyParticipantId || null) : (entry?.legacyParticipantId || null);
+    const participant = participantId ? pro.participants?.[participantId] : null;
+    return { id: entry?.id || id, participantId, displayName: (typeof item === "object" && (item.displayName || item.name)) || entry?.displayName || entry?.name || participant?.displayName || participant?.name || id };
+  });
+  return calculateRoundRobinStandings({ participants, matches: group.matches || (group.rounds || []).flatMap((round) => round.matches || []), scoring: rules.scoring, tiebreakers: rules.tiebreakers, qualification: rules.qualification });
+}
+
+/**
+ * Update a pool match without mutating pro.bracket. Actions supported here are
+ * station assignment, start, result completion, and station release. Match
+ * game-by-game BO3 automation remains owned by the existing match lifecycle.
+ */
+export async function updateCompetitionPhaseGroupMatch({
+  tournamentId, eventId, event, phaseId, phaseGroupId, matchId,
+  action, stationId = null, result = null
+}) {
+  const pro = ensureTournamentProState(event);
+  const expectedPhases = cloneValue(getStoredCompetitionPhases(event));
+  const phases = cloneValue(getStoredCompetitionPhases(event) || []);
+  const phase = phases.find((item) => item?.id === phaseId);
+  const group = phase?.phaseGroups?.find((item) => item?.id === phaseGroupId);
+  if (!phase || !group) throw new Error("No se encontró la fase o el pool.");
+  const allMatches = Array.isArray(group.matches) ? group.matches : (group.rounds || []).flatMap((round) => round.matches || []);
+  const match = allMatches.find((item) => item?.id === matchId);
+  if (!match) throw new Error("No se encontró el partido del pool.");
+  const currentStatus = String(match.status || "PENDING").toUpperCase();
+  const normalizedAction = String(action || "").trim().toLowerCase();
+  if (normalizedAction === "assign_station") {
+    if (["LIVE", "COMPLETED"].includes(currentStatus)) throw new Error("No se puede cambiar la estación de un partido iniciado o completado.");
+    match.stationId = String(stationId || "").trim() || null;
+  } else if (normalizedAction === "start") {
+    if (currentStatus !== "PENDING" && currentStatus !== "READY") throw new Error("Solo se puede iniciar un partido pendiente o preparado.");
+    match.status = "LIVE";
+    match.startedAt = new Date().toISOString();
+  } else if (normalizedAction === "complete") {
+    if (currentStatus !== "LIVE" && currentStatus !== "PENDING" && currentStatus !== "READY") throw new Error("Este partido ya fue completado o no se puede cerrar.");
+    const scoreA = Number(result?.scoreA);
+    const scoreB = Number(result?.scoreB);
+    if (!Number.isFinite(scoreA) || scoreA < 0 || !Number.isFinite(scoreB) || scoreB < 0) throw new Error("Ingresa resultados numéricos válidos para ambos participantes.");
+    const aId = match.entryAId || match.participants?.A?.entryId;
+    const bId = match.entryBId || match.participants?.B?.entryId;
+    const winnerEntryId = result?.winnerEntryId || (scoreA === scoreB ? null : scoreA > scoreB ? aId : bId);
+    if (scoreA !== scoreB && ![aId, bId].includes(winnerEntryId)) throw new Error("El ganador debe ser uno de los participantes del partido.");
+    match.result = { scoreA, scoreB, winnerEntryId, reportedAt: new Date().toISOString() };
+    match.scoreA = scoreA;
+    match.scoreB = scoreB;
+    match.winnerEntryId = winnerEntryId;
+    match.loserEntryId = winnerEntryId ? (winnerEntryId === aId ? bId : aId) : null;
+    match.status = "COMPLETED";
+    match.completedAt = new Date().toISOString();
+  } else if (normalizedAction === "release_station") {
+    if (currentStatus === "LIVE") throw new Error("No se puede liberar la estación mientras el partido está en curso.");
+    match.stationId = null;
+  } else {
+    throw new Error("Acción de partido de pool no reconocida.");
+  }
+  const validation = validateRoundRobinResults(allMatches);
+  if (!validation.valid) throw new Error(validation.errors.join(" "));
+  group.rounds = (group.rounds || []).map((round) => ({ ...round, matches: allMatches.filter((candidate) => candidate.roundId === round.id), matchIds: allMatches.filter((candidate) => candidate.roundId === round.id).map((candidate) => candidate.id) }));
+  const rules = normalizePhaseGroupRulesValue(group.rules || {});
+  const rawParticipants = Array.isArray(group.participants) ? group.participants : Object.entries(group.participants || {}).map(([id, value]) => typeof value === "object" ? { id, ...value } : id);
+  const standingsParticipants = rawParticipants.map((item) => {
+    const id = String(typeof item === "string" ? item : (item?.entryId || item?.id || item?.participantId || "")).trim();
+    const entry = pro.entries?.[id] || Object.values(pro.entries || {}).find((candidate) => candidate?.legacyParticipantId === id);
+    const participantId = typeof item === "object" ? (item.participantId || entry?.legacyParticipantId || null) : (entry?.legacyParticipantId || null);
+    const participant = participantId ? pro.participants?.[participantId] : null;
+    return { id: entry?.id || id, participantId, displayName: (typeof item === "object" && (item.displayName || item.name)) || entry?.displayName || entry?.name || participant?.displayName || participant?.name || id };
+  });
+  group.standings = calculateRoundRobinStandings({ participants: standingsParticipants, matches: allMatches, scoring: rules.scoring, tiebreakers: rules.tiebreakers, qualification: rules.qualification });
+  group.status = allMatches.every((candidate) => String(candidate.status).toUpperCase() === "COMPLETED") ? "completed" : "in_progress";
+  phase.phaseGroups = phase.phaseGroups.map((candidate) => candidate.id === group.id ? group : candidate);
+  return persistCompetitionPhasesSafely({ tournamentId, eventId, expectedPhases, nextPhases: phases });
+}
 
 /**
  * Materializes the operational Match projection from the declarative

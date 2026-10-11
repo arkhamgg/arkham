@@ -1507,6 +1507,32 @@ export function TournamentPro() {
                           `).join("")}
                         </select>
                       </label>
+                      <fieldset class="tournament-pro-page__setup-form" style="border:1px solid var(--border-color, #383341);border-radius:12px;padding:16px;gap:12px">
+                        <legend>Formato y clasificación</legend>
+                        <label>Vueltas
+                          <select name="phaseGroupRounds" ${competitionSetupLocked ? "disabled" : ""}>
+                            <option value="1" ${Number(modalEditingPhaseGroup?.rules?.competition?.rounds || 1) === 1 ? "selected" : ""}>Una vuelta</option>
+                            <option value="2" ${Number(modalEditingPhaseGroup?.rules?.competition?.rounds || 1) === 2 ? "selected" : ""}>Dos vueltas (ida y vuelta)</option>
+                          </select>
+                        </label>
+                        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+                          <label>Puntos por victoria<input name="phaseGroupWinPoints" type="number" min="0" step="1" value="${escapeAttr(modalEditingPhaseGroup?.rules?.scoring?.win ?? 3)}" required ${competitionSetupLocked ? "disabled" : ""}></label>
+                          <label>Empate<input name="phaseGroupDrawPoints" type="number" min="0" step="1" value="${escapeAttr(modalEditingPhaseGroup?.rules?.scoring?.draw ?? 1)}" required ${competitionSetupLocked ? "disabled" : ""}></label>
+                          <label>Derrota<input name="phaseGroupLossPoints" type="number" min="0" step="1" value="${escapeAttr(modalEditingPhaseGroup?.rules?.scoring?.loss ?? 0)}" required ${competitionSetupLocked ? "disabled" : ""}></label>
+                        </div>
+                        <label>Clasifican a la siguiente fase
+                          <input name="phaseGroupQualifiers" type="number" min="1" step="1" value="${escapeAttr(modalEditingPhaseGroup?.rules?.qualification?.qualifiers ?? 2)}" required ${competitionSetupLocked ? "disabled" : ""}>
+                        </label>
+                        <label>Desempate principal
+                          <select name="phaseGroupTiebreaker" ${competitionSetupLocked ? "disabled" : ""}>
+                            <option value="head_to_head" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "head_to_head" ? "selected" : ""}>Enfrentamiento directo</option>
+                            <option value="match_difference" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "match_difference" ? "selected" : ""}>Diferencia de victorias/derrotas</option>
+                            <option value="score_difference" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "score_difference" ? "selected" : ""}>Diferencia de puntuación</option>
+                            <option value="score_for" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "score_for" ? "selected" : ""}>Puntuación a favor</option>
+                            <option value="wins" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "wins" ? "selected" : ""}>Más victorias</option>
+                          </select>
+                        </label>
+                      </fieldset>
                       <div class="tournament-pro-page__setup-form-actions">
                         <button type="submit" class="tournament-pro-page__primary-action" ${competitionSetupLocked || competitionSetupSaving || !declaredStructures.length ? "disabled" : ""}>
                           ${phaseGroupConfigurationMode === "edit" ? "Guardar cambios" : "Crear pool"}
@@ -2575,6 +2601,18 @@ export function TournamentPro() {
           const name = form.elements.phaseGroupName.value;
           const structureId = form.elements.phaseGroupStructureId.value || null;
           const phaseGroupId = editingPhaseGroupId || createCompetitionConfigurationId("phase-group");
+          const rules = {
+            version: 1,
+            competition: { rounds: Number(form.elements.phaseGroupRounds.value || 1) },
+            scoring: {
+              win: Number(form.elements.phaseGroupWinPoints.value),
+              draw: Number(form.elements.phaseGroupDrawPoints.value),
+              loss: Number(form.elements.phaseGroupLossPoints.value)
+            },
+            standings: { enabled: true },
+            tiebreakers: [form.elements.phaseGroupTiebreaker.value || "head_to_head"],
+            qualification: { qualifiers: Number(form.elements.phaseGroupQualifiers.value || 2) }
+          };
           runCompetitionSetupChange(async () => {
             const updatedEvent = await saveCompetitionPhaseGroupConfiguration({
               tournamentId,
@@ -2583,7 +2621,8 @@ export function TournamentPro() {
               phaseId: selectedWorkspacePhaseId,
               phaseGroupId,
               name,
-              structureId
+              structureId,
+              rules
             });
             selectedWorkspacePhaseGroupId = phaseGroupId;
             phaseGroupConfigurationMode = null;
@@ -2609,7 +2648,9 @@ export function TournamentPro() {
         });
 
         page.querySelector("[data-delete-phase-group]")?.addEventListener("click", () => {
-          const group = declaredPhaseGroups.find((item) => item?.id === selectedWorkspacePhaseGroupId);
+          const currentPhase = (pro.phases || []).find((item) => item?.id === selectedWorkspacePhaseId);
+          const currentPhaseGroups = Array.isArray(currentPhase?.phaseGroups) ? currentPhase.phaseGroups : [];
+          const group = currentPhaseGroups.find((item) => item?.id === selectedWorkspacePhaseGroupId);
           if (!group) return;
           const confirmed = window.confirm(`¿Eliminar el Pool "${group.name || "sin nombre"}"? Solo puede eliminarse si está vacío y no está referenciado por una estructura.`);
           if (!confirmed) return;
