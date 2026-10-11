@@ -2291,32 +2291,40 @@ export function TournamentPro() {
         `;
 
         const poolsWorkspaceMarkup = `
-          <section class="tournament-pro-page__card tournament-pro-page__card--wide">
-            <div class="tournament-pro-page__section-heading">
-              <div><span class="tournament-pro-page__workspace-label">FASE ACTIVA</span><small>Selecciona una fase existente para administrar sus grupos.</small></div>
-              <span class="tournament-pro-page__step-count">${workspacePhases.length} fases</span>
-            </div>
-            <div class="tournament-pro-page__structure-card-grid">
-              ${workspacePhases.map((phase, index) => `
-                <button type="button" class="tournament-pro-page__structure-card ${phase.id === selectedWorkspacePhase?.id ? "is-active" : ""}" data-workspace-phase="${escapeAttr(phase.id)}">
-                  <span class="tournament-pro-page__phase-rail-index">${String(index + 1).padStart(2, "0")}</span>
-                  <span class="tournament-pro-page__structure-card-copy"><strong>${escapeHtml(phase.name)}</strong><small>${phase.structures?.length || 0} estructuras</small></span>
-                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                </button>`).join("") || `<div class="tournament-pro-page__workspace-empty"><strong>No hay fases configuradas</strong><span>Primero crea una fase en Configuración.</span></div>`}
-            </div>
-          </section>
-          ${selectedWorkspacePhase ? `
-            <section class="tournament-pro-page__card tournament-pro-page__card--wide">
-              <div class="tournament-pro-page__section-heading"><div><span class="tournament-pro-page__workspace-label">ESTRUCTURA DE LA FASE</span><small>Contexto de solo lectura; para cambiar el formato ve a Configuración.</small></div></div>
-              <div class="tournament-pro-page__structure-card-grid">
+          <div class="tournament-pro-page__pools-workspace-grid">
+            <section class="tournament-pro-page__card tournament-pro-page__pools-phase-panel">
+              <div class="tournament-pro-page__section-heading">
+                <div><span class="tournament-pro-page__workspace-label">FASES</span><small>Selecciona la fase que quieres administrar.</small></div>
+                <span class="tournament-pro-page__step-count">${workspacePhases.length}</span>
+              </div>
+              <label class="tournament-pro-page__pools-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input type="search" data-pools-search="phase" placeholder="Buscar fase…" aria-label="Buscar fase"></label>
+              <div class="tournament-pro-page__pools-list tournament-pro-page__pools-list--phases">
+                ${workspacePhases.map((phase, index) => `
+                  <button type="button" class="tournament-pro-page__structure-card ${phase.id === selectedWorkspacePhase?.id ? "is-active" : ""}" data-workspace-phase="${escapeAttr(phase.id)}" data-pools-search-item="phase" data-pools-search-text="${escapeAttr(phase.name)}">
+                    <span class="tournament-pro-page__phase-rail-index">${String(index + 1).padStart(2, "0")}</span>
+                    <span class="tournament-pro-page__structure-card-copy"><strong>${escapeHtml(phase.name)}</strong><small>${phase.structures?.length || 0} estructuras</small></span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  </button>`).join("") || `<div class="tournament-pro-page__workspace-empty"><strong>No hay fases configuradas</strong><span>Primero crea una fase en Configuración.</span></div>`}
+                <p class="tournament-pro-page__pools-search-empty" data-pools-search-empty="phase" hidden>No se encontraron fases.</p>
+              </div>
+            </section>
+            <div class="tournament-pro-page__pools-structure-column">
+              ${selectedWorkspacePhase ? `
+            <section class="tournament-pro-page__card tournament-pro-page__pools-structure-panel">
+              <div class="tournament-pro-page__section-heading"><div><span class="tournament-pro-page__workspace-label">ESTRUCTURAS</span><small>Estructuras de ${escapeHtml(selectedWorkspacePhase.name)}.</small></div><span class="tournament-pro-page__step-count">${(selectedWorkspacePhase.structures || []).length}</span></div>
+              <label class="tournament-pro-page__pools-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input type="search" data-pools-search="structure" placeholder="Buscar estructura…" aria-label="Buscar estructura"></label>
+              <div class="tournament-pro-page__pools-list tournament-pro-page__pools-list--structures">
                 ${(selectedWorkspacePhase.structures || []).map((structure) => `
-                  <button type="button" class="tournament-pro-page__structure-card ${structure.id === selectedWorkspaceStructure?.id ? "is-active" : ""}" data-workspace-structure="${escapeAttr(structure.id)}">
+                  <button type="button" class="tournament-pro-page__structure-card ${structure.id === selectedWorkspaceStructure?.id ? "is-active" : ""}" data-workspace-structure="${escapeAttr(structure.id)}" data-pools-search-item="structure" data-pools-search-text="${escapeAttr(structure.name)} ${escapeAttr(formatLabel(structure.type || "estructura"))}">
                     <span class="tournament-pro-page__structure-card-icon"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></span>
                     <span class="tournament-pro-page__structure-card-copy"><strong>${escapeHtml(structure.name)}</strong><small>${escapeHtml(formatLabel(structure.type || "estructura"))}</small></span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                   </button>`).join("") || `<div class="tournament-pro-page__workspace-empty"><strong>La fase no tiene estructuras</strong><span>Agrega una estructura desde Configuración para poder organizar Pools.</span></div>`}
+                <p class="tournament-pro-page__pools-search-empty" data-pools-search-empty="structure" hidden>No se encontraron estructuras.</p>
               </div>
+              </section>
               ${selectedWorkspaceStructure ? `
-                <div class="tournament-pro-page__section-heading" style="margin-top:24px">
+                <section class="tournament-pro-page__card tournament-pro-page__pools-structure-panel tournament-pro-page__pools-groups-panel">
+                <div class="tournament-pro-page__section-heading" style="margin-top:0">
                   <div><span class="tournament-pro-page__workspace-label">POOLS / GRUPOS</span><small>Grupos asociados a ${escapeHtml(selectedWorkspaceStructure.name)}.</small></div>
                   <div class="tournament-pro-page__structure-detail-header-actions"><span class="tournament-pro-page__step-count">${declaredPhaseGroups.filter((group) => group?.structureId === selectedWorkspaceStructure.id).length} pools</span><button type="button" class="tournament-pro-page__secondary-action" data-open-phase-group-configuration="create" ${competitionSetupLocked || !phaseIsDeclared ? "disabled" : ""}><i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar pool</button></div>
                 </div>
@@ -2344,8 +2352,11 @@ export function TournamentPro() {
                       </section>
                     </div>
                   </section>` : `<div class="tournament-pro-page__workspace-empty"><strong>Selecciona un pool para operarlo</strong><span>El centro de operaciones mostrará la distribución y el estado del grupo seleccionado.</span></div>`}
+                </section>
               ` : ""}
-            </section>` : ""}
+            ` : `<section class="tournament-pro-page__card tournament-pro-page__pools-structure-panel"><div class="tournament-pro-page__workspace-empty"><strong>Selecciona una fase</strong><span>Sus estructuras aparecerán aquí.</span></div></section>`}
+            </div>
+          </div>
           ${phaseGroupConfigurationMode ? `
             <div class="tournament-pro-page__modal-backdrop" data-phase-group-configuration-backdrop>
               <section class="tournament-pro-page__modal tournament-pro-page__configuration-modal" role="dialog" aria-modal="true" aria-labelledby="phase-group-configuration-title">
@@ -3150,6 +3161,22 @@ export function TournamentPro() {
               open: true
             }));
             navigateWorkspace("checkin", { replace: true });
+          });
+        });
+
+        page.querySelectorAll("[data-pools-search]").forEach((input) => {
+          input.addEventListener("input", () => {
+            const kind = input.dataset.poolsSearch;
+            const query = input.value.trim().toLocaleLowerCase();
+            const items = [...page.querySelectorAll(`[data-pools-search-item="${kind}"]`)];
+            let visibleCount = 0;
+            items.forEach((item) => {
+              const matches = (item.dataset.poolsSearchText || item.textContent || "").toLocaleLowerCase().includes(query);
+              item.hidden = !matches;
+              if (matches) visibleCount += 1;
+            });
+            const empty = page.querySelector(`[data-pools-search-empty="${kind}"]`);
+            if (empty) empty.hidden = !items.length || visibleCount > 0;
           });
         });
 
