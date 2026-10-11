@@ -2346,6 +2346,73 @@ export function TournamentPro() {
                   </section>` : `<div class="tournament-pro-page__workspace-empty"><strong>Selecciona un pool para operarlo</strong><span>El centro de operaciones mostrará la distribución y el estado del grupo seleccionado.</span></div>`}
               ` : ""}
             </section>` : ""}
+          ${phaseGroupConfigurationMode ? `
+            <div class="tournament-pro-page__modal-backdrop" data-phase-group-configuration-backdrop>
+              <section class="tournament-pro-page__modal tournament-pro-page__configuration-modal" role="dialog" aria-modal="true" aria-labelledby="phase-group-configuration-title">
+                <header class="tournament-pro-page__modal-header">
+                  <div>
+                    <span class="tournament-pro-page__eyebrow">${phaseGroupConfigurationMode === "edit" ? "EDITAR POOL" : "NUEVO POOL"}</span>
+                    <h2 id="phase-group-configuration-title">${phaseGroupConfigurationMode === "edit" ? "Editar pool" : "Agregar pool"}</h2>
+                    <p>Los Pools pertenecen a la fase. Su estructura define cómo se competirán sus participantes.</p>
+                  </div>
+                  <button type="button" class="tournament-pro-page__modal-close" data-phase-group-configuration-close aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                </header>
+                <div class="tournament-pro-page__configuration-modal-body">
+                  <form class="tournament-pro-page__setup-form" data-save-competition-phase-group>
+                    <label>Nombre del Pool
+                      <input name="phaseGroupName" type="text" maxlength="80" required value="${escapeAttr(modalEditingPhaseGroup?.name || "")}" placeholder="Ej. Pool A" ${competitionSetupLocked ? "disabled" : ""}>
+                    </label>
+                    <label>Estructura asociada
+                      <select name="phaseGroupStructureId" required ${competitionSetupLocked ? "disabled" : ""}>
+                        <option value="">Selecciona una estructura</option>
+                        ${declaredStructures.map((structure) => `
+                          <option value="${escapeAttr(structure.id)}" ${structure.id === modalEditingPhaseGroup?.structureId ? "selected" : ""}>
+                            ${escapeHtml(structure.name)} · ${escapeHtml(formatLabel(structure.type))}
+                          </option>
+                        `).join("")}
+                      </select>
+                    </label>
+                    <fieldset class="tournament-pro-page__setup-form" style="border:1px solid var(--border-color, #383341);border-radius:12px;padding:16px;gap:12px">
+                      <legend>Formato y clasificación</legend>
+                      <label>Vueltas
+                        <select name="phaseGroupRounds" ${competitionSetupLocked ? "disabled" : ""}>
+                          <option value="1" ${Number(modalEditingPhaseGroup?.rules?.competition?.rounds || 1) === 1 ? "selected" : ""}>Una vuelta</option>
+                          <option value="2" ${Number(modalEditingPhaseGroup?.rules?.competition?.rounds || 1) === 2 ? "selected" : ""}>Dos vueltas (ida y vuelta)</option>
+                        </select>
+                      </label>
+                      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+                        <label>Puntos por victoria<input name="phaseGroupWinPoints" type="number" min="0" step="1" value="${escapeAttr(modalEditingPhaseGroup?.rules?.scoring?.win ?? 3)}" required ${competitionSetupLocked ? "disabled" : ""}></label>
+                        <label>Empate<input name="phaseGroupDrawPoints" type="number" min="0" step="1" value="${escapeAttr(modalEditingPhaseGroup?.rules?.scoring?.draw ?? 1)}" required ${competitionSetupLocked ? "disabled" : ""}></label>
+                        <label>Derrota<input name="phaseGroupLossPoints" type="number" min="0" step="1" value="${escapeAttr(modalEditingPhaseGroup?.rules?.scoring?.loss ?? 0)}" required ${competitionSetupLocked ? "disabled" : ""}></label>
+                      </div>
+                      <label>Clasifican a la siguiente fase
+                        <input name="phaseGroupQualifiers" type="number" min="1" step="1" value="${escapeAttr(modalEditingPhaseGroup?.rules?.qualification?.qualifiers ?? 2)}" required ${competitionSetupLocked ? "disabled" : ""}>
+                      </label>
+                      <label>Desempate principal
+                        <select name="phaseGroupTiebreaker" ${competitionSetupLocked ? "disabled" : ""}>
+                          <option value="head_to_head" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "head_to_head" ? "selected" : ""}>Enfrentamiento directo</option>
+                          <option value="match_difference" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "match_difference" ? "selected" : ""}>Diferencia de victorias/derrotas</option>
+                          <option value="score_difference" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "score_difference" ? "selected" : ""}>Diferencia de puntuación</option>
+                          <option value="score_for" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "score_for" ? "selected" : ""}>Puntuación a favor</option>
+                          <option value="wins" ${modalEditingPhaseGroup?.rules?.tiebreakers?.[0] === "wins" ? "selected" : ""}>Más victorias</option>
+                        </select>
+                      </label>
+                    </fieldset>
+                    <div class="tournament-pro-page__setup-form-actions">
+                      <button type="submit" class="tournament-pro-page__primary-action" ${competitionSetupLocked || competitionSetupSaving || !declaredStructures.length ? "disabled" : ""}>
+                        ${phaseGroupConfigurationMode === "edit" ? "Guardar cambios" : "Crear pool"}
+                      </button>
+                      ${phaseGroupConfigurationMode === "edit" && modalEditingPhaseGroup ? `
+                        <button type="button" data-move-competition-phase-group="up" ${competitionSetupLocked || competitionSetupSaving || Number(modalEditingPhaseGroup.order || 1) <= 1 ? "disabled" : ""} aria-label="Mover pool arriba"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+                        <button type="button" data-move-competition-phase-group="down" ${competitionSetupLocked || competitionSetupSaving || Number(modalEditingPhaseGroup.order || 1) >= declaredPhaseGroups.length ? "disabled" : ""} aria-label="Mover pool abajo"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>
+                      ` : ""}
+                    </div>
+                  </form>
+                  <p class="tournament-pro-page__setup-note">Los Pools son subdivisiones de la fase. No generan partidos por sí mismos en este paso.</p>
+                </div>
+              </section>
+            </div>
+          ` : ""}
           ${slotModalMarkup}
         `;
 
