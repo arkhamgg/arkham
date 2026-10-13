@@ -1058,3 +1058,310 @@
   }
 
 }
+// ========================================
+// TOURNAMENT WORKSPACE — EXPLICIT MENU
+// ========================================
+// Scoped to organization/tournament accounts. Player and team
+// navigation keeps its existing responsive behavior.
+
+.dashboard-sidebar--tournament {
+  position: fixed;
+  inset: 0 0 auto 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  height: 68px;
+  padding: 0 $space-6;
+  overflow: visible;
+  border-right: 0;
+  border-bottom: 1px solid $color-800;
+  background: $color-black;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__topbar {
+  flex: 0 0 68px;
+  min-height: 68px;
+  justify-content: space-between;
+  gap: $space-4;
+  padding: 0;
+  border: 0;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__brand {
+  width: auto;
+  margin: 0;
+  overflow: visible;
+  font-size: $font-size-lg;
+  text-align: left;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__brand::after {
+  content: none;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-toggle {
+  display: grid;
+  flex: 0 0 42px;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid $color-800;
+  background: $color-900;
+  color: $color-white;
+  cursor: pointer;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-toggle:hover {
+  border-color: $color-700;
+  background: $color-800;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__context,
+.dashboard-sidebar--tournament .dashboard-sidebar__nav,
+.dashboard-sidebar--tournament .dashboard-sidebar__footer {
+  display: none;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__backdrop {
+  position: fixed;
+  inset: 68px 0 0;
+  display: block;
+  width: 100%;
+  height: calc(100dvh - 68px);
+  padding: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.58);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 998;
+  transition: opacity 180ms $ease-standard, visibility 180ms $ease-standard;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu {
+  position: fixed;
+  top: 68px;
+  right: auto;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  width: min(340px, 88vw);
+  max-height: calc(100dvh - 68px);
+  padding: $space-5;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid $color-800;
+  border-top: 0;
+  background: $color-black;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-12px);
+  box-shadow: 18px 20px 40px rgba(0, 0, 0, 0.35);
+  z-index: 999;
+  transition:
+    opacity 280ms $ease-standard,
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 360ms;
+  will-change: transform, opacity;
+  scrollbar-width: thin;
+  scrollbar-color: $color-700 $color-900;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu.is-open {
+  max-height: calc(100dvh - 68px);
+  padding: $space-5;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+  transition:
+    opacity 280ms $ease-standard,
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0s;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu::-webkit-scrollbar-track {
+  margin-block: $space-2;
+  border-radius: 999px;
+  background: $color-900;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu::-webkit-scrollbar-thumb {
+  border: 2px solid $color-900;
+  border-radius: 999px;
+  background: $color-700;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu::-webkit-scrollbar-thumb:hover {
+  background: $color-500;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: $space-2 0;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-group + .dashboard-sidebar__mobile-group {
+  border-top: 1px solid $color-800;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-label {
+  padding: $space-2 $space-3;
+  color: $color-500;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-link {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 $space-3;
+  border: 1px solid transparent;
+  background: transparent;
+  color: $color-300;
+  font-family: $font-family-base;
+  font-size: $font-size-sm;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-link i {
+  width: 18px;
+  text-align: center;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-link:hover,
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-link.is-active {
+  border-color: $color-800;
+  background: $color-900;
+  color: $color-white;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-link.is-active i {
+  color: $color-red;
+}
+
+.dashboard-sidebar--tournament .dashboard-sidebar__mobile-link--logout {
+  margin-top: $space-2;
+}
+
+@media (max-width: 700px) {
+  .dashboard-sidebar--tournament {
+    position: fixed;
+    inset: 0 0 auto 0;
+    width: 100%;
+    min-width: 0;
+    height: 64px;
+    padding: 0 $space-4;
+    border-bottom: 1px solid $color-800;
+  }
+
+  .dashboard-sidebar--tournament .dashboard-sidebar__topbar {
+    min-height: 64px;
+    flex-basis: 64px;
+    padding: 0;
+  }
+
+  .dashboard-sidebar--tournament .dashboard-sidebar__backdrop {
+    top: 64px;
+    height: calc(100dvh - 64px);
+  }
+
+  .dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu,
+  .dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu.is-open {
+    top: 64px;
+    max-height: calc(100dvh - 64px);
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-sidebar--tournament {
+    height: 60px;
+    padding: 0 $space-3;
+  }
+
+  .dashboard-sidebar--tournament .dashboard-sidebar__topbar {
+    min-height: 60px;
+    flex-basis: 60px;
+  }
+
+  .dashboard-sidebar--tournament .dashboard-sidebar__backdrop {
+    top: 60px;
+    height: calc(100dvh - 60px);
+  }
+
+  .dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu,
+  .dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu.is-open {
+    top: 60px;
+    max-height: calc(100dvh - 60px);
+    padding: $space-4;
+  }
+}
+
+// Keep the tournament header fixed-size even while hovered/focused;
+// the legacy compact-sidebar interaction remains active for other entities.
+.dashboard-sidebar.dashboard-sidebar--tournament:hover,
+.dashboard-sidebar.dashboard-sidebar--tournament:focus-within {
+  width: 100%;
+  min-width: 0;
+  padding: 0 $space-6;
+  overflow: visible;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.dashboard-sidebar.dashboard-sidebar--tournament:hover .dashboard-sidebar__brand,
+.dashboard-sidebar.dashboard-sidebar--tournament:focus-within .dashboard-sidebar__brand {
+  text-align: left;
+}
+
+.dashboard-sidebar.dashboard-sidebar--tournament:hover .dashboard-sidebar__brand::after,
+.dashboard-sidebar.dashboard-sidebar--tournament:focus-within .dashboard-sidebar__brand::after {
+  content: none;
+}
+
+@media (max-width: 700px) {
+  .dashboard-sidebar.dashboard-sidebar--tournament:hover,
+  .dashboard-sidebar.dashboard-sidebar--tournament:focus-within {
+    padding: 0 $space-4;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-sidebar.dashboard-sidebar--tournament:hover,
+  .dashboard-sidebar.dashboard-sidebar--tournament:focus-within {
+    padding: 0 $space-3;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu,
+  .dashboard-sidebar--tournament .dashboard-sidebar__mobile-menu.is-open,
+  .dashboard-sidebar--tournament .dashboard-sidebar__backdrop {
+    transition-duration: 1ms;
+  }
+}

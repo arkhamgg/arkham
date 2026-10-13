@@ -232,6 +232,15 @@ export function DashboardSidebar({
     const activeItem =
       getActiveNavigationItem();
 
+    container.classList.toggle(
+      "dashboard-sidebar--tournament",
+      entityType === "tournament"
+    );
+
+    container.parentElement?.classList.toggle(
+      "dashboard-shell--tournament",
+      entityType === "tournament"
+    );
 
     container.innerHTML = `
 
@@ -444,6 +453,18 @@ export function DashboardSidebar({
 
 
       <!-- ================================= -->
+      <!-- NAVIGATION BACKDROP -->
+      <!-- ================================= -->
+
+      <button
+        type="button"
+        class="dashboard-sidebar__backdrop ${mobileNavOpen ? "is-open" : ""}"
+        aria-label="Cerrar navegación"
+        tabindex="${mobileNavOpen ? "0" : "-1"}"
+        data-mobile-nav-backdrop
+      ></button>
+
+      <!-- ================================= -->
       <!-- MOBILE NAVIGATION -->
       <!-- ================================= -->
 
@@ -605,6 +626,33 @@ export function DashboardSidebar({
 
 
   // ========================================
+  // TOURNAMENT MENU STATE (NO DOM REBUILD)
+  // ========================================
+
+  function syncTournamentMenuState() {
+    const isTournament = entityType === "tournament";
+    const toggle = container.querySelector("[data-mobile-nav-toggle]");
+    const menu = container.querySelector("[id=\"arkham-mobile-navigation\"]");
+    const backdrop = container.querySelector("[data-mobile-nav-backdrop]");
+    const icon = toggle?.querySelector("i");
+
+    if (!isTournament || !toggle || !menu || !backdrop) return;
+
+    toggle.setAttribute("aria-expanded", String(mobileNavOpen));
+    toggle.setAttribute("aria-label", mobileNavOpen ? "Cerrar navegación" : "Abrir navegación");
+    menu.setAttribute("aria-hidden", String(!mobileNavOpen));
+    menu.classList.toggle("is-open", mobileNavOpen);
+    backdrop.classList.toggle("is-open", mobileNavOpen);
+    backdrop.tabIndex = mobileNavOpen ? 0 : -1;
+
+    if (icon) {
+      icon.classList.toggle("fa-xmark", mobileNavOpen);
+      icon.classList.toggle("fa-bars", !mobileNavOpen);
+    }
+  }
+
+
+  // ========================================
   // EVENTS
   // ========================================
 
@@ -656,11 +704,25 @@ export function DashboardSidebar({
           mobileNavOpen =
             !mobileNavOpen;
 
-          render();
+          syncTournamentMenuState();
 
         }
       );
 
+    }
+
+
+    // --------------------------------------
+    // CLOSE MENU USING BACKDROP
+    // --------------------------------------
+
+    const backdrop = container.querySelector("[data-mobile-nav-backdrop]");
+
+    if (backdrop) {
+      backdrop.addEventListener("click", () => {
+        mobileNavOpen = false;
+        syncTournamentMenuState();
+      });
     }
 
 
@@ -879,8 +941,17 @@ export function DashboardSidebar({
 
 
   // ========================================
-  // INITIAL RENDER
+  // INITIAL RENDER / KEYBOARD DISMISSAL
   // ========================================
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && mobileNavOpen && entityType === "tournament") {
+      mobileNavOpen = false;
+      syncTournamentMenuState();
+      const toggle = container.querySelector("[data-mobile-nav-toggle]");
+      toggle?.focus();
+    }
+  });
 
   render();
 

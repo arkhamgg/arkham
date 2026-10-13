@@ -187,3 +187,42 @@
   }
 
 }
+
+
+// ========================================
+// TOURNAMENT WORKSPACE TOPBAR OFFSET
+// ========================================
+// The organization menu is fixed and shared across desktop, tablet,
+// and mobile, so keep the dashboard content below it.
+
+.dashboard-shell--tournament {
+  padding-top: 68px;
+}
+
+.dashboard-shell--tournament > .dashboard-sidebar--tournament {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 68px;
+}
+
+@media (max-width: 700px) {
+  .dashboard-shell--tournament {
+    padding-top: 64px;
+  }
+
+  .dashboard-shell--tournament > .dashboard-sidebar--tournament {
+    height: 64px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-shell--tournament {
+    padding-top: 60px;
+  }
+
+  .dashboard-shell--tournament > .dashboard-sidebar--tournament {
+    height: 60px;
+  }
+}
