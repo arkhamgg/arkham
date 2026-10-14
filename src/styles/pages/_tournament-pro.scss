@@ -3478,17 +3478,8 @@
  * Configuration, Bracket and Matches share the existing Competition projection;
  * they are separated at the dashboard level without creating duplicate domain state.
  */
-.tournament-pro-page__workspace-entry--configuration {
-  border-color: rgba($color-red, .48) !important;
-}
 
-.tournament-pro-page__workspace-entry--bracket {
-  border-color: rgba($color-info, .42) !important;
-}
 
-.tournament-pro-page__workspace-entry--matches {
-  border-color: rgba($color-success, .42) !important;
-}
 
 .tournament-pro-page__competition-workspace--standalone {
   display: grid;
@@ -3555,10 +3546,6 @@
   transform: translateY(-1px);
 }
 
-.tournament-pro-page__workspace-entry--primary {
-  border-color: rgba(123, 63, 242, .48) !important;
-  background: linear-gradient(145deg, rgba(123, 63, 242, .10), $color-950 65%) !important;
-}
 
 .tournament-pro-page__workspace-entry-icon {
   display: grid;
