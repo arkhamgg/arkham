@@ -1,0 +1,15 @@
+@use "../abstracts/variables" as *;
+
+.tournament-rules-section {
+  display: grid;
+  gap: $space-3;
+  min-width: 0;
+}
+
+.tournament-rules-section__editor {
+  min-width: 0;
+}
+
+.tournament-pro-page__information-workspace--compact {
+  padding-top: $space-3;
+}

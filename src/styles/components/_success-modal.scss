@@ -1,0 +1,97 @@
+.arkham-success-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  color: var(--text-primary, #f5f3fb);
+
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(5 5 9 / 76%);
+    backdrop-filter: blur(7px);
+    animation: arkham-success-fade-in 160ms ease-out;
+  }
+
+  &__dialog {
+    position: relative;
+    width: min(100%, 27rem);
+    padding: clamp(1.5rem, 4vw, 2.25rem);
+    border: 1px solid rgb(160 103 255 / 36%);
+    border-radius: 1.25rem;
+    background: linear-gradient(155deg, #191621 0%, #100f15 72%);
+    box-shadow: 0 24px 90px rgb(0 0 0 / 55%), 0 0 0 1px rgb(255 255 255 / 3%) inset;
+    text-align: center;
+    animation: arkham-success-dialog-in 180ms ease-out;
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 3.75rem;
+    height: 3.75rem;
+    margin: 0 auto 1.1rem;
+    border: 1px solid rgb(153 92 255 / 60%);
+    border-radius: 50%;
+    background: rgb(113 48 211 / 18%);
+    color: #a66aff;
+    font-size: 1.55rem;
+    box-shadow: 0 0 30px rgb(125 59 230 / 15%);
+  }
+
+  &__eyebrow {
+    display: block;
+    margin-bottom: .55rem;
+    color: #a58bc9;
+    font-size: .68rem;
+    font-weight: 750;
+    letter-spacing: .15em;
+  }
+
+  h2 {
+    margin: 0;
+    color: #f8f6fc;
+    font-size: clamp(1.25rem, 3vw, 1.55rem);
+    line-height: 1.25;
+  }
+
+  p {
+    margin: .7rem 0 1.5rem;
+    color: var(--text-muted, #a19aae);
+    font-size: .94rem;
+    line-height: 1.55;
+  }
+
+  &__action {
+    width: 100%;
+    min-height: 2.9rem;
+    padding: .75rem 1rem;
+    border: 1px solid #8d4bea;
+    border-radius: .7rem;
+    background: #6525c6;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 140ms ease, transform 140ms ease, border-color 140ms ease;
+
+    &:hover {
+      border-color: #b38aff;
+      background: #7735dc;
+    }
+
+    &:active { transform: translateY(1px); }
+    &:focus-visible { outline: 2px solid #c3a1ff; outline-offset: 3px; }
+  }
+}
+
+@keyframes arkham-success-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes arkham-success-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .arkham-success-modal__backdrop,
+  .arkham-success-modal__dialog { animation: none; }
+  .arkham-success-modal__action { transition: none; }
+}

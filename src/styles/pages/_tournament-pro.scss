@@ -6620,3 +6620,61 @@
     max-height: 260px;
   }
 }
+
+.tournament-pro-page__information-workspace {
+  display: grid;
+  gap: $space-5;
+}
+
+.tournament-pro-page__information-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-5;
+}
+
+.tournament-pro-page__information-section {
+  min-width: 0;
+  padding: $space-4;
+  border: 1px solid $color-800;
+  border-radius: $radius-lg;
+  background: $color-950;
+}
+
+.tournament-pro-page__information-section--wide {
+  grid-column: 1 / -1;
+}
+
+.tournament-pro-page__information-section h3 {
+  margin: 0 0 $space-4;
+  color: $color-white;
+  font-size: $font-size-md;
+}
+
+.tournament-pro-page__information-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  padding-top: $space-4;
+  border-top: 1px solid $color-800;
+}
+
+.tournament-pro-page__information-actions > span {
+  color: $color-300;
+  font-size: 12px;
+}
+
+@media (max-width: 767px) {
+  .tournament-pro-page__information-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tournament-pro-page__information-section--wide {
+    grid-column: auto;
+  }
+
+  .tournament-pro-page__information-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

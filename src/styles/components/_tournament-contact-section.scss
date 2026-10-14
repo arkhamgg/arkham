@@ -1,0 +1,21 @@
+.tournament-contact-section {
+  display: grid;
+  gap: 1.25rem;
+
+  &__header {
+    display: grid;
+    gap: .45rem;
+  }
+
+  &__eyebrow {
+    color: var(--text-muted, #8e8aa1);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: clamp(1.25rem, 2vw, 1.65rem);
+  }
+}

@@ -64,6 +64,8 @@
 
 @use "./components/rules-editor";
 
+@use "./components/tournament-rules-section";
+
 @use "./components/prize-editor";
 
 @use "./components/registration-cost-selector";
@@ -77,6 +79,12 @@
 @use "./components/date-time-selector";
 
 @use "./components/location-selector";
+
+@use "./components/tournament-location-date-section";
+
+@use "./components/tournament-prizes-registration-section";
+
+@use "./components/tournament-registration-requirements-section";
 
 @use "./pages/competition-landing";
 
@@ -126,3 +134,5 @@
 
 @use "./pages/reloads";
 @use "./pages/tournament-pro-pools";
+@use "./components/tournament-contact-section";
+@use "./components/success-modal";

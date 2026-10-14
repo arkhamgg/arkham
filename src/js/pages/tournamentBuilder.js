@@ -4,13 +4,7 @@ import { FormatSelector } from "../components/formatSelector.js";
 import { MatchSystemSelector } from "../components/matchSystemSelector.js";
 import { CapacitySelector } from "../components/capacitySelector.js";
 import { CapacityAvailabilitySelector } from "../components/capacityAvailabilitySelector.js";
-import { RulesEditor } from "../components/rulesEditor.js";
-import { LocationSelector } from "../components/locationSelector.js";
-import { DateTimeSelector } from "../components/dateTimeSelector.js";
-import { PrizeEditor } from "../components/prizeEditor.js";
-import { RegistrationCostSelector } from "../components/registrationCostSelector.js";
 import { ContactSupportSelector } from "../components/contactSupportSelector.js";
-import { RegistrationRequirementsEditor } from "../components/registrationRequirementsEditor.js";
 
 import { getCurrentAccountContext } from "../services/account.js";
 import { getCurrentEntityContext } from "../services/entityContext.js";
@@ -313,220 +307,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
           </section>
 
 
-          <!-- INFORMACIÓN DEL TORNEO -->
-
-          <section class="tournament-builder__section">
-
-            <div class="tournament-builder__section-header">
-
-              <div>
-
-                <span class="tournament-builder__section-eyebrow">
-                  INFORMACIÓN
-                </span>
-
-                <h2 class="tournament-builder__section-title">
-                  Información del torneo
-                </h2>
-
-                <p class="tournament-builder__section-description">
-                  Completa la información que verán los participantes.
-                </p>
-
-              </div>
-
-            </div>
-
-
-            <div class="tournament-builder__information-grid">
-
-              <!-- REGLAS -->
-
-              <article
-                class="tournament-builder__card tournament-builder__card--wide"
-              >
-
-                <div class="tournament-builder__card-header">
-
-                  <span class="tournament-builder__card-label">
-                    REGLAS
-                  </span>
-
-                  <span
-                    class="tournament-builder__card-status"
-                    data-builder-status="rules"
-                  ></span>
-
-                </div>
-
-                <div
-                  class="tournament-builder__field"
-                  data-tournament-rules
-                ></div>
-
-              </article>
-
-
-              <!-- UBICACIÓN -->
-
-              <article class="tournament-builder__card">
-
-                <div class="tournament-builder__card-header">
-
-                  <span class="tournament-builder__card-label">
-                    UBICACIÓN
-                  </span>
-
-                  <span
-                    class="tournament-builder__card-status"
-                    data-builder-status="location"
-                  ></span>
-
-                </div>
-
-                <div
-                  class="tournament-builder__field"
-                  data-tournament-location
-                ></div>
-
-              </article>
-
-
-              <!-- FECHA Y HORA -->
-
-              <article class="tournament-builder__card">
-
-                <div class="tournament-builder__card-header">
-
-                  <span class="tournament-builder__card-label">
-                    FECHA Y HORA
-                  </span>
-
-                  <span
-                    class="tournament-builder__card-status"
-                    data-builder-status="date-time"
-                  ></span>
-
-                </div>
-
-                <div
-                  class="tournament-builder__field"
-                  data-tournament-date-time
-                ></div>
-
-              </article>
-
-
-              <!-- PREMIOS -->
-
-              <article
-                class="tournament-builder__card tournament-builder__card--wide"
-              >
-
-                <div class="tournament-builder__card-header">
-
-                  <span class="tournament-builder__card-label">
-                    PREMIOS
-                  </span>
-
-                  <span
-                    class="tournament-builder__card-status"
-                    data-builder-status="prizes"
-                  ></span>
-
-                </div>
-
-                <div
-                  class="tournament-builder__field"
-                  data-tournament-prizes
-                ></div>
-
-              </article>
-
-
-              <!-- INSCRIPCIÓN -->
-
-              <article class="tournament-builder__card">
-
-                <div class="tournament-builder__card-header">
-
-                  <span class="tournament-builder__card-label">
-                    INSCRIPCIÓN
-                  </span>
-
-                  <span
-                    class="tournament-builder__card-status"
-                    data-builder-status="registration-cost"
-                  ></span>
-
-                </div>
-
-                <div
-                  class="tournament-builder__field"
-                  data-tournament-registration-cost
-                ></div>
-
-              </article>
-
-
-              <!-- REQUISITOS DE INSCRIPCIÓN -->
-
-              <article
-                class="tournament-builder__card tournament-builder__card--wide"
-              >
-
-                <div class="tournament-builder__card-header">
-
-                  <span class="tournament-builder__card-label">
-                    REQUISITOS DE INSCRIPCIÓN
-                  </span>
-
-                  <span
-                    class="tournament-builder__card-status"
-                    data-builder-status="registration-requirements"
-                  ></span>
-
-                </div>
-
-                <div
-                  class="tournament-builder__field"
-                  data-tournament-registration-requirements
-                ></div>
-
-              </article>
-
-
-              <!-- CONTACTO -->
-
-              <article
-                class="tournament-builder__card tournament-builder__card--wide"
-              >
-
-                <div class="tournament-builder__card-header">
-
-                  <span class="tournament-builder__card-label">
-                    CONTACTO
-                  </span>
-
-                  <span
-                    class="tournament-builder__card-status"
-                    data-builder-status="support"
-                  ></span>
-
-                </div>
-
-                <div
-                  class="tournament-builder__field"
-                  data-tournament-support-contact
-                ></div>
-
-              </article>
-
-            </div>
-
-          </section>
-
-
           <!-- LANDING TEMPLATE -->
 
           <section class="tournament-builder__section">
@@ -676,32 +456,8 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
     "[data-tournament-capacity-availability]"
   );
 
-  const rulesContainer = page.querySelector(
-    "[data-tournament-rules]"
-  );
-
-  const locationContainer = page.querySelector(
-    "[data-tournament-location]"
-  );
-
-  const dateTimeContainer = page.querySelector(
-    "[data-tournament-date-time]"
-  );
-
-  const prizesContainer = page.querySelector(
-    "[data-tournament-prizes]"
-  );
-
-  const registrationCostContainer = page.querySelector(
-    "[data-tournament-registration-cost]"
-  );
-
   const supportContactContainer = page.querySelector(
     "[data-tournament-support-contact]"
-  );
-
-  const registrationRequirementsContainer = page.querySelector(
-    "[data-tournament-registration-requirements]"
   );
 
   const participationElement = page.querySelector(
@@ -759,33 +515,10 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       '[data-builder-status="capacity"]'
     ),
 
-    rules: page.querySelector(
-      '[data-builder-status="rules"]'
-    ),
-
-    location: page.querySelector(
-      '[data-builder-status="location"]'
-    ),
-
-    dateTime: page.querySelector(
-      '[data-builder-status="date-time"]'
-    ),
-
-    prizes: page.querySelector(
-      '[data-builder-status="prizes"]'
-    ),
-
-    registrationCost: page.querySelector(
-      '[data-builder-status="registration-cost"]'
-    ),
-
     support: page.querySelector(
       '[data-builder-status="support"]'
     ),
 
-    registrationRequirements: page.querySelector(
-      '[data-builder-status="registration-requirements"]'
-    )
   };
 
 
@@ -1156,225 +889,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   /*
    * --------------------------------------------------
-   * RULES EDITOR
-   * --------------------------------------------------
-   */
-
-  const rulesEditor =
-    RulesEditor({
-
-      onChange: (rules) => {
-
-        selectedRules =
-          rules;
-
-        setStatus(
-          statusElements.rules,
-          selectedRules.length > 0
-        );
-
-      }
-
-    });
-
-  rulesContainer.appendChild(
-    rulesEditor.element
-  );
-
-
-  /*
-   * --------------------------------------------------
-   * LOCATION SELECTOR
-   * --------------------------------------------------
-   */
-
-  const locationSelector =
-    LocationSelector({
-
-      onChange: (location) => {
-
-        selectedLocation =
-          location;
-
-        setStatus(
-          statusElements.location,
-          Boolean(
-            selectedLocation?.type
-          )
-        );
-
-      }
-
-    });
-
-  locationContainer.appendChild(
-    locationSelector.element
-  );
-
-
-  /*
-   * --------------------------------------------------
-   * DATE TIME SELECTOR
-   * --------------------------------------------------
-   */
-
-  const dateTimeSelector =
-    DateTimeSelector({
-
-      onChange: (dateTime) => {
-
-        selectedDateTime =
-          dateTime;
-
-        setStatus(
-          statusElements.dateTime,
-
-          Boolean(
-            selectedDateTime?.startDate &&
-            selectedDateTime?.startTime
-          )
-        );
-
-      }
-
-    });
-
-  dateTimeContainer.appendChild(
-    dateTimeSelector.element
-  );
-
-
-  /*
-   * --------------------------------------------------
-   * PRIZE EDITOR
-   * --------------------------------------------------
-   */
-
-  const prizeEditor =
-    PrizeEditor({
-
-      onChange: (prizes) => {
-
-        selectedPrizes =
-          prizes;
-
-        setStatus(
-          statusElements.prizes,
-          selectedPrizes.length > 0
-        );
-
-      }
-
-    });
-
-  prizesContainer.appendChild(
-    prizeEditor.element
-  );
-
-
-  /*
-   * --------------------------------------------------
-   * REGISTRATION COST SELECTOR
-   * --------------------------------------------------
-   */
-
-  const registrationCostSelector =
-    RegistrationCostSelector({
-
-      participationType:
-        selectedCompetitiveMode?.participationType || "",
-
-      onChange: (registrationCost) => {
-
-        selectedRegistrationCost =
-          registrationCost;
-
-        setStatus(
-          statusElements.registrationCost,
-
-          Boolean(
-            selectedRegistrationCost?.type
-          )
-        );
-
-      }
-
-    });
-
-  registrationCostContainer.appendChild(
-    registrationCostSelector.element
-  );
-
-
-  /*
-   * --------------------------------------------------
-   * REGISTRATION REQUIREMENTS
-   * --------------------------------------------------
-   */
-
-  const registrationRequirementsEditor =
-    RegistrationRequirementsEditor({
-
-      value:
-        selectedRegistrationRequirements,
-
-      onChange: (requirements) => {
-
-        selectedRegistrationRequirements =
-          requirements;
-
-        setStatus(
-          statusElements.registrationRequirements,
-
-          Boolean(
-            requirements?.enabled &&
-            requirements?.requirements?.length
-          )
-        );
-
-      }
-
-    });
-
-  registrationRequirementsContainer.appendChild(
-    registrationRequirementsEditor.element
-  );
-
-
-  /*
-   * --------------------------------------------------
-   * CONTACT SUPPORT SELECTOR
-   * --------------------------------------------------
-   */
-
-  const contactSupportSelector =
-    ContactSupportSelector({
-
-      onChange: (supportContact) => {
-
-        selectedSupportContact =
-          supportContact;
-
-        setStatus(
-          statusElements.support,
-
-          Array.isArray(
-            selectedSupportContact
-          ) &&
-          selectedSupportContact.length > 0
-        );
-
-      }
-
-    });
-
-  supportContactContainer.appendChild(
-    contactSupportSelector.element
-  );
-
-
-  /*
-   * --------------------------------------------------
    * COMPETITIVE MODE SELECTOR
    * --------------------------------------------------
    */
@@ -1445,11 +959,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
             null
           );
 
-        registrationCostSelector
-          .setParticipationType(
-            participationType
-          );
-
 
         setStatus(
           statusElements.mode,
@@ -1512,29 +1021,8 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         selectedRegistrationAvailability =
           null;
 
-        selectedRules =
-          [];
-
-        selectedLocation =
-          null;
-
-        selectedDateTime =
-          null;
-
-        selectedPrizes =
-          [];
-
-        selectedRegistrationCost =
-          null;
-
         selectedSupportContact =
           null;
-
-        selectedRegistrationRequirements =
-          null;
-
-        registrationRequirementsEditor
-          .setValue(null);
 
 
         if (participationElement) {
@@ -1553,22 +1041,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
         capacityAvailabilitySelector
           .setCapacity(null);
-
-        rulesEditor.setValue([]);
-
-        locationSelector.setValue(
-          null
-        );
-
-        dateTimeSelector.setValue(
-          null
-        );
-
-        prizeEditor.setValue([]);
-
-        registrationCostSelector.setValue(
-          null
-        );
 
         contactSupportSelector.setValue(
           null
@@ -1601,31 +1073,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
         setStatus(
           statusElements.capacity,
-          false
-        );
-
-        setStatus(
-          statusElements.rules,
-          false
-        );
-
-        setStatus(
-          statusElements.location,
-          false
-        );
-
-        setStatus(
-          statusElements.dateTime,
-          false
-        );
-
-        setStatus(
-          statusElements.prizes,
-          false
-        );
-
-        setStatus(
-          statusElements.registrationCost,
           false
         );
 
@@ -2299,12 +1746,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
       );
 
 
-      registrationCostSelector
-        .setParticipationType(
-          participationType
-        );
-
-
       formatSelector.setValue(
         selectedFormat
       );
@@ -2332,40 +1773,9 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         );
 
 
-      rulesEditor.setValue(
-        selectedRules
-      );
-
-
-      locationSelector.setValue(
-        selectedLocation
-      );
-
-
-      dateTimeSelector.setValue(
-        selectedDateTime
-      );
-
-
-      prizeEditor.setValue(
-        selectedPrizes
-      );
-
-
-      registrationCostSelector.setValue(
-        selectedRegistrationCost
-      );
-
-
       contactSupportSelector.setValue(
         selectedSupportContact
       );
-
-
-      registrationRequirementsEditor
-        .setValue(
-          selectedRegistrationRequirements
-        );
 
 
       setStatus(
@@ -2401,45 +1811,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
 
       setStatus(
-        statusElements.rules,
-        selectedRules.length > 0
-      );
-
-
-      setStatus(
-        statusElements.location,
-        Boolean(
-          selectedLocation?.type
-        )
-      );
-
-
-      setStatus(
-        statusElements.dateTime,
-
-        Boolean(
-          selectedDateTime?.startDate &&
-          selectedDateTime?.startTime
-        )
-      );
-
-
-      setStatus(
-        statusElements.prizes,
-        selectedPrizes.length > 0
-      );
-
-
-      setStatus(
-        statusElements.registrationCost,
-
-        Boolean(
-          selectedRegistrationCost?.type
-        )
-      );
-
-
-      setStatus(
         statusElements.support,
 
         Array.isArray(
@@ -2447,18 +1818,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         ) &&
         selectedSupportContact.channels.length >
           0
-      );
-
-
-      setStatus(
-        statusElements.registrationRequirements,
-
-        Boolean(
-          selectedRegistrationRequirements
-            ?.enabled &&
-          selectedRegistrationRequirements
-            ?.requirements?.length
-        )
       );
 
 

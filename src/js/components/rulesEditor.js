@@ -55,7 +55,7 @@ export function RulesEditor({
           class="rules-editor__textarea"
           data-rule-text
           placeholder="Escribe la regla..."
-          rows="3"
+          rows="2"
         ></textarea>
       `;
 
@@ -94,7 +94,7 @@ export function RulesEditor({
 
     addButton.type = "button";
     addButton.className = "rules-editor__add";
-    addButton.textContent = "+ AGREGAR REGLA";
+    addButton.textContent = "+ Agregar regla";
 
     addButton.addEventListener("click", () => {
       currentRules.push({
