@@ -4,7 +4,6 @@ import { FormatSelector } from "../components/formatSelector.js";
 import { MatchSystemSelector } from "../components/matchSystemSelector.js";
 import { CapacitySelector } from "../components/capacitySelector.js";
 import { CapacityAvailabilitySelector } from "../components/capacityAvailabilitySelector.js";
-import { ContactSupportSelector } from "../components/contactSupportSelector.js";
 
 import { getCurrentAccountContext } from "../services/account.js";
 import { getCurrentEntityContext } from "../services/entityContext.js";
@@ -454,10 +453,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
   const capacityAvailabilityContainer = page.querySelector(
     "[data-tournament-capacity-availability]"
-  );
-
-  const supportContactContainer = page.querySelector(
-    "[data-tournament-support-contact]"
   );
 
   const participationElement = page.querySelector(
@@ -1041,10 +1036,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
 
         capacityAvailabilitySelector
           .setCapacity(null);
-
-        contactSupportSelector.setValue(
-          null
-        );
 
 
         /*
@@ -1771,11 +1762,6 @@ export function TournamentBuilder({ dashboardSidebar = null } = {}) {
         .setValue(
           selectedRegistrationAvailability
         );
-
-
-      contactSupportSelector.setValue(
-        selectedSupportContact
-      );
 
 
       setStatus(
