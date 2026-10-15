@@ -101,6 +101,14 @@ export function getCompetitionCapacity(pro, event) {
   );
 }
 
+/** Returns true when a withdrawn participant has an explicit replacement. */
+export function isReplacedParticipant(participant) {
+  return Boolean(
+    participant?.status === PARTICIPANT_STATUS.WITHDRAWN &&
+    participant?.replacedByParticipantId
+  );
+}
+
 export function isActiveParticipant(participant) {
   return ![
     PARTICIPANT_STATUS.REJECTED,

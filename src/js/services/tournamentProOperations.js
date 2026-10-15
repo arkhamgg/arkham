@@ -32,7 +32,8 @@ import {
   resolveParticipantId,
   getCompetitionCapacity,
   isActiveParticipant,
-  getActiveCompetitionParticipants
+  getActiveCompetitionParticipants,
+  isReplacedParticipant
 } from "./tournamentParticipantsDomain.js";
 import {
   getPresentCheckInParticipants,
@@ -2272,13 +2273,6 @@ export async function addParticipantToSlot({
   syncFirstRoundFromSlots(pro);
 
   return savePro(tournamentId, eventId, event, pro);
-}
-
-function isReplacedParticipant(participant) {
-  return Boolean(
-    participant?.status === PARTICIPANT_STATUS.WITHDRAWN &&
-    participant?.replacedByParticipantId
-  );
 }
 
 function findParticipantLegacySlot(pro, participant) {
