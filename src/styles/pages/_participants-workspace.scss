@@ -1,0 +1,167 @@
+@use "../abstracts/variables" as *;
+
+/* Participants workspace: layout and density owned by this module.
+   Shared cards, buttons, badges and participant rows remain in _tournament-pro.scss. */
+.tournament-pro-page__checkin-workspace {
+  min-width: 0;
+}
+
+.tournament-pro-page__checkin-workspace-header {
+  align-items: center;
+  gap: $space-4;
+  padding-bottom: $space-4;
+}
+
+.tournament-pro-page__checkin-workspace-header h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.tournament-pro-page__checkin-workspace-header p {
+  max-width: 44rem;
+  margin: $space-2 0 0;
+  font-size: $font-size-sm;
+  line-height: 1.45;
+}
+
+.tournament-pro-page__checkin-summary-grid {
+  margin-top: $space-3;
+}
+
+.tournament-pro-page__checkin-summary-grid > div {
+  padding: $space-3 $space-4;
+}
+
+.tournament-pro-page__checkin-summary-grid > div > strong {
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+}
+
+.tournament-pro-page__operation-bar {
+  margin-top: $space-3;
+  padding: $space-3 $space-4;
+}
+
+.tournament-pro-page__checkin-preparation-grid.participants-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  align-items: stretch;
+  gap: $space-4;
+  margin-top: $space-4;
+}
+
+.participants-workspace__panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  max-height: 32rem;
+  overflow: hidden;
+  padding: $space-4;
+}
+
+.participants-workspace__panel-header {
+  flex: 0 0 auto;
+  align-items: center;
+  gap: $space-3;
+  margin-bottom: $space-3;
+  padding-bottom: $space-3;
+}
+
+.participants-workspace__panel-header h3 {
+  margin: 0;
+  font-size: $font-size-lg;
+}
+
+.participants-workspace__panel-header p {
+  display: none;
+}
+
+.participants-workspace__panel-actions {
+  align-items: center;
+  gap: $space-3;
+}
+
+.participants-workspace__panel .tournament-pro-page__checkin-metrics strong {
+  font-size: $font-size-lg;
+}
+
+.participants-workspace__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: $space-2;
+}
+
+.participants-workspace__panel--requests > :not(.tournament-pro-page__checkin-panel-header) {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.participants-workspace__next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  margin-top: $space-3;
+  padding: $space-3 $space-4;
+}
+
+.participants-workspace__next-step strong {
+  display: block;
+  margin-top: 2px;
+}
+
+.participants-workspace__status-detail {
+  color: $color-500;
+  font-size: $font-size-xs;
+  text-align: right;
+}
+
+@media (max-width: 1000px) {
+  .tournament-pro-page__checkin-preparation-grid.participants-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .participants-workspace__panel {
+    max-height: none;
+    min-height: 16rem;
+  }
+
+  .participants-workspace__list {
+    max-height: 22rem;
+  }
+}
+
+@media (max-width: 650px) {
+  .tournament-pro-page__checkin-workspace-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .participants-workspace__panel {
+    padding: $space-3;
+  }
+
+  .participants-workspace__panel-header,
+  .participants-workspace__panel-actions {
+    align-items: flex-start;
+  }
+
+  .participants-workspace__panel-actions {
+    flex-direction: column;
+  }
+
+  .participants-workspace__next-step {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .participants-workspace__status-detail {
+    text-align: left;
+  }
+}

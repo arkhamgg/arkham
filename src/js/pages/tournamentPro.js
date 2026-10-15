@@ -709,7 +709,7 @@ export function TournamentPro() {
         const competitionSection = getCompetitionSection();
         const viewMeta = {
           dashboard: { title: game, subtitle: "" },
-          participants: { title: "PARTICIPANTES", subtitle: "Administra solicitudes y completa la lista de participantes" },
+          participants: { title: "PARTICIPANTES", subtitle: "" },
           pools: { title: "POOLS", subtitle: "Organiza participantes por grupos y administra su estructura competitiva" },
           configuration: { title: "CONFIGURACIÓN", subtitle: "Fases, estructuras, pools y reglas de la competición" },
           information: { title: "REGLAS GENERALES", subtitle: "" },
@@ -1767,9 +1767,7 @@ export function TournamentPro() {
           <section class="tournament-pro-page__checkin-workspace">
             <header class="tournament-pro-page__checkin-workspace-header">
               <div>
-                <span class="tournament-pro-page__eyebrow">PARTICIPANTES</span>
-                <h2>Preparar participantes</h2>
-                <p>Registra participantes aquí. La configuración de la competencia puede prepararse antes, después o en paralelo; cada acción se habilita según sus prerrequisitos.</p>
+                <h2>Participantes</h2>
               </div>
               <span class="tournament-pro-page__status">${escapeHtml(statusLabel)}</span>
             </header>
@@ -1781,12 +1779,7 @@ export function TournamentPro() {
               <div><span>ESTADO</span><strong>${checkInOpen ? "En curso" : checkInCompleted ? "Completado" : eventLive ? "En vivo" : "Preparación"}</strong></div>
             </div>
 
-            ${checkInCompleted && !eventLive && !eventFinished ? `
-              <div class="tournament-pro-page__operation-bar">
-                <div><strong>Todo listo para comenzar</strong><span>${present} participantes confirmados. El bracket puede iniciar.</span></div>
-                <button type="button" data-action="live" ${present >= 2 ? "" : "disabled"}><i class="fa-solid fa-play" aria-hidden="true"></i> Iniciar torneo</button>
-              </div>
-            ` : eventLive ? `
+            ${eventLive ? `
               <div class="tournament-pro-page__operation-bar">
                 <div><strong>Competencia en vivo</strong><span>La preparación terminó. Los cambios de participantes están protegidos.</span></div>
                 <button type="button" data-workspace-view="bracket"><i class="fa-solid fa-code-branch" aria-hidden="true"></i> Abrir bracket</button>

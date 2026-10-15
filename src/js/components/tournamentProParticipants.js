@@ -40,23 +40,22 @@ export function renderTournamentProParticipants({
   eventFinished = false
 } = {}) {
   const participantListMarkup = `
-    <section class="tournament-pro-page__checkin-panel tournament-pro-page__checkin-panel--participants">
-      <div class="tournament-pro-page__checkin-panel-header">
+    <section class="tournament-pro-page__checkin-panel tournament-pro-page__checkin-panel--participants participants-workspace__panel">
+      <div class="tournament-pro-page__checkin-panel-header participants-workspace__panel-header">
         <div>
-          <span class="tournament-pro-page__eyebrow">PASO 1 · PARTICIPANTES</span>
-          <h3>Completa los asientos</h3>
-          <p>Define quién participa. Si la estructura ya está preparada, ARKHAM puede colocar automáticamente los participantes en la primera estructura disponible.</p>
+          <span class="tournament-pro-page__eyebrow">PARTICIPANTES</span>
+          <h3>Participantes registrados</h3>
         </div>
-        <div class="tournament-pro-page__checkin-panel-actions">
+        <div class="tournament-pro-page__checkin-panel-actions participants-workspace__panel-actions">
           <div class="tournament-pro-page__checkin-metrics">
-            <strong>${registered} / ${escapeHtml(capacity)}</strong><span>participantes registrados</span>
+            <strong>${registered} / ${escapeHtml(capacity)}</strong><span>registrados</span>
           </div>
           <button type="button" class="tournament-pro-page__primary-action tournament-pro-page__participant-add-action" data-late-add ${canAddParticipant ? "" : "disabled"}>
             <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Agregar participante
           </button>
         </div>
       </div>
-      <div class="tournament-pro-page__participant-list">
+      <div class="tournament-pro-page__participant-list participants-workspace__list">
         ${participants.map((participant) => {
           const slot = declaredStructureSlots.find((item) => item?.participantId === participant.id)
             || legacySlots.find((item) => item?.participantId === participant.id);
@@ -71,18 +70,17 @@ export function renderTournamentProParticipants({
               </div>
             </article>
           `;
-        }).join("") || `<div class="tournament-pro-page__empty">Todavía no hay participantes asignados.</div>`}
+        }).join("") || `<div class="tournament-pro-page__empty">Todavía no hay participantes registrados.</div>`}
       </div>
     </section>
   `;
 
   const requestsMarkup = `
-    <section class="tournament-pro-page__checkin-panel tournament-pro-page__checkin-panel--requests">
-      <div class="tournament-pro-page__checkin-panel-header">
+    <section class="tournament-pro-page__checkin-panel tournament-pro-page__checkin-panel--requests participants-workspace__panel">
+      <div class="tournament-pro-page__checkin-panel-header participants-workspace__panel-header">
         <div>
-          <span class="tournament-pro-page__eyebrow">PASO 1 · SOLICITUDES</span>
+          <span class="tournament-pro-page__eyebrow">SOLICITUDES</span>
           <h3>Solicitudes de inscripción</h3>
-          <p>Acepta las solicitudes que quieras convertir en participantes. También puedes agregar participantes manualmente.</p>
         </div>
         <span class="tournament-pro-page__checkin-panel-count">${registrationCount} pendientes</span>
       </div>
@@ -91,23 +89,18 @@ export function renderTournamentProParticipants({
   `;
 
   const preparationMarkup = `
-    <div class="tournament-pro-page__checkin-preparation-grid">
+    <div class="tournament-pro-page__checkin-preparation-grid participants-workspace">
       ${requestsMarkup}
       ${participantListMarkup}
     </div>
-    <div class="tournament-pro-page__checkin-next-step">
+    <div class="tournament-pro-page__checkin-next-step participants-workspace__next-step">
       <div>
-        <span class="tournament-pro-page__eyebrow">SIGUIENTE PASO</span>
-        <strong>${participantsComplete ? "Participantes y estructura listos" : registered >= capacityValue ? "Falta completar la colocación en la estructura" : `Faltan ${Math.max(capacityValue - registered, 0)} participantes por registrar`}</strong>
-        <p>${participantsComplete ? "La competencia ya tiene la lista completa y los participantes están colocados en la estructura operativa." : "Puedes seguir registrando participantes y volver a Configuración cuando quieras preparar o ajustar la estructura."}</p>
+        <span class="tournament-pro-page__eyebrow">ESTADO DE PARTICIPANTES</span>
+        <strong>${participantsComplete ? "Participantes listos" : registered >= capacityValue ? "Participantes registrados" : `Faltan ${Math.max(capacityValue - registered, 0)} participantes`}</strong>
       </div>
-      <button type="button" data-workspace-view="configuration">
-        <i class="fa-solid fa-code-branch" aria-hidden="true"></i> Abrir configuración
-      </button>
+      <span class="participants-workspace__status-detail">${placementComplete ? "Colocación completada" : "La colocación se gestiona desde Configuración"}</span>
     </div>
   `;
-
-
 
   const checkInListMarkup = `
           <section class="tournament-pro-page__checkin-panel tournament-pro-page__checkin-panel--attendance">

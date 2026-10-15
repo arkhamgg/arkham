@@ -3478,8 +3478,17 @@
  * Configuration, Bracket and Matches share the existing Competition projection;
  * they are separated at the dashboard level without creating duplicate domain state.
  */
+.tournament-pro-page__workspace-entry--configuration {
+  border-color: rgba($color-red, .48) !important;
+}
 
+.tournament-pro-page__workspace-entry--bracket {
+  border-color: rgba($color-info, .42) !important;
+}
 
+.tournament-pro-page__workspace-entry--matches {
+  border-color: rgba($color-success, .42) !important;
+}
 
 .tournament-pro-page__competition-workspace--standalone {
   display: grid;
@@ -3546,6 +3555,10 @@
   transform: translateY(-1px);
 }
 
+.tournament-pro-page__workspace-entry--primary {
+  border-color: rgba(123, 63, 242, .48) !important;
+  background: linear-gradient(145deg, rgba(123, 63, 242, .10), $color-950 65%) !important;
+}
 
 .tournament-pro-page__workspace-entry-icon {
   display: grid;
@@ -4110,96 +4123,7 @@
    ARKHAM — Check-in flow V2
    Preparation → Check-in → Start
    ======================================== */
-.tournament-pro-page__checkin-preparation-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: $space-5;
-  align-items: start;
-}
-
-.tournament-pro-page__checkin-preparation-grid .tournament-pro-page__checkin-panel {
-  height: 100%;
-}
-
-.tournament-pro-page__checkin-panel-count {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 $space-3;
-  border: 1px solid $color-700;
-  border-radius: $radius-full;
-  color: $color-300;
-  background: $color-950;
-  font-size: $font-size-xs;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.tournament-pro-page__checkin-next-step {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $space-6;
-  margin-top: $space-5;
-  padding: $space-5 $space-6;
-  border: 1px solid $color-700;
-  border-radius: $radius-lg;
-  background: linear-gradient(90deg, rgba(123, 63, 242, .08), $color-950);
-}
-
-.tournament-pro-page__checkin-next-step > div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.tournament-pro-page__checkin-next-step strong {
-  color: $color-white;
-  font-size: $font-size-md;
-}
-
-.tournament-pro-page__checkin-next-step p {
-  margin: 0;
-  color: $color-300;
-  font-size: $font-size-sm;
-  line-height: 1.5;
-}
-
-.tournament-pro-page__checkin-next-step button {
-  flex: 0 0 auto;
-  min-width: 190px;
-  border-color: $color-red;
-  background: $color-red;
-  color: $color-white;
-  font-weight: 700;
-}
-
-.tournament-pro-page__checkin-next-step button:hover:not(:disabled) {
-  border-color: $color-red-light;
-  box-shadow: $glow-red-sm;
-}
-
-.tournament-pro-page__checkin-next-step button:disabled {
-  opacity: .45;
-  cursor: not-allowed;
-}
-
-@media (max-width: 1000px) {
-  .tournament-pro-page__checkin-preparation-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 650px) {
-  .tournament-pro-page__checkin-next-step {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .tournament-pro-page__checkin-next-step button {
-    width: 100%;
-  }
-}
+/* Participants workspace styles are isolated in pages/_participants-workspace.scss. */
 
 // ========================================
 // COMPETITION WORKSPACE V2
