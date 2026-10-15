@@ -2379,6 +2379,64 @@ function rebuildOpenBracketFromSlots(pro) {
   applyBracketByes(pro.bracket);
 }
 
+/**
+ * Updates the already-materialized declarative Match projection when a
+ * participant is replaced during check-in. The Structure Slots are updated
+ * first; this keeps the round.matches projection consumed by Tournament Pro
+ * in sync without regenerating the bracket or changing BYE policy.
+ */
+function syncDeclaredMatchesForParticipantReplacement(pro, previousParticipant, replacement, replacementEntry) {
+  if (!pro || !previousParticipant?.id || !replacement?.id) return;
+
+  const previousEntryId = Object.values(pro.entries || {}).find(
+    (entry) => entry?.legacyParticipantId === previousParticipant.id
+  )?.id || `entry_${previousParticipant.id}`;
+  const nextEntryId = replacementEntry?.id || `entry_${replacement.id}`;
+
+  (pro.phases || []).forEach((phase) => {
+    (phase?.structures || []).forEach((structure) => {
+      (structure?.rounds || []).forEach((round) => {
+        (round?.matches || []).forEach((match) => {
+          if ([MATCH_STATUS.COMPLETED, MATCH_STATUS.LIVE].includes(match?.status)) return;
+
+          const replaceSide = (side) => {
+            const participantKey = side === "A" ? "participantAId" : "participantBId";
+            const entryKey = side === "A" ? "entryAId" : "entryBId";
+            const currentId = match[participantKey];
+            const currentEntryId = match[entryKey];
+            const participantObject = match.participants?.[side];
+            const matchesPrevious = currentId === previousParticipant.id ||
+              currentEntryId === previousEntryId ||
+              participantObject?.participantId === previousParticipant.id ||
+              participantObject?.entryId === previousEntryId;
+
+            if (!matchesPrevious) return false;
+
+            match[participantKey] = replacement.id;
+            match[entryKey] = nextEntryId;
+            if (match.participants && typeof match.participants === "object") {
+              match.participants[side] = {
+                ...(participantObject || {}),
+                participantId: replacement.id,
+                entryId: nextEntryId,
+                displayName: replacement.displayName || "Participante",
+                seed: replacement.seed ?? participantObject?.seed ?? null
+              };
+            }
+            return true;
+          };
+
+          const changedA = replaceSide("A");
+          const changedB = replaceSide("B");
+          if (changedA || changedB) {
+            match.updatedAt = new Date().toISOString();
+          }
+        });
+      });
+    });
+  });
+}
+
 export async function replaceParticipantInSlot({
   tournamentId,
   eventId,
@@ -2482,6 +2540,7 @@ export async function replaceParticipantInSlot({
   }
 
   replacement.slotIds = [...replacementSlotIds];
+  syncDeclaredMatchesForParticipantReplacement(pro, currentParticipant, replacement, replacementEntry);
   rebuildOpenBracketFromSlots(pro);
 
   ensurePersistentEntry(pro, currentParticipant, { competitionId: eventId });
