@@ -20,13 +20,20 @@ import {
   ensureTournamentProState,
   createParticipant,
   syncBracketSlotsWithEntries,
-  createCompetitionEntry,
   generateBracket as buildBracket,
   PARTICIPANT_STATUS,
   MATCH_STATUS,
   RECOGNITION_STATUS,
   TOURNAMENT_EVENT_STATUS
 } from "./tournamentPro.js";
+import {
+  mapParticipantStatusToEntryStatus,
+  ensurePersistentEntry,
+  resolveParticipantId,
+  getCompetitionCapacity,
+  isActiveParticipant,
+  getActiveCompetitionParticipants
+} from "./tournamentParticipantsDomain.js";
 import {
   startMatchCommand,
   applyMatchResultCommand,
@@ -79,66 +86,6 @@ import {
   validateRoundRobinResults
 } from "./competitionRoundRobin.js";
 
-function mapParticipantStatusToEntryStatus(status) {
-  switch (status) {
-    case PARTICIPANT_STATUS.CHECKED_IN:
-      return "checked_in";
-    case PARTICIPANT_STATUS.COMPETING:
-    case PARTICIPANT_STATUS.ADVANCED:
-      return "active";
-    case PARTICIPANT_STATUS.ELIMINATED:
-      return "eliminated";
-    case PARTICIPANT_STATUS.WITHDRAWN:
-    case PARTICIPANT_STATUS.NO_SHOW:
-      return "withdrawn";
-    case PARTICIPANT_STATUS.DQ:
-      return "dq";
-    default:
-      return "registered";
-  }
-}
-
-function ensurePersistentEntry(pro, participant, { competitionId = null } = {}) {
-  if (!participant?.id) return null;
-
-  pro.entries = pro.entries || {};
-
-  const existing = Object.values(pro.entries).find(
-    (entry) => entry?.legacyParticipantId === participant.id
-  );
-
-  const entry = existing || createCompetitionEntry({
-    competitionId,
-    participant
-  });
-
-  entry.competitionId = entry.competitionId || competitionId;
-  entry.entityType = participant.entityType || entry.entityType || "manual";
-  entry.entityId = participant.entityId ?? entry.entityId ?? null;
-  entry.displayName = participant.displayName || entry.displayName || "Participante";
-  entry.status = mapParticipantStatusToEntryStatus(participant.status);
-  entry.seed = participant.seed ?? null;
-  entry.registrationData = participant.registrationData ?? null;
-  entry.competitiveState = {
-    ...(entry.competitiveState || {}),
-    participantStatus: participant.status ?? null,
-    checkIn: participant.checkIn === true,
-    slotIds: Array.isArray(participant.slotIds) ? [...participant.slotIds] : [],
-    replacedByEntryId: participant.replacedByParticipantId
-      ? (
-        Object.values(pro.entries).find(
-          (candidate) => candidate?.legacyParticipantId === participant.replacedByParticipantId
-        )?.id || `entry_${participant.replacedByParticipantId}`
-      )
-      : null
-  };
-  entry.legacyParticipantId = participant.id;
-  entry.updatedAt = new Date().toISOString();
-
-  pro.entries[entry.id] = entry;
-  return entry;
-}
-
 function normalizeGameScoreValue(value) {
   const score = Number(value);
 
@@ -151,25 +98,6 @@ function normalizeGameScoreValue(value) {
 
 function cloneValue(value) {
   return JSON.parse(JSON.stringify(value));
-}
-
-function resolveParticipantId(pro, identifier) {
-  if (!identifier) return identifier;
-
-  if (pro?.participants?.[identifier]) {
-    return identifier;
-  }
-
-  const entry = pro?.entries?.[identifier];
-  if (entry?.legacyParticipantId && pro?.participants?.[entry.legacyParticipantId]) {
-    return entry.legacyParticipantId;
-  }
-
-  const entryByParticipant = Object.values(pro?.entries || {}).find(
-    (candidate) => candidate?.legacyParticipantId === identifier
-  );
-
-  return entryByParticipant?.legacyParticipantId || identifier;
 }
 
 export async function getTournamentProEvent(tournamentId, eventId) {
@@ -405,29 +333,6 @@ export async function syncCompetitionDomainStructureFromLegacyBracket({
 
   pro.phases = nextPhases;
   return savePro(tournamentId, eventId, event, pro);
-}
-
-function getCompetitionCapacity(pro, event) {
-  return Number(
-    pro?.capacity?.value ??
-    pro?.capacity ??
-    event?.capacity?.value ??
-    event?.capacity ??
-    0
-  );
-}
-
-function isActiveParticipant(participant) {
-  return ![
-    PARTICIPANT_STATUS.REJECTED,
-    PARTICIPANT_STATUS.WITHDRAWN,
-    PARTICIPANT_STATUS.NO_SHOW
-  ].includes(participant?.status);
-}
-
-function getActiveCompetitionParticipants(pro) {
-  return Object.values(pro?.participants || {})
-    .filter((participant) => isActiveParticipant(participant));
 }
 
 function invalidateMaterializedCompetitionProjection(pro, structure) {
