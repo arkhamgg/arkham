@@ -35,6 +35,14 @@ import {
   getActiveCompetitionParticipants
 } from "./tournamentParticipantsDomain.js";
 import {
+  getPresentCheckInParticipants,
+  assertCheckInIsOpen,
+  assertParticipantCanCheckIn,
+  assertEnoughPresentParticipants,
+  setCheckInOpenedState,
+  setCheckInCompletedState
+} from "./tournamentCheckInDomain.js";
+import {
   startMatchCommand,
   applyMatchResultCommand,
   getCompetitionEliminationRoundSpecs,
@@ -2625,28 +2633,10 @@ export async function setParticipantCheckIn({
   const pro = ensureTournamentProState(event);
   participantId = resolveParticipantId(pro, participantId);
 
-  if (!pro.checkIn.opened) {
-    throw new Error("El check-in todavía no está abierto.");
-  }
+  assertCheckInIsOpen(pro);
 
   const participant = pro.participants[participantId];
-
-  if (!participant) {
-    throw new Error("Participante no encontrado.");
-  }
-
-  if (
-    [
-      PARTICIPANT_STATUS.REJECTED,
-      PARTICIPANT_STATUS.WITHDRAWN
-    ].includes(participant.status)
-  ) {
-    throw new Error(
-      isReplacedParticipant(participant)
-        ? "Este participante ya fue reemplazado y está bloqueado."
-        : "Este participante no puede hacer check-in."
-    );
-  }
+  assertParticipantCanCheckIn(participant, isReplacedParticipant(participant));
 
   if (present && participant.status === PARTICIPANT_STATUS.NO_SHOW) {
     restoreParticipantToCompetitionStructures(pro, participant);
@@ -2966,19 +2956,11 @@ export async function setCheckInOpen({
       throw new Error("Prepara el bracket antes de abrir el check-in.");
     }
 
-    pro.checkIn.status = "open";
-    pro.checkIn.opened = true;
-    pro.checkIn.completed = false;
-    pro.checkIn.openedAt =
-      pro.checkIn.openedAt ||
-      new Date().toISOString();
+    setCheckInOpenedState(pro);
 
     pro.status = TOURNAMENT_EVENT_STATUS.CHECK_IN;
   } else {
-    if (!pro.checkIn.opened) {
-      throw new Error("El check-in no está abierto.");
-    }
-
+    assertCheckInIsOpen(pro, "El check-in no está abierto.");
     completeCheckInState(pro);
   }
 
@@ -2992,20 +2974,17 @@ export async function completeCheckIn({
 }) {
   const pro = ensureTournamentProState(event);
 
-  if (!pro.checkIn.opened) {
-    throw new Error("El check-in todavía no está abierto.");
-  }
+  assertCheckInIsOpen(pro);
 
   const readiness = getCompetitionPlacementReadiness(pro, event);
   if (readiness.structure && !readiness.prepared) {
     throw new Error("La estructura competitiva ya no está preparada para cerrar el check-in.");
   }
 
-  const presentParticipants = Object.values(pro.participants || {})
-    .filter((participant) => participant?.checkIn === true && participant?.status !== PARTICIPANT_STATUS.NO_SHOW && participant?.status !== PARTICIPANT_STATUS.WITHDRAWN);
-  if (presentParticipants.length < 2) {
-    throw new Error("Se necesitan al menos 2 participantes presentes para cerrar el check-in.");
-  }
+  assertEnoughPresentParticipants(
+    getPresentCheckInParticipants(pro),
+    "Se necesitan al menos 2 participantes presentes para cerrar el check-in."
+  );
 
   completeCheckInState(pro);
 
@@ -3154,12 +3133,7 @@ export async function setEventStatus({
       throw new Error("Prepara el bracket antes de abrir el check-in.");
     }
 
-    pro.checkIn.status = "open";
-    pro.checkIn.opened = true;
-    pro.checkIn.completed = false;
-    pro.checkIn.openedAt =
-      pro.checkIn.openedAt ||
-      new Date().toISOString();
+    setCheckInOpenedState(pro);
   }
 
   pro.status = status;
@@ -3932,14 +3906,7 @@ function completeCheckInState(pro) {
     applyBracketByes(pro.bracket);
   }
 
-  pro.checkIn.status =
-    "completed";
-
-  pro.checkIn.opened = true;
-  pro.checkIn.completed = true;
-
-  pro.checkIn.completedAt =
-    new Date().toISOString();
+  setCheckInCompletedState(pro);
 }
 
 function validateCanStartEvent(pro) {
@@ -3955,23 +3922,10 @@ function validateCanStartEvent(pro) {
     );
   }
 
-  const presentParticipants =
-    Object.values(
-      pro.participants || {}
-    ).filter(
-      (participant) =>
-        participant.checkIn === true &&
-        participant.status !==
-          PARTICIPANT_STATUS.NO_SHOW &&
-        participant.status !==
-          PARTICIPANT_STATUS.WITHDRAWN
-    );
-
-  if (presentParticipants.length < 2) {
-    throw new Error(
-      "Se necesitan al menos 2 participantes presentes para pasar a competencia."
-    );
-  }
+  assertEnoughPresentParticipants(
+    getPresentCheckInParticipants(pro),
+    "Se necesitan al menos 2 participantes presentes para pasar a competencia."
+  );
 }
 
 function setParticipantsCompeting(
